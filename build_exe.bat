@@ -25,8 +25,44 @@ if "%JAVA_HOME%"=="" (
     exit /b 1
 )
 
+where cmake >nul 2>nul
+if errorlevel 1 (
+    echo CMake is required to build the bundled Clang C++ backend.
+    exit /b 1
+)
+if "%LLVM_HOME%"=="" (
+    if exist "C:\Program Files\LLVM\lib\cmake\llvm\LLVMConfig.cmake" (
+        set "LLVM_HOME=C:\Program Files\LLVM"
+    ) else (
+        echo LLVM_HOME must point to the LLVM/Clang development installation used at build time.
+        exit /b 1
+    )
+)
+
+if exist "backend-src\cpp\build" rmdir /S /Q "backend-src\cpp\build"
+cmake -S "backend-src\cpp" -B "backend-src\cpp\build" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="%LLVM_HOME%"
+if errorlevel 1 exit /b 1
+cmake --build "backend-src\cpp\build" --config Release
+if errorlevel 1 exit /b 1
+if exist "backends\cpp" rmdir /S /Q "backends\cpp"
+mkdir "backends\cpp"
+if exist "backend-src\cpp\build\Release\kadoka-cpp-backend.exe" (
+    copy /Y "backend-src\cpp\build\Release\kadoka-cpp-backend.exe" "backends\cpp\kadoka-cpp-backend.exe" >nul
+) else (
+    copy /Y "backend-src\cpp\build\kadoka-cpp-backend.exe" "backends\cpp\kadoka-cpp-backend.exe" >nul
+)
+if errorlevel 1 exit /b 1
+if exist "%LLVM_HOME%\bin\*.dll" copy /Y "%LLVM_HOME%\bin\*.dll" "backends\cpp\" >nul
+if not exist "%LLVM_HOME%\lib\clang" (
+    echo Clang builtin resource headers not found under LLVM_HOME.
+    exit /b 1
+)
+mkdir "backends\cpp\lib"
+xcopy /E /I /Y "%LLVM_HOME%\lib\clang" "backends\cpp\lib\clang\" >nul
+if errorlevel 1 exit /b 1
+
 if exist "backends\java" rmdir /S /Q "backends\java"
-call call mvn -q -f "backend-src\java\pom.xml" package
+call mvn -q -f "backend-src\java\pom.xml" package
 if errorlevel 1 exit /b 1
 mkdir "backends\java"
 copy /Y "backend-src\java\target\kadoka-java-backend.jar" "backends\java\kadoka-java-backend.jar" >nul
