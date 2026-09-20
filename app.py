@@ -101,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     sequence_diagram.add_argument("--hide-duplicate-calls", action="store_true")
     sequence_diagram.add_argument("--show-returns", action="store_true")
     backend_smoke = sub.add_parser("backend-smoke", help=argparse.SUPPRESS)
-    backend_smoke.add_argument("language", choices=("gdscript", "csharp", "java"))
+    backend_smoke.add_argument("language", choices=("gdscript", "csharp", "java", "cpp"))
     args = parser.parse_args(arguments)
 
     if args.version:
@@ -182,6 +182,25 @@ def main(argv: list[str] | None = None) -> int:
             if smoke is None or "I" not in smoke.bases or smoke.type_parameters != ("T",):
                 return 1
             print(JavaParserSymbolSolverBackend.descriptor.backend_id)
+            return 0
+        if args.language == "cpp":
+            from Src.languages import CppClangToolingBackend
+
+            module = CppClangToolingBackend().parse(
+                "template <typename T> class Smoke { public: T run(T value) { return helper(value); } private: T helper(T value) { return value; } };\n",
+                "<backend-smoke.cpp>",
+            )
+            smoke = next(
+                (
+                    entity
+                    for entity in module.entities
+                    if entity.kind.value == "class" and entity.name == "Smoke"
+                ),
+                None,
+            )
+            if smoke is None or smoke.type_parameters != ("T",):
+                return 1
+            print(CppClangToolingBackend.descriptor.backend_id)
             return 0
 
     if args.command == "deployment":

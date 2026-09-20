@@ -119,6 +119,33 @@ jobs:
       - name: Run JavaParser conformance smoke
         run: python tools/java_backend_smoke.py java -jar backend-src/java/target/kadoka-java-backend.jar
 
+  cpp-backend:
+    name: Clang LibTooling C++ backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install LLVM/Clang development packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libclang-dev llvm-dev cmake ninja-build
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Configure Clang helper
+        run: cmake -S backend-src/cpp -B backend-src/cpp/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(llvm-config --prefix)"
+
+      - name: Build Clang helper
+        run: cmake --build backend-src/cpp/build --config Release
+
+      - name: Run Clang conformance smoke
+        run: python tools/cpp_backend_smoke.py backend-src/cpp/build/kadoka-cpp-backend
+
   oop-design:
     name: OOP design policy
     runs-on: ubuntu-latest

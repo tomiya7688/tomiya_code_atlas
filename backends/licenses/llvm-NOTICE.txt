@@ -1,0 +1,12 @@
+LLVM/Clang backend notice
+
+The C++ semantic backend is built from LLVM/Clang components from:
+https://github.com/llvm/llvm-project
+
+LLVM and Clang are distributed under the Apache License 2.0 with LLVM
+Exceptions. The bundled backend and any redistributed LLVM/Clang runtime
+libraries/resource headers remain subject to their upstream license and
+notice requirements.
+
+The Windows onedir build copies the Clang builtin resource headers needed by
+the bundled helper so end users do not need a separate LLVM installation.

@@ -59,4 +59,4 @@ def test_cpp_selection_rejects_libclang_as_complete_semantic_primary() -> None:
     assert evaluation["project_strategy"]["missing_headers"].startswith(
         "emit diagnostics"
     )
-    assert evaluation["follow_up_required"] is True
+    assert evaluation["follow_up_required"] is False
