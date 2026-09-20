@@ -230,63 +230,21 @@ class Visitor : public clang::RecursiveASTVisitor<Visitor> {
     if (decl == nullptr) {
       return true;
     }
-
-    const bool shouldCapture =
-        !decl->isImplicit() && decl->doesThisDeclarationHaveABody() &&
-        inMainFile(sourceManager_, decl->getLocation());
-
-    int entityIndex = -1;
-    if (shouldCapture) {
-      Entity entity;
-      entity.kind = llvm::isa<clang::CXXMethodDecl>(decl) ? "method" : "function";
-      entity.name = decl->getNameAsString();
-      entity.declarationKind =
-          llvm::isa<clang::CXXMethodDecl>(decl) ? "method" : "function";
-      entity.parent = parentName(decl->getDeclContext());
-      entity.symbolId = decl->getQualifiedNameAsString() + " " + decl->getType().getAsString();
-      auto lines = sourceLines(sourceManager_, decl->getSourceRange());
-      entity.line = lines.first;
-      entity.endLine = lines.second;
-
-      for (const auto *parameter : decl->parameters()) {
-        std::string rendered = parameter->getType().getAsString();
-        if (!parameter->getName().empty()) {
-          rendered += " " + parameter->getNameAsString();
-        }
-        entity.parameters.push_back(std::move(rendered));
-      }
-
-      if (const auto *method = llvm::dyn_cast<clang::CXXMethodDecl>(decl)) {
-        entity.visibility = accessName(method->getAccess());
-      }
-
-      if (const auto *functionTemplate = decl->getDescribedFunctionTemplate()) {
-        for (const auto *parameter : *functionTemplate->getTemplateParameters()) {
-          if (const auto *named = llvm::dyn_cast<clang::NamedDecl>(parameter)) {
-            auto name = named->getNameAsString();
-            if (!name.empty()) {
-              entity.typeParameters.push_back(name);
-            }
-          }
-        }
-      }
-
-      const auto returnType = decl->getReturnType().getAsString();
-      entity.isAsync =
-          returnType.find("future") != std::string::npos ||
-          returnType.find("task") != std::string::npos;
-
-      entities_.push_back(std::move(entity));
-      entityIndex = static_cast<int>(entities_.size() - 1);
-      functionStack_.push_back(entityIndex);
+    if (llvm::isa<clang::CXXMethodDecl>(decl)) {
+      return clang::RecursiveASTVisitor<Visitor>::TraverseFunctionDecl(decl);
     }
+    return traverseCallable(decl, "function", "function", clang::AS_none, [&]() {
+      return clang::RecursiveASTVisitor<Visitor>::TraverseFunctionDecl(decl);
+    });
+  }
 
-    bool result = clang::RecursiveASTVisitor<Visitor>::TraverseFunctionDecl(decl);
-
-    if (shouldCapture) {
-      functionStack_.pop_back();
+  bool TraverseCXXMethodDecl(clang::CXXMethodDecl *decl) {
+    if (decl == nullptr) {
+      return true;
     }
-    return result;
+    return traverseCallable(decl, "method", "method", decl->getAccess(), [&]() {
+      return clang::RecursiveASTVisitor<Visitor>::TraverseCXXMethodDecl(decl);
+    });
   }
 
   bool VisitCallExpr(clang::CallExpr *call) {
@@ -325,6 +283,61 @@ class Visitor : public clang::RecursiveASTVisitor<Visitor> {
   }
 
  private:
+  template <typename CallableDecl, typename TraverseFn>
+  bool traverseCallable(CallableDecl *decl, llvm::StringRef kind,
+                        llvm::StringRef declarationKind,
+                        clang::AccessSpecifier access, TraverseFn traverse) {
+    const bool shouldCapture =
+        !decl->isImplicit() && decl->doesThisDeclarationHaveABody() &&
+        inMainFile(sourceManager_, decl->getLocation());
+
+    if (!shouldCapture) {
+      return traverse();
+    }
+
+    Entity entity;
+    entity.kind = kind.str();
+    entity.name = decl->getNameAsString();
+    entity.declarationKind = declarationKind.str();
+    entity.parent = parentName(decl->getDeclContext());
+    entity.symbolId =
+        decl->getQualifiedNameAsString() + " " + decl->getType().getAsString();
+    entity.visibility = accessName(access);
+    auto lines = sourceLines(sourceManager_, decl->getSourceRange());
+    entity.line = lines.first;
+    entity.endLine = lines.second;
+
+    for (const auto *parameter : decl->parameters()) {
+      std::string rendered = parameter->getType().getAsString();
+      if (!parameter->getName().empty()) {
+        rendered += " " + parameter->getNameAsString();
+      }
+      entity.parameters.push_back(std::move(rendered));
+    }
+
+    if (const auto *functionTemplate = decl->getDescribedFunctionTemplate()) {
+      for (const auto *parameter : *functionTemplate->getTemplateParameters()) {
+        if (const auto *named = llvm::dyn_cast<clang::NamedDecl>(parameter)) {
+          auto name = named->getNameAsString();
+          if (!name.empty()) {
+            entity.typeParameters.push_back(name);
+          }
+        }
+      }
+    }
+
+    const auto returnType = decl->getReturnType().getAsString();
+    entity.isAsync =
+        returnType.find("future") != std::string::npos ||
+        returnType.find("task") != std::string::npos;
+
+    entities_.push_back(std::move(entity));
+    functionStack_.push_back(static_cast<int>(entities_.size() - 1));
+    const bool result = traverse();
+    functionStack_.pop_back();
+    return result;
+  }
+
   clang::ASTContext &context_;
   clang::SourceManager &sourceManager_;
   std::vector<Entity> &entities_;
