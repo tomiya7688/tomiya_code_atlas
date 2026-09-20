@@ -34,6 +34,14 @@ jobs:
           java-version: "25"
           cache: maven
 
+      - name: Ensure LLVM/Clang development package
+        shell: powershell
+        run: |
+          if (-not (Test-Path "C:\Program Files\LLVM\lib\cmake\llvm\LLVMConfig.cmake")) {
+            choco install llvm -y --no-progress
+          }
+          "LLVM_HOME=C:\Program Files\LLVM" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Install project and build tools
         run: py -3 -m pip install -e ".[test,exe]"
 
@@ -77,6 +85,10 @@ jobs:
             Write-Error "Private Java runtime not found: $javaRuntime"
             exit 1
           }
+          if (-not (Test-Path $cppBackend)) {
+            Write-Error "C++ backend not found: $cppBackend"
+            exit 1
+          }
           $manifest = Get-Content $backendManifest -Raw | ConvertFrom-Json
           if ($manifest.manifest_version -ne "1") {
             Write-Error "Unexpected backend manifest version: $($manifest.manifest_version)"
@@ -108,6 +120,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($javaOutput -notmatch "java-javaparser-symbol-solver-helper") {
             Write-Error "Java backend smoke failed: $javaOutput"
+            exit 1
+          }
+          $cppOutput = & $exe backend-smoke cpp
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($cppOutput -notmatch "cpp-clang-tooling-helper") {
+            Write-Error "C++ backend smoke failed: $cppOutput"
             exit 1
           }
 
