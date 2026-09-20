@@ -14,6 +14,7 @@ from .base import LanguageAdapter
 from .csharp import CSharpAdapter
 from .csharp_backend import CSharpRoslynBackend
 from .cpp import CppAdapter
+from .cpp_backend import CppClangToolingBackend
 from .gdscript import GDScriptAdapter
 from .gdscript_backend import GDScriptTreeSitterBackend
 from .gdscript_project import FilesystemGDScriptProjectResolver, GDScriptProjectResolver
@@ -28,6 +29,7 @@ __all__ = [
     "CSharpAdapter",
     "CSharpRoslynBackend",
     "CppAdapter",
+    "CppClangToolingBackend",
     "FilesystemGDScriptProjectResolver",
     "GDScriptAdapter",
     "GDScriptProjectResolver",
