@@ -51,6 +51,18 @@
         "licenses/javaparser-NOTICE.txt",
         "java/runtime/legal/"
       ]
+    },
+    {
+      "backend_id": "cpp-clang-tooling-helper",
+      "language": "cpp",
+      "kind": "helper",
+      "contract_version": "1",
+      "delivery": "native-clang-tooling-helper",
+      "path": "cpp/kadoka-cpp-backend.exe",
+      "resource_headers": "cpp/lib/clang/",
+      "licenses": [
+        "licenses/llvm-NOTICE.txt"
+      ]
     }
   ]
 }
