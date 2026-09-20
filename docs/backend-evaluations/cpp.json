@@ -5,7 +5,7 @@
   "selected_backend": {
     "backend_id": "cpp-clang-tooling-helper",
     "role": "primary-syntax-and-semantic",
-    "implementation_status": "selected-not-yet-integrated",
+    "implementation_status": "integrated",
     "source_repository": "llvm/llvm-project",
     "api": "Clang LibTooling / C++ AST",
     "kind": "helper",
@@ -75,10 +75,17 @@
     "Translation units with missing headers may still yield partial AST/diagnostics but symbol resolution can be incomplete.",
     "tree-sitter-cpp may be used later for malformed editor-buffer syntax fallback."
   ],
-  "follow_up_required": true,
+  "follow_up_required": false,
   "sources": [
     "https://github.com/llvm/llvm-project",
     "https://github.com/llvm/llvm-project/blob/main/clang/include/clang-c/Index.h",
     "https://github.com/tree-sitter/tree-sitter-cpp"
-  ]
+  ],
+  "integration": {
+    "python_host": "Src/languages/cpp_backend.py",
+    "helper_source": "backend-src/cpp/",
+    "manifest_path": "backends/manifest.json",
+    "ci_smoke": "tools/cpp_backend_smoke.py",
+    "compile_commands": "auto-detect from source path with conservative fallback"
+  }
 }
