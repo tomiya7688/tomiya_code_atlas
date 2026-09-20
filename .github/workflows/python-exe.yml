@@ -7,6 +7,7 @@ on:
       - "Src/**"
       - "config/**"
       - "backends/**"
+      - "backend-src/**"
       - "pyproject.toml"
       - "build_exe.bat"
       - ".github/workflows/python-exe.yml"
@@ -27,6 +28,12 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
       - name: Install project and build tools
         run: py -3 -m pip install -e ".[test,exe]"
 
@@ -35,7 +42,7 @@ jobs:
 
       - name: Build onedir app
         shell: cmd
-        run: build_exe.bat
+        run: call build_exe.bat
 
       - name: Smoke test app
         shell: powershell
@@ -44,6 +51,8 @@ jobs:
           $config = ".\dist\kadoka-code-atlas\config\kadoka-code-atlas.json"
           $backendManifest = ".\dist\kadoka-code-atlas\backends\manifest.json"
           $csharpBackend = ".\dist\kadoka-code-atlas\backends\csharp\kadoka-csharp-backend.exe"
+          $javaBackend = ".\dist\kadoka-code-atlas\backends\java\kadoka-java-backend.jar"
+          $javaRuntime = ".\dist\kadoka-code-atlas\backends\java\runtime\bin\java.exe"
           if (-not (Test-Path $exe)) {
             Write-Error "EXE not found: $exe"
             exit 1
@@ -58,6 +67,14 @@ jobs:
           }
           if (-not (Test-Path $csharpBackend)) {
             Write-Error "C# backend not found: $csharpBackend"
+            exit 1
+          }
+          if (-not (Test-Path $javaBackend)) {
+            Write-Error "Java backend not found: $javaBackend"
+            exit 1
+          }
+          if (-not (Test-Path $javaRuntime)) {
+            Write-Error "Private Java runtime not found: $javaRuntime"
             exit 1
           }
           $manifest = Get-Content $backendManifest -Raw | ConvertFrom-Json
@@ -85,6 +102,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($csharpOutput -notmatch "csharp-roslyn-helper") {
             Write-Error "C# backend smoke failed: $csharpOutput"
+            exit 1
+          }
+          $javaOutput = & $exe backend-smoke java
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($javaOutput -notmatch "java-javaparser-symbol-solver-helper") {
+            Write-Error "Java backend smoke failed: $javaOutput"
             exit 1
           }
 

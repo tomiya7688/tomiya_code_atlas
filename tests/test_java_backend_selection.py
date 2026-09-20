@@ -31,7 +31,7 @@ def test_java_backend_selection_records_helper_and_license_policy() -> None:
 
     assert selected["backend_id"] == "java-javaparser-symbol-solver-helper"
     assert selected["role"] == "primary-syntax-and-semantic"
-    assert selected["implementation_status"] == "selected-not-yet-integrated"
+    assert selected["implementation_status"] == "integrated"
     assert selected["external_jvm_required_at_runtime"] is False
     assert selected["external_jdk_required_at_runtime"] is False
     assert selected["license"].startswith("Apache-2.0")
@@ -49,4 +49,4 @@ def test_java_selection_prefers_semantics_over_syntax_only_backend() -> None:
     assert "resolves declarations" in candidates["javaparser-symbol-solver"]["symbol_resolution"]
     assert candidates["tree-sitter-java"]["status"] == "fallback-candidate"
     assert candidates["tree-sitter-java"]["symbol_resolution"].startswith("syntax-only")
-    assert evaluation["follow_up_required"] is True
+    assert evaluation["follow_up_required"] is False

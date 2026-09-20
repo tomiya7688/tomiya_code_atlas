@@ -93,6 +93,32 @@ jobs:
       - name: Run Roslyn conformance smoke
         run: python tools/csharp_backend_smoke.py dotnet backend-src/csharp/bin/Release/net10.0/kadoka-csharp-backend.dll
 
+  java-backend:
+    name: JavaParser Symbol Solver backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Build JavaParser helper
+        run: mvn -q -f backend-src/java/pom.xml package
+
+      - name: Run JavaParser conformance smoke
+        run: python tools/java_backend_smoke.py java -jar backend-src/java/target/kadoka-java-backend.jar
+
   oop-design:
     name: OOP design policy
     runs-on: ubuntu-latest

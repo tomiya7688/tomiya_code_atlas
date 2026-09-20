@@ -19,6 +19,7 @@ from .gdscript_backend import GDScriptTreeSitterBackend
 from .gdscript_project import FilesystemGDScriptProjectResolver, GDScriptProjectResolver
 from .go import GoAdapter
 from .java import JavaAdapter
+from .java_backend import JavaParserSymbolSolverBackend
 from .python import PythonLanguageAdapter
 from .python_backend import PythonStdlibBackend
 from .python_comments_adapter import PythonAdapter
@@ -33,6 +34,7 @@ __all__ = [
     "GDScriptTreeSitterBackend",
     "GoAdapter",
     "JavaAdapter",
+    "JavaParserSymbolSolverBackend",
     "LanguageAdapter",
     "PARSER_BACKEND_CONTRACT_VERSION",
     "ParserBackend",

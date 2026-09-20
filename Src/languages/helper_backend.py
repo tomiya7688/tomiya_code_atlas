@@ -84,6 +84,10 @@ class JsonHelperBackend:
         self._app_root = app_root
         self._timeout_seconds = timeout_seconds
 
+    def helper_command(self, helper: Path) -> list[str]:
+        """Return the subprocess command for this helper asset."""
+        return [str(helper)]
+
     def parse(self, source: str, path: str | None = None) -> ModuleIR:
         helper = resolve_backend_asset(self.helper_relative_path, self._app_root)
         if not helper.is_file():
@@ -107,7 +111,7 @@ class JsonHelperBackend:
 
         try:
             completed = subprocess.run(
-                [str(helper)],
+                self.helper_command(helper),
                 input=json.dumps(request),
                 text=True,
                 encoding="utf-8",

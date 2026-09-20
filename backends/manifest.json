@@ -38,6 +38,19 @@
       "licenses": [
         "licenses/roslyn-LICENSE.txt"
       ]
+    },
+    {
+      "backend_id": "java-javaparser-symbol-solver-helper",
+      "language": "java",
+      "kind": "helper",
+      "contract_version": "1",
+      "delivery": "jar-plus-private-openjdk-runtime",
+      "path": "java/kadoka-java-backend.jar",
+      "runtime": "java/runtime/bin/java.exe",
+      "licenses": [
+        "licenses/javaparser-NOTICE.txt",
+        "java/runtime/legal/"
+      ]
     }
   ]
 }

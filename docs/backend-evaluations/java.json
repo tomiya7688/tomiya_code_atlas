@@ -5,7 +5,7 @@
   "selected_backend": {
     "backend_id": "java-javaparser-symbol-solver-helper",
     "role": "primary-syntax-and-semantic",
-    "implementation_status": "selected-not-yet-integrated",
+    "implementation_status": "integrated",
     "source_repository": "javaparser/javaparser",
     "api": "JavaParser + JavaSymbolSolver",
     "observed_release": "3.28.2",
@@ -84,10 +84,18 @@
     "Bundling a private JVM increases Windows onedir size but avoids a system Java requirement.",
     "tree-sitter-java remains a possible fallback for malformed editor buffers if tolerant parsing becomes a product requirement."
   ],
-  "follow_up_required": true,
+  "follow_up_required": false,
   "sources": [
     "https://github.com/javaparser/javaparser",
     "https://github.com/eclipse-jdt/eclipse.jdt.core",
     "https://github.com/tree-sitter/tree-sitter-java"
-  ]
+  ],
+  "integration": {
+    "python_host": "Src/languages/java_backend.py",
+    "helper_source": "backend-src/java/",
+    "manifest_path": "java/kadoka-java-backend.jar",
+    "private_runtime": "java/runtime/bin/java.exe",
+    "ci_smoke": "tools/java_backend_smoke.py",
+    "frozen_smoke": "kadoka-code-atlas.exe backend-smoke java"
+  }
 }
