@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Language- and platform-neutral contracts and intermediate representation for Kadoka Code Atlas.</Description>
+  </PropertyGroup>
+</Project>

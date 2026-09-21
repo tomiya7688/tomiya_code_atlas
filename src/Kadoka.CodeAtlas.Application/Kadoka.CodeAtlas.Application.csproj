@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Kadoka.CodeAtlas.Core/Kadoka.CodeAtlas.Core.csproj" />
+    <ProjectReference Include="../Kadoka.CodeAtlas.Languages/Kadoka.CodeAtlas.Languages.csproj" />
+    <ProjectReference Include="../Kadoka.CodeAtlas.Generators/Kadoka.CodeAtlas.Generators.csproj" />
+    <ProjectReference Include="../Kadoka.CodeAtlas.Renderers/Kadoka.CodeAtlas.Renderers.csproj" />
+    <ProjectReference Include="../Kadoka.CodeAtlas.Evaluators/Kadoka.CodeAtlas.Evaluators.csproj" />
+  </ItemGroup>
+</Project>

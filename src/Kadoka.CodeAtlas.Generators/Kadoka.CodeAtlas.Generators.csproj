@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Kadoka.CodeAtlas.Core/Kadoka.CodeAtlas.Core.csproj" />
+  </ItemGroup>
+</Project>
