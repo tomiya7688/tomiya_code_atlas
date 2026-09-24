@@ -1,7 +1,7 @@
 # Design Evaluation
 
 ## Goal
-Evaluate software design quality using structural information produced by Kadoka Code Atlas.
+Evaluate software design quality using structural information produced by Tomiya Code Atlas.
 
 A core project insight is that difficult-to-read generated diagrams can themselves reveal design problems. Evaluation should therefore use measurable graph/structure properties rather than visual appearance alone.
 

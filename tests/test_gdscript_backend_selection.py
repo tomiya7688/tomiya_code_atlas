@@ -54,7 +54,7 @@ def test_gdscript_selection_keeps_project_semantics_outside_tree_sitter() -> Non
     evaluation = json.loads(EVALUATION.read_text(encoding="utf-8"))
     semantic = evaluation["semantic_strategy"]
 
-    assert semantic["project_resolver"] == "Kadoka-owned Godot project semantic resolver"
+    assert semantic["project_resolver"] == "Tomiya-owned Godot project semantic resolver"
     assert semantic["godot_engine_helper"] == "not selected initially"
     assert "res:// path resolution" in semantic["responsibilities"]
     assert "class_name registry" in semantic["responsibilities"]
@@ -64,4 +64,4 @@ def test_gdscript_selection_keeps_project_semantics_outside_tree_sitter() -> Non
         for candidate in evaluation["candidates"]
         if candidate["id"] == "tree-sitter-gdscript"
     )
-    assert tree_sitter["symbol_resolution"] == "syntax-only; requires Kadoka semantic/project resolver"
+    assert tree_sitter["symbol_resolution"] == "syntax-only; requires Tomiya semantic/project resolver"

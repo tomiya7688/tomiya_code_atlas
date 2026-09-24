@@ -1,7 +1,7 @@
 #include <future>
 #include "support.hpp"
 
-#define KADOKA_TOUCH(value) helper(value)
+#define TOMIYA_TOUCH(value) helper(value)
 
 class BaseWorker {
 };
@@ -10,7 +10,7 @@ template <typename T>
 class Worker : public BaseWorker {
 public:
     T run(T item) {
-        KADOKA_TOUCH(item);
+        TOMIYA_TOUCH(item);
         helper(item);
         return item;
     }

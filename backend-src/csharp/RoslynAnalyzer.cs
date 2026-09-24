@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Kadoka.CodeAtlas.CSharpBackend;
+namespace Tomiya.CodeAtlas.CSharpBackend;
 
 internal sealed class RoslynAnalyzer
 {
@@ -17,7 +17,7 @@ internal sealed class RoslynAnalyzer
         CompilationUnitSyntax root = tree.GetCompilationUnitRoot();
 
         CSharpCompilation compilation = CSharpCompilation.Create(
-            assemblyName: "KadokaAnalysis",
+            assemblyName: "TomiyaAnalysis",
             syntaxTrees: [tree],
             references: FrameworkReferences(),
             options: new CSharpCompilationOptions(

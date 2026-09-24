@@ -15,7 +15,7 @@
     "redistribution": "bundle Python binding/parser native assets inside the existing Windows onedir distribution"
   },
   "semantic_strategy": {
-    "project_resolver": "Kadoka-owned Godot project semantic resolver",
+    "project_resolver": "Tomiya-owned Godot project semantic resolver",
     "responsibilities": [
       "res:// path resolution",
       "preload/load resource edges",
@@ -44,7 +44,7 @@
       "status": "selected-primary-syntax",
       "repository": "PrestonKnopp/tree-sitter-gdscript",
       "syntax_fidelity": "high; grammar explicitly models signal, class_name, extends, annotations, await, lambda and Godot-specific path/string constructs",
-      "symbol_resolution": "syntax-only; requires Kadoka semantic/project resolver",
+      "symbol_resolution": "syntax-only; requires Tomiya semantic/project resolver",
       "error_recovery": "tree-sitter error-tolerant incremental parsing",
       "maintenance": "active; observed commits through 2026-07-13",
       "packaging": "Python package/native parser can be bundled in onedir without requiring Godot installation",
@@ -67,7 +67,7 @@
       "syntax_fidelity": "authoritative parser and richest Godot-native type/parser model",
       "symbol_resolution": "best access to GDScript parser/type model when integrated with engine/project context",
       "error_recovery": "compiler/parser diagnostics available",
-      "packaging": "poor for Kadoka desktop use; parser is coupled to Godot engine core/cache/resource/script types",
+      "packaging": "poor for Tomiya desktop use; parser is coupled to Godot engine core/cache/resource/script types",
       "license": "MIT",
       "reason_not_selected": "would require shipping/maintaining a substantial Godot-derived helper or requiring Godot runtime; excessive for initial offline source analysis"
     },

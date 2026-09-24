@@ -1,6 +1,6 @@
 # UPD Commander Adoption
 
-Kadoka Code Atlas adopts the useful responsibility rules from `upd-commander-base-design` without making that repository or its naming conventions a runtime dependency. Normative rules live in `specification/architecture-policy.md`; this document explains their mapping.
+Tomiya Code Atlas adopts the useful responsibility rules from `upd-commander-base-design` without making that repository or its naming conventions a runtime dependency. Normative rules live in `specification/architecture-policy.md`; this document explains their mapping.
 
 ## Layer mapping
 

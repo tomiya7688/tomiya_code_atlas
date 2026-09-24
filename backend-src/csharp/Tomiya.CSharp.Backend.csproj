@@ -2,8 +2,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <AssemblyName>kadoka-csharp-backend</AssemblyName>
-    <RootNamespace>Kadoka.CodeAtlas.CSharpBackend</RootNamespace>
+    <AssemblyName>tomiya-csharp-backend</AssemblyName>
+    <RootNamespace>Tomiya.CodeAtlas.CSharpBackend</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>

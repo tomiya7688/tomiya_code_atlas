@@ -20,7 +20,7 @@ buffers, but it is not the semantic primary backend.
 
 ## Why Roslyn
 
-Kadoka needs more than a syntax tree for C#:
+Tomiya needs more than a syntax tree for C#:
 
 - symbol identity
 - overload resolution
@@ -37,7 +37,7 @@ reimplementing C# overload and type-resolution rules in Python.
 tree-sitter-c-sharp is a strong incremental syntax parser and remains useful as
 a future recovery/fallback option, but its own project explicitly encounters
 ambiguities that require semantic information to resolve. That is exactly the
-class of information Kadoka needs for reliable call/class diagrams.
+class of information Tomiya needs for reliable call/class diagrams.
 
 ## Fixture additions
 
@@ -60,7 +60,7 @@ Roslyn runs in a bundled .NET helper rather than in the Python process.
 
 ```text
 C# source/project
-  -> backends/csharp/kadoka-csharp-backend.exe
+  -> backends/csharp/tomiya-csharp-backend.exe
       -> Roslyn syntax trees + compilation + SemanticModel
       -> normalized wire DTO / Common IR facts
   -> Python Language Adapter boundary
@@ -78,7 +78,7 @@ Publish as a **self-contained win-x64 folder**, not as a single file:
 ```text
 backends/
   csharp/
-    kadoka-csharp-backend.exe
+    tomiya-csharp-backend.exe
     *.dll
     *.json
     .NET runtime files
@@ -91,7 +91,7 @@ dotnet publish -c Release -r win-x64 --self-contained true
 ```
 
 `PublishSingleFile` and trimming remain disabled initially. This minimizes
-Roslyn reflection/loading surprises and matches Kadoka's existing onedir
+Roslyn reflection/loading surprises and matches Tomiya's existing onedir
 distribution model. A self-contained .NET publish includes the required .NET
 runtime in the deployment folder, so the target machine does not need a
 separately installed .NET runtime.
@@ -101,7 +101,7 @@ separately installed .NET runtime.
 The initial helper should use `CSharpCompilation` directly instead of making
 `MSBuildWorkspace` a runtime requirement.
 
-- Kadoka project discovery supplies C# source files.
+- Tomiya project discovery supplies C# source files.
 - The helper creates syntax trees and a compilation.
 - Framework metadata references are obtained from the helper's own runtime.
 - Project/source references are resolved from discovered project inputs.
@@ -131,7 +131,7 @@ The selected backend is integrated by #150.
 - helper source: `backend-src/csharp/`
 - Python host: `Src/languages/csharp_backend.py`
 - shared subprocess protocol host: `Src/languages/helper_backend.py`
-- runtime path: `backends/csharp/kadoka-csharp-backend.exe`
+- runtime path: `backends/csharp/tomiya-csharp-backend.exe`
 - build: self-contained `win-x64`, not single-file, not trimmed
 - Linux CI: Roslyn helper build + #131 fixture semantic smoke
 - Windows CI: publish + PyInstaller onedir + frozen EXE C# backend smoke

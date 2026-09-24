@@ -1,6 +1,6 @@
 # Parser Backend Contract
 
-This specification defines the stable boundary for parser backends used by Kadoka Code Atlas language adapters. It applies to in-process libraries, native bindings, bundled helper executables, and subprocess parsers.
+This specification defines the stable boundary for parser backends used by Tomiya Code Atlas language adapters. It applies to in-process libraries, native bindings, bundled helper executables, and subprocess parsers.
 
 ## Contract version
 

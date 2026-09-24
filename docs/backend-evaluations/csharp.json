@@ -15,7 +15,7 @@
   },
   "helper_distribution": {
     "directory": "backends/csharp/",
-    "entrypoint": "kadoka-csharp-backend.exe",
+    "entrypoint": "tomiya-csharp-backend.exe",
     "publish_mode": "self-contained",
     "runtime_identifier": "win-x64",
     "publish_single_file": false,
@@ -61,7 +61,7 @@
   "helper_semantic_strategy": {
     "project_sources": "collect project C# sources and create Roslyn syntax trees/compilations",
     "framework_references": "derive runtime framework metadata references inside the self-contained helper",
-    "project_references": "resolve source/project references through Kadoka project discovery; do not require MSBuildWorkspace initially",
+    "project_references": "resolve source/project references through Tomiya project discovery; do not require MSBuildWorkspace initially",
     "unity_references": "use project-resolvable Unity assemblies when available; unresolved external symbols must remain explicitly unresolved",
     "common_ir_boundary": "only normalized Common IR/wire DTOs cross into the Python host"
   },
@@ -81,9 +81,9 @@
     "python_host": "Src/languages/csharp_backend.py",
     "shared_helper_host": "Src/languages/helper_backend.py",
     "helper_source": "backend-src/csharp/",
-    "manifest_path": "csharp/kadoka-csharp-backend.exe",
+    "manifest_path": "csharp/tomiya-csharp-backend.exe",
     "windows_delivery": "self-contained win-x64 folder copied into PyInstaller onedir",
     "ci_smoke": "tools/csharp_backend_smoke.py",
-    "frozen_smoke": "kadoka-code-atlas.exe backend-smoke csharp"
+    "frozen_smoke": "tomiya-code-atlas.exe backend-smoke csharp"
   }
 }

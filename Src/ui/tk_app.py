@@ -19,7 +19,7 @@ from Src.process.deployment_service import DeploymentAnalysisRequest, Deployment
 from Src.process.timing_service import TimingAnalysisRequest, TimingService
 from Src.process.use_case_service import UseCaseAnalysisRequest, UseCaseService
 
-PROJECT_NAME = "Kadoka Code Atlas"
+PROJECT_NAME = "Tomiya Code Atlas"
 
 _OPERATION_COMMENTS = "Generate comments"
 _OPERATION_CALL_GRAPH = "Call graph (Mermaid)"

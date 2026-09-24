@@ -27,7 +27,7 @@ def test_csharp_backend_descriptor_and_manifest_match_contract() -> None:
     assert descriptor.contract_version == manifest["parser_backend_contract_version"] == "1"
     assert entry["language"] == "csharp"
     assert entry["kind"] == "helper"
-    assert entry["path"] == "csharp/kadoka-csharp-backend.exe"
+    assert entry["path"] == "csharp/tomiya-csharp-backend.exe"
     assert "licenses/roslyn-LICENSE.txt" in entry["licenses"]
 
 

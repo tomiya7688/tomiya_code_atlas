@@ -1,4 +1,4 @@
-"""Dependency-light, bounded context tools for Kadoka Code Atlas.
+"""Dependency-light, bounded context tools for Tomiya Code Atlas.
 
 Outputs are indexes and working aids, never replacements for Issue/source/tests/docs.
 """
@@ -446,7 +446,7 @@ def _print_json(value: object) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Kadoka Code Atlas low-context toolbox")
+    parser = argparse.ArgumentParser(description="Tomiya Code Atlas low-context toolbox")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("profile", help="compact repository profile and context budget")
     docs = sub.add_parser("doc-index", help="compact Markdown heading index")

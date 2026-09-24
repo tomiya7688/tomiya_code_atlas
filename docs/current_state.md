@@ -21,7 +21,7 @@ This file is a compact snapshot of what is currently present in the repository. 
 - Language-specific parsing stays behind language adapters.
 - Common IR is the interchange boundary for language-independent analysis.
 - Analysis / generation / evaluation and output rendering remain separate responsibilities.
-- UI / Process / Data boundaries follow the Kadoka adaptation of UPD Commander Base Design.
+- UI / Process / Data boundaries follow the Tomiya adaptation of UPD Commander Base Design.
 - Commander and Messenger are orchestration/communication roles, not locations for real processing.
 - Mermaid is the default diagram output; other formats belong behind renderer boundaries.
 

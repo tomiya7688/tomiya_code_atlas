@@ -16,7 +16,7 @@
   },
   "helper_distribution": {
     "directory": "backends/java/",
-    "entrypoint": "kadoka-java-backend.jar",
+    "entrypoint": "tomiya-java-backend.jar",
     "launcher": "bundled private Java runtime",
     "protocol": "Parser Backend Contract v1 JSON",
     "stdout": "protocol-only",
@@ -36,7 +36,7 @@
       "incomplete_source_recovery": "parser problems can be returned, but not selected primarily for editor-buffer tolerant recovery",
       "maintenance": "active; commits observed in 2026 and latest release 3.28.2 on 2026-05-31",
       "packaging": "helper JAR plus bundled private Java runtime",
-      "license": "dual LGPL or Apache-2.0; Kadoka selects Apache-2.0 terms"
+      "license": "dual LGPL or Apache-2.0; Tomiya selects Apache-2.0 terms"
     },
     {
       "id": "eclipse-jdt-core",
@@ -49,7 +49,7 @@
       "maintenance": "very active",
       "packaging": "larger Eclipse/JDT integration surface and more complex standalone dependency/runtime setup",
       "license": "EPL-2.0",
-      "reason_not_selected": "semantic strength is high, but JavaParser has a smaller helper surface for Kadoka's standalone project analysis"
+      "reason_not_selected": "semantic strength is high, but JavaParser has a smaller helper surface for Tomiya's standalone project analysis"
     },
     {
       "id": "tree-sitter-java",
@@ -93,9 +93,9 @@
   "integration": {
     "python_host": "Src/languages/java_backend.py",
     "helper_source": "backend-src/java/",
-    "manifest_path": "java/kadoka-java-backend.jar",
+    "manifest_path": "java/tomiya-java-backend.jar",
     "private_runtime": "java/runtime/bin/java.exe",
     "ci_smoke": "tools/java_backend_smoke.py",
-    "frozen_smoke": "kadoka-code-atlas.exe backend-smoke java"
+    "frozen_smoke": "tomiya-code-atlas.exe backend-smoke java"
   }
 }

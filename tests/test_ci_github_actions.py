@@ -85,7 +85,7 @@ jobs:
     assert [job.name for job in workflow.jobs] == ["test"]
 
 
-def test_kadoka_ci_workflow_parses_as_regression_fixture() -> None:
+def test_tomiya_ci_workflow_parses_as_regression_fixture() -> None:
     source = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     workflow = parse_github_actions(source)
 

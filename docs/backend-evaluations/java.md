@@ -16,11 +16,11 @@ runtime: bundled private JVM
 ```
 
 The user must not be required to install a JDK, JRE, Maven or Gradle merely to
-run Kadoka analysis.
+run Tomiya analysis.
 
 ## Why JavaParser + Symbol Solver
 
-Kadoka needs more than Java syntax. Class/package diagrams and call/relationship
+Tomiya needs more than Java syntax. Class/package diagrams and call/relationship
 analysis benefit from resolved declarations, imports, inheritance/interfaces,
 generic types, overloads and lambdas.
 
@@ -48,7 +48,7 @@ The implementation follow-up should bundle:
 
 ```text
 backends/java/
-├─ kadoka-java-backend.jar
+├─ tomiya-java-backend.jar
 └─ runtime/
    └─ bin/java.exe
 ```
@@ -72,14 +72,14 @@ The helper should resolve, when available:
 - lambda/function-interface targets
 - dependency JARs/classpath entries
 
-Maven or Gradle metadata may help discover dependencies, but Kadoka should not
+Maven or Gradle metadata may help discover dependencies, but Tomiya should not
 require Maven/Gradle to be installed just to parse basic Java source. Missing
 external dependencies must become explicit unresolved facts rather than invented
 symbols.
 
 ## License
 
-JavaParser is offered under LGPL or Apache License 2.0 terms. Kadoka should use
+JavaParser is offered under LGPL or Apache License 2.0 terms. Tomiya should use
 the **Apache-2.0** option and preserve required notices.
 
 Eclipse JDT Core is EPL-2.0. tree-sitter-java is MIT.

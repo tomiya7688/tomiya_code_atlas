@@ -1,4 +1,4 @@
-"""Kadoka Code Atlas application entry point."""
+"""Tomiya Code Atlas application entry point."""
 from __future__ import annotations
 import argparse
 import sys
@@ -15,9 +15,9 @@ from Src.process.deployment_service import DeploymentAnalysisRequest, Deployment
 from Src.process.timing_service import TimingAnalysisRequest, TimingService
 from Src.process.use_case_service import UseCaseAnalysisRequest, UseCaseService
 from Src.data.files import write_text
-PROJECT_NAME = "Kadoka Code Atlas"
+PROJECT_NAME = "Tomiya Code Atlas"
 PROJECT_VERSION = "0.1.0"
-CONFIG_FILE_NAME = "kadoka-code-atlas.json"
+CONFIG_FILE_NAME = "tomiya-code-atlas.json"
 
 
 def _runtime_root() -> Path:

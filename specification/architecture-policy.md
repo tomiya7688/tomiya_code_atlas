@@ -1,4 +1,4 @@
-# Kadoka Code Atlas Architecture Policy
+# Tomiya Code Atlas Architecture Policy
 
 This document contains normative project rules. Explanatory background lives in `docs/`.
 
@@ -21,7 +21,7 @@ Automated checks must distinguish confirmed violations from warnings/review cand
 
 ## Required: UPD application boundary
 
-Kadoka applies the UI / Process / Data separation at application level.
+Tomiya applies the UI / Process / Data separation at application level.
 
 1. UI handles user input, presentation, launch flow, and display decisions.
 2. Process handles orchestration and language-independent analysis/generation/evaluation flow.

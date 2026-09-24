@@ -17,7 +17,7 @@ from Src.analyzers.ir_queries import qualified_name
 
 
 class PythonLanguageAdapter:
-    """Convert Python source into Kadoka Code Atlas' common IR."""
+    """Convert Python source into Tomiya Code Atlas' common IR."""
 
     language = "python"
 

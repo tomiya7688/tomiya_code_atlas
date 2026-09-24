@@ -26,51 +26,51 @@ if "%JAVA_HOME%"=="" (
 )
 
 if exist "backends\java" rmdir /S /Q "backends\java"
-call call mvn -q -f "backend-src\java\pom.xml" package
+call mvn -q -f "backend-src\java\pom.xml" package
 if errorlevel 1 exit /b 1
 mkdir "backends\java"
-copy /Y "backend-src\java\target\kadoka-java-backend.jar" "backends\java\kadoka-java-backend.jar" >nul
+copy /Y "backend-src\java\target\tomiya-java-backend.jar" "backends\java\tomiya-java-backend.jar" >nul
 if errorlevel 1 exit /b 1
 if exist "backends\java\runtime" rmdir /S /Q "backends\java\runtime"
 xcopy /E /I /Y "%JAVA_HOME%\*" "backends\java\runtime\" >nul
 if errorlevel 1 exit /b 1
 
 if exist "backends\csharp" rmdir /S /Q "backends\csharp"
-dotnet publish "backend-src\csharp\Kadoka.CSharp.Backend.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false -o "backends\csharp"
+dotnet publish "backend-src\csharp\Tomiya.CSharp.Backend.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false -o "backends\csharp"
 if errorlevel 1 exit /b 1
 
 %PYTHON% -m pip install -e ".[exe]"
 if errorlevel 1 exit /b 1
 
-%PYTHON% -m PyInstaller --onedir --clean --name kadoka-code-atlas -y app.py
+%PYTHON% -m PyInstaller --onedir --clean --name tomiya-code-atlas -y app.py
 if errorlevel 1 exit /b 1
 
 if exist "config" (
-    if not exist "dist\kadoka-code-atlas\config" mkdir "dist\kadoka-code-atlas\config"
-    xcopy /E /I /Y "config\*" "dist\kadoka-code-atlas\config\" >nul
+    if not exist "dist\tomiya-code-atlas\config" mkdir "dist\tomiya-code-atlas\config"
+    xcopy /E /I /Y "config\*" "dist\tomiya-code-atlas\config\" >nul
     if errorlevel 1 exit /b 1
 )
 
 if exist "backends" (
-    if not exist "dist\kadoka-code-atlas\backends" mkdir "dist\kadoka-code-atlas\backends"
-    xcopy /E /I /Y "backends\*" "dist\kadoka-code-atlas\backends\" >nul
+    if not exist "dist\tomiya-code-atlas\backends" mkdir "dist\tomiya-code-atlas\backends"
+    xcopy /E /I /Y "backends\*" "dist\tomiya-code-atlas\backends\" >nul
     if errorlevel 1 exit /b 1
 )
 
-if not exist "dist\kadoka-code-atlas\kadoka-code-atlas.exe" (
-    echo PyInstaller output missing: dist\kadoka-code-atlas\kadoka-code-atlas.exe
+if not exist "dist\tomiya-code-atlas\tomiya-code-atlas.exe" (
+    echo PyInstaller output missing: dist\tomiya-code-atlas\tomiya-code-atlas.exe
     exit /b 1
 )
-if not exist "dist\kadoka-code-atlas\backends\java\kadoka-java-backend.jar" (
+if not exist "dist\tomiya-code-atlas\backends\java\tomiya-java-backend.jar" (
     echo Bundled Java helper missing from onedir output.
     exit /b 1
 )
-if not exist "dist\kadoka-code-atlas\backends\java\runtime\bin\java.exe" (
+if not exist "dist\tomiya-code-atlas\backends\java\runtime\bin\java.exe" (
     echo Bundled private Java runtime missing from onedir output.
     exit /b 1
 )
 
 echo.
-echo App build completed: dist\kadoka-code-atlas\kadoka-code-atlas.exe
+echo App build completed: dist\tomiya-code-atlas\tomiya-code-atlas.exe
 endlocal
 exit /b 0

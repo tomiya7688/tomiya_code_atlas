@@ -17,7 +17,7 @@ class JavaParserSymbolSolverBackend(JsonHelperBackend):
         language="java",
         kind=ParserBackendKind.HELPER,
     )
-    helper_relative_path = "java/kadoka-java-backend.jar"
+    helper_relative_path = "java/tomiya-java-backend.jar"
 
     def helper_command(self, helper: Path) -> list[str]:
         runtime = resolve_backend_asset("java/runtime/bin/java.exe", self._app_root)

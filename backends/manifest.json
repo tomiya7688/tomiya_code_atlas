@@ -23,7 +23,7 @@
       "kind": "helper",
       "contract_version": "1",
       "delivery": "native-helper",
-      "path": "go/kadoka-go-backend.exe",
+      "path": "go/tomiya-go-backend.exe",
       "licenses": [
         "go/NOTICE.txt"
       ]
@@ -34,7 +34,7 @@
       "kind": "helper",
       "contract_version": "1",
       "delivery": "self-contained-dotnet-helper",
-      "path": "csharp/kadoka-csharp-backend.exe",
+      "path": "csharp/tomiya-csharp-backend.exe",
       "licenses": [
         "licenses/roslyn-LICENSE.txt"
       ]
@@ -45,7 +45,7 @@
       "kind": "helper",
       "contract_version": "1",
       "delivery": "jar-plus-private-openjdk-runtime",
-      "path": "java/kadoka-java-backend.jar",
+      "path": "java/tomiya-java-backend.jar",
       "runtime": "java/runtime/bin/java.exe",
       "licenses": [
         "licenses/javaparser-NOTICE.txt",

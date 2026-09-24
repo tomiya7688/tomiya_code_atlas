@@ -1,6 +1,6 @@
-# Kadoka Code Atlas
+# Tomiya Code Atlas
 
-Kadoka Code Atlas は、ソースコードの構造・振る舞い・依存関係・責務を解析し、図表・コメント・設計評価として可視化するためのツール群です。
+Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関係・責務を解析し、図表・コメント・設計評価として可視化するためのツール群です。
 
 目的は、コードを読む前に「何があるか」「どこから呼ばれるか」「何に依存するか」「どこが複雑か」を短時間で把握できる状態を作ることです。
 
@@ -71,19 +71,19 @@ app.py             # application entry point
 Windows配布物は PyInstaller `onedir` を使用します。設定や今後の外部リソースをEXE本体へ埋め込まず、配布ディレクトリ内で分離します。
 
 ```text
-kadoka-code-atlas/
-  kadoka-code-atlas.exe
+tomiya-code-atlas/
+  tomiya-code-atlas.exe
   config/
-    kadoka-code-atlas.json
-    kadoka-code-atlas.example.json
+    tomiya-code-atlas.json
+    tomiya-code-atlas.example.json
   _internal/
 ```
 
-実行時設定は `config/kadoka-code-atlas.json` を読みます。PyInstaller版ではEXEのあるディレクトリを基準にし、ソース実行時もリポジトリの `config/` を基準にします。
+実行時設定は `config/tomiya-code-atlas.json` を読みます。PyInstaller版ではEXEのあるディレクトリを基準にし、ソース実行時もリポジトリの `config/` を基準にします。
 
 ## Sequence diagram settings
 
-`config/kadoka-code-atlas.json` を編集すると起動時に読み込みます。設定例は `config/kadoka-code-atlas.example.json` を参照してください。
+`config/tomiya-code-atlas.json` を編集すると起動時に読み込みます。設定例は `config/tomiya-code-atlas.example.json` を参照してください。
 
 ```json
 {
