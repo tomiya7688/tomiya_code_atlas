@@ -1,0 +1,6 @@
+flowchart LR
+    n_Worker_run["Worker.run"]
+    n_finalize["finalize"]
+    n_transform["transform"]
+    n_Worker_run --> n_transform
+    n_transform --> n_finalize

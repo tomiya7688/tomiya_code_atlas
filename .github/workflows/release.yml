@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Install project and release build tools
+        run: py -3 -m pip install -e ".[test,exe]" build
+
+      - name: Match tag to package version
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $version = (Select-String -Path pyproject.toml -Pattern '^version = "([^"]+)"$').Matches[0].Groups[1].Value
+          if ($tag -ne "v$version") {
+            throw "Release tag $tag does not match pyproject version $version."
+          }
+
+      - name: Build and verify release candidate
+        shell: cmd
+        run: call verify_build.bat
+
+      - name: Archive verified Windows app directory
+        shell: pwsh
+        run: Compress-Archive -Path dist\tomiya-code-atlas -DestinationPath dist\tomiya-code-atlas-windows-x64.zip
+
+      - name: Publish verified release artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = @(
+            (Get-ChildItem dist -File -Filter "tomiya_code_atlas-*.whl").FullName
+            (Get-ChildItem dist -File -Filter "tomiya_code_atlas-*.tar.gz").FullName
+            (Get-Item dist\tomiya-code-atlas-windows-x64.zip).FullName
+          )
+          if ($files.Count -ne 3 -or $files -contains $null) {
+            throw "Expected one wheel, one source archive, and the verified Windows app archive."
+          }
+          gh release create $env:GITHUB_REF_NAME @files --verify-tag --generate-notes

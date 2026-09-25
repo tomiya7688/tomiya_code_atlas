@@ -10,6 +10,9 @@ on:
       - "backend-src/**"
       - "pyproject.toml"
       - "build_exe.bat"
+      - "tools/verify_distribution.py"
+      - "verify_build.bat"
+      - "tests/**"
       - ".github/workflows/python-exe.yml"
   workflow_dispatch:
 
@@ -110,6 +113,10 @@ jobs:
             Write-Error "Java backend smoke failed: $javaOutput"
             exit 1
           }
+
+      - name: Run packaged distribution E2E
+        shell: cmd
+        run: py -3 tools\verify_distribution.py --exe dist\tomiya-code-atlas\tomiya-code-atlas.exe --gui
 
       - name: Upload Windows app directory
         uses: actions/upload-artifact@v7
