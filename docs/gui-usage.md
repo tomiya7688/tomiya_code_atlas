@@ -1,6 +1,6 @@
 # Python GUI usage
 
-Kadoka Code Atlas の Python + PyInstaller 実装では、`app.py` または生成した `kadoka-code-atlas.exe` を引数なしで起動するとデスクトップGUIを開く。
+Tomiya Code Atlas の Python + PyInstaller 実装では、`app.py` または生成した `tomiya-code-atlas.exe` を引数なしで起動するとデスクトップGUIを開く。
 
 初期GUIで利用できる機能:
 

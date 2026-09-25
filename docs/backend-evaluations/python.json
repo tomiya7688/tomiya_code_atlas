@@ -47,11 +47,11 @@
     "Current Common IR is structural and already maps directly from stdlib ast.",
     "No extra runtime or native dependency is required for the Windows onedir distribution.",
     "symtable provides compiler scope data without leaking compiler-specific objects past the adapter boundary.",
-    "LibCST adds concrete-syntax fidelity that Kadoka does not currently consume enough to justify a primary-backend swap.",
+    "LibCST adds concrete-syntax fidelity that Tomiya does not currently consume enough to justify a primary-backend swap.",
     "tree-sitter-python is retained as a future fallback candidate for incomplete/editor-buffer source."
   ],
   "known_limits": [
-    "Syntax coverage follows the Python interpreter version used to run Kadoka.",
+    "Syntax coverage follows the Python interpreter version used to run Tomiya.",
     "The selected backend does not perform complete cross-module type, overload, or call-target inference.",
     "Incomplete source raises a normalized unsupported_syntax backend error."
   ],

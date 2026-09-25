@@ -1,4 +1,4 @@
-package dev.kadoka.backend;
+package dev.tomiya.backend;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParserConfiguration;

@@ -14,7 +14,7 @@ def test_cpp_fixture_exercises_template_macro_include_and_overload_cases() -> No
     for marker in (
         "#include <future>",
         '#include "support.hpp"',
-        "#define KADOKA_TOUCH(value)",
+        "#define TOMIYA_TOUCH(value)",
         "template <typename T>",
         "class Worker : public BaseWorker",
         "T helper(T item)",

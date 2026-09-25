@@ -16,7 +16,7 @@ The selected runtime backend ID is:
 python-stdlib-ast
 ```
 
-`PythonStdlibBackend` implements Kadoka's versioned `ParserBackend` contract
+`PythonStdlibBackend` implements Tomiya's versioned `ParserBackend` contract
 and is the route used by `ApplicationService`.
 
 ## Candidate comparison
@@ -35,19 +35,19 @@ more important than semantic resolution.
 
 ## Why the primary backend stays stdlib
 
-Kadoka's current Common IR consumes classes, functions, methods, inheritance,
+Tomiya's current Common IR consumes classes, functions, methods, inheritance,
 calls, objects, state/timing facts and imports. The stdlib adapter already maps
 those directly with no extra redistribution burden. Replacing it with a CST
 backend would increase conversion and packaging complexity without improving
 the fields currently consumed enough to justify the swap.
 
 This is not a claim that stdlib AST is universally the best Python parser.
-The choice is specifically for **the current Kadoka Common IR and packaged
+The choice is specifically for **the current Tomiya Common IR and packaged
 desktop tool**.
 
 ## Known limits
 
-1. Syntax support is bounded by the Python interpreter running Kadoka.
+1. Syntax support is bounded by the Python interpreter running Tomiya.
 2. stdlib AST/symtable do not provide complete cross-module type or call-target
    inference.
 3. Invalid/incomplete source is rejected; `PythonStdlibBackend` normalizes

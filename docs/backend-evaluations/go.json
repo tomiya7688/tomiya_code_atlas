@@ -15,7 +15,7 @@
   },
   "helper_distribution": {
     "directory": "backends/go/",
-    "entrypoint": "kadoka-go-backend.exe",
+    "entrypoint": "tomiya-go-backend.exe",
     "build": "compile helper in CI with Go, distribute the resulting native executable",
     "protocol": "Parser Backend Contract v1 JSON",
     "stdout": "protocol-only",
@@ -49,7 +49,7 @@
       "status": "not-selected-primary",
       "syntax_fidelity": "rich language-server analysis",
       "symbol_resolution": "strong workspace semantics",
-      "runtime_constraint": "workspace loading depends on Go tooling/module environment and protocol surface is larger than Kadoka needs",
+      "runtime_constraint": "workspace loading depends on Go tooling/module environment and protocol surface is larger than Tomiya needs",
       "packaging": "could bundle binary, but would still increase integration and toolchain/environment assumptions",
       "license": "BSD-style Go license"
     },
@@ -73,7 +73,7 @@
   ],
   "project_strategy": {
     "package_grouping": "group discovered .go files by directory/package declaration",
-    "internal_imports": "Kadoka project discovery resolves project-local source packages and feeds them to the helper importer",
+    "internal_imports": "Tomiya project discovery resolves project-local source packages and feeds them to the helper importer",
     "vendored_sources": "prefer discovered vendor/source trees when present",
     "external_imports": "unavailable external packages remain explicitly unresolved in self-contained mode",
     "toolchain_mode": "optionally enable go/packages only when a compatible Go toolchain is intentionally available; never silently require it",

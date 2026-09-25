@@ -35,7 +35,7 @@ def test_go_backend_selection_is_self_contained() -> None:
     assert selected["role"] == "primary-syntax-and-semantic"
     assert selected["external_go_toolchain_required_at_runtime"] is False
     assert selected["external_go_runtime_required"] is False
-    assert distribution["entrypoint"] == "kadoka-go-backend.exe"
+    assert distribution["entrypoint"] == "tomiya-go-backend.exe"
     assert distribution["protocol"] == "Parser Backend Contract v1 JSON"
 
 

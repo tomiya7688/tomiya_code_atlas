@@ -19,7 +19,7 @@ def test_java_backend_descriptor_and_manifest_match_contract() -> None:
     assert descriptor.backend_id == "java-javaparser-symbol-solver-helper"
     assert descriptor.language == "java"
     assert descriptor.kind is ParserBackendKind.HELPER
-    assert entry["path"] == "java/kadoka-java-backend.jar"
+    assert entry["path"] == "java/tomiya-java-backend.jar"
     assert entry["runtime"] == "java/runtime/bin/java.exe"
 
 

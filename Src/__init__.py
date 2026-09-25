@@ -1,1 +1,1 @@
-"""Kadoka Code Atlas core package."""
+"""Tomiya Code Atlas core package."""

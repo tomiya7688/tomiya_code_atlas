@@ -8,7 +8,7 @@ import pytest
 
 @pytest.mark.skipif(shutil.which("go") is None, reason="Go toolchain is optional for Python development")
 def test_go_stdlib_helper_emits_contract_v1_response(tmp_path: Path) -> None:
-    binary = tmp_path / ("kadoka-go-backend.exe" if __import__("os").name == "nt" else "kadoka-go-backend")
+    binary = tmp_path / ("tomiya-go-backend.exe" if __import__("os").name == "nt" else "tomiya-go-backend")
     subprocess.run(["go", "build", "-o", str(binary), "."], cwd="backends/go", check=True)
     request = {
         "contract_version": "1",

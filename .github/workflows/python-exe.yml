@@ -47,12 +47,12 @@ jobs:
       - name: Smoke test app
         shell: powershell
         run: |
-          $exe = ".\dist\kadoka-code-atlas\kadoka-code-atlas.exe"
-          $config = ".\dist\kadoka-code-atlas\config\kadoka-code-atlas.json"
-          $backendManifest = ".\dist\kadoka-code-atlas\backends\manifest.json"
-          $csharpBackend = ".\dist\kadoka-code-atlas\backends\csharp\kadoka-csharp-backend.exe"
-          $javaBackend = ".\dist\kadoka-code-atlas\backends\java\kadoka-java-backend.jar"
-          $javaRuntime = ".\dist\kadoka-code-atlas\backends\java\runtime\bin\java.exe"
+          $exe = ".\dist\tomiya-code-atlas\tomiya-code-atlas.exe"
+          $config = ".\dist\tomiya-code-atlas\config\tomiya-code-atlas.json"
+          $backendManifest = ".\dist\tomiya-code-atlas\backends\manifest.json"
+          $csharpBackend = ".\dist\tomiya-code-atlas\backends\csharp\tomiya-csharp-backend.exe"
+          $javaBackend = ".\dist\tomiya-code-atlas\backends\java\tomiya-java-backend.jar"
+          $javaRuntime = ".\dist\tomiya-code-atlas\backends\java\runtime\bin\java.exe"
           if (-not (Test-Path $exe)) {
             Write-Error "EXE not found: $exe"
             exit 1
@@ -88,7 +88,7 @@ jobs:
           }
           $output = & $exe --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if ($output -notmatch "Kadoka Code Atlas") {
+          if ($output -notmatch "Tomiya Code Atlas") {
             Write-Error "Unexpected EXE output: $output"
             exit 1
           }
@@ -114,6 +114,6 @@ jobs:
       - name: Upload Windows app directory
         uses: actions/upload-artifact@v7
         with:
-          name: kadoka-code-atlas-windows-x64
-          path: dist/kadoka-code-atlas/**
+          name: tomiya-code-atlas-windows-x64
+          path: dist/tomiya-code-atlas/**
           if-no-files-found: error

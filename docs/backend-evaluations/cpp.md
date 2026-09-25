@@ -16,7 +16,7 @@ protocol: Parser Backend Contract v1 JSON
 Do not use libclang's C API as the primary semantic backend. The public
 `clang-c/Index.h` documentation explicitly states that the C interface is
 intended to remain relatively small/stable and will not expose all information
-stored in Clang's C++ AST. Kadoka's template/overload/call-target goals need the
+stored in Clang's C++ AST. Tomiya's template/overload/call-target goals need the
 richer compiler AST/Sema layer.
 
 tree-sitter-cpp remains an incomplete/editor-buffer syntax fallback candidate.
@@ -67,7 +67,7 @@ other compiler-native types remain below the Language Adapter/backend boundary.
 The helper should prefer `compile_commands.json` when available. That is the
 best source of the actual flags used for a translation unit.
 
-When no compilation database is available, Kadoka may use conservative
+When no compilation database is available, Tomiya may use conservative
 defaults and discovered include paths, but the result must be marked partial.
 Missing headers or unresolved symbols must remain unresolved instead of being
 fabricated.
@@ -81,14 +81,14 @@ Expected layout:
 ```text
 backends/
   cpp/
-    kadoka-cpp-backend.exe
+    tomiya-cpp-backend.exe
     clang/llvm runtime DLLs or statically linked equivalents
     lib/clang/<version>/include/...   # Clang builtin resource headers
 ```
 
 Bundling Clang itself does **not** solve all system/vendor header dependencies.
 For example, exact MSVC standard-library semantics may depend on headers from a
-toolchain/SDK that the analyzed project expects. Kadoka should still produce
+toolchain/SDK that the analyzed project expects. Tomiya should still produce
 partial structural results when possible and report missing configuration.
 
 ## License

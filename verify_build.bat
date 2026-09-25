@@ -10,7 +10,7 @@ if errorlevel 1 (
 set "PYTHON=python"
 where py >nul 2>nul
 if not errorlevel 1 ( set "WHEEL_PYTHON=py -3" ) else ( set "WHEEL_PYTHON=%PYTHON%" )
-set "VERIFY_DIR=%TEMP%\kadoka-code-atlas-verify-%RANDOM%"
+set "VERIFY_DIR=%TEMP%\tomiya-code-atlas-verify-%RANDOM%"
 mkdir "%VERIFY_DIR%" >nul 2>nul
 if errorlevel 1 exit /b 1
 
@@ -30,7 +30,7 @@ if errorlevel 1 exit /b 1
 
 call build_exe.bat
 if errorlevel 1 exit /b 1
-if not exist "dist\kadoka-code-atlas\kadoka-code-atlas.exe" (
+if not exist "dist\tomiya-code-atlas\tomiya-code-atlas.exe" (
   echo [ERROR] EXE was not generated.
   exit /b 1
 )
@@ -45,7 +45,7 @@ if not exist "dist\kadoka-code-atlas\kadoka-code-atlas.exe" (
 >>"%VERIFY_DIR%\workflow.yml" echo       - name: pytest
 >>"%VERIFY_DIR%\workflow.yml" echo         run: pytest
 
-"dist\kadoka-code-atlas\kadoka-code-atlas.exe" comment "%VERIFY_DIR%\sample.py" >"%VERIFY_DIR%\comment.out"
+"dist\tomiya-code-atlas\tomiya-code-atlas.exe" comment "%VERIFY_DIR%\sample.py" >"%VERIFY_DIR%\comment.out"
 if errorlevel 1 exit /b 1
 findstr /c:"# Retrieves config." "%VERIFY_DIR%\comment.out" >nul
 if errorlevel 1 (
@@ -53,7 +53,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-"dist\kadoka-code-atlas\kadoka-code-atlas.exe" ci "%VERIFY_DIR%\workflow.yml" --output "%VERIFY_DIR%\ci.mmd"
+"dist\tomiya-code-atlas\tomiya-code-atlas.exe" ci "%VERIFY_DIR%\workflow.yml" --output "%VERIFY_DIR%\ci.mmd"
 if errorlevel 1 exit /b 1
 findstr /c:"flowchart LR" "%VERIFY_DIR%\ci.mmd" >nul
 if errorlevel 1 (

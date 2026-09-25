@@ -1,4 +1,4 @@
-# Kadoka Code Atlas — Agent Guide
+# Tomiya Code Atlas — Agent Guide
 
 ## Start here
 Read `AI_CONTEXT.md` first. It is the compact routing index.
@@ -6,7 +6,7 @@ Read `AI_CONTEXT.md` first. It is the compact routing index.
 If `.codex/next_issue.md` exists, treat that Issue as the active task. Do not fetch unrelated Issues unless the selected task requires them. Use `docs/responsibility_map.md` to find the initial source/test area and `specification/architecture-policy.md` for normative rules.
 
 ## Purpose
-Kadoka Code Atlas is a source-code analysis toolkit that generates diagrams, tables, comments, evaluations, and CI-oriented analysis results while keeping language-specific parsing, shared analysis, and output formats replaceable.
+Tomiya Code Atlas is a source-code analysis toolkit that generates diagrams, tables, comments, evaluations, and CI-oriented analysis results while keeping language-specific parsing, shared analysis, and output formats replaceable.
 
 ## Primary analysis targets
 - Python

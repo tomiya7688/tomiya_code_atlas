@@ -16,7 +16,7 @@ class CSharpRoslynBackend(JsonHelperBackend):
         language="csharp",
         kind=ParserBackendKind.HELPER,
     )
-    helper_relative_path = "csharp/kadoka-csharp-backend.exe"
+    helper_relative_path = "csharp/tomiya-csharp-backend.exe"
 
     def __init__(
         self,

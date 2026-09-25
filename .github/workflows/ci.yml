@@ -33,7 +33,7 @@ jobs:
 
       - name: Build Go parser helper
         working-directory: backends/go
-        run: go build -o kadoka-go-backend .
+        run: go build -o tomiya-go-backend .
 
       - name: Compile Python sources
         run: python -m compileall -q app.py Src tools tests
@@ -88,10 +88,10 @@ jobs:
           python-version: "3.12"
 
       - name: Build Roslyn helper
-        run: dotnet build backend-src/csharp/Kadoka.CSharp.Backend.csproj -c Release
+        run: dotnet build backend-src/csharp/Tomiya.CSharp.Backend.csproj -c Release
 
       - name: Run Roslyn conformance smoke
-        run: python tools/csharp_backend_smoke.py dotnet backend-src/csharp/bin/Release/net10.0/kadoka-csharp-backend.dll
+        run: python tools/csharp_backend_smoke.py dotnet backend-src/csharp/bin/Release/net10.0/tomiya-csharp-backend.dll
 
   java-backend:
     name: JavaParser Symbol Solver backend
@@ -117,7 +117,7 @@ jobs:
         run: mvn -q -f backend-src/java/pom.xml package
 
       - name: Run JavaParser conformance smoke
-        run: python tools/java_backend_smoke.py java -jar backend-src/java/target/kadoka-java-backend.jar
+        run: python tools/java_backend_smoke.py java -jar backend-src/java/target/tomiya-java-backend.jar
 
   oop-design:
     name: OOP design policy

@@ -7,7 +7,7 @@ Example shape:
 
 ```text
 Class,Responsibility
-Kadoka,Holds Kadoka parameters
+Tomiya,Holds Tomiya parameters
 ```
 
 ## Analysis

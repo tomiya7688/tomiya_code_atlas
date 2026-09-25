@@ -34,3 +34,9 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local compiler and bundled runtime outputs
+/backend-src/csharp/bin/
+/backend-src/csharp/obj/
+/backend-src/java/target/
+/backends/java/

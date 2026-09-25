@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Kadoka.CodeAtlas.CSharpBackend;
+namespace Tomiya.CodeAtlas.CSharpBackend;
 
 internal sealed class BackendRequest
 {

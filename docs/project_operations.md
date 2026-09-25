@@ -1,6 +1,6 @@
 # Project Operations
 
-Kadoka Code Atlas uses GitHub Issues as the task ledger and defaults to `1 Issue ~= 1 PR`.
+Tomiya Code Atlas uses GitHub Issues as the task ledger and defaults to `1 Issue ~= 1 PR`.
 
 ## Standard flow
 ## Remote latest first
@@ -71,7 +71,7 @@ Stop broad exploration when Goal, Required, Acceptance, and the working set are 
 Large documents should be entered through heading search (`doc-index`) or bounded text search rather than unconditional full reads.
 
 ## Search-first / Read-second
-`context.bat search` and `path-find` are dependency-free bounded fallbacks. If `rg`, `fd`, IDE index, ctags, tree-sitter, or another stronger local tool is already available, it may be preferred; Kadoka must not require it for the basic workflow.
+`context.bat search` and `path-find` are dependency-free bounded fallbacks. If `rg`, `fd`, IDE index, ctags, tree-sitter, or another stronger local tool is already available, it may be preferred; Tomiya must not require it for the basic workflow.
 
 Search/index output selects source to read. It never replaces the source itself.
 
@@ -149,4 +149,4 @@ We do not maintain a second permanent full-repository analysis framework or an a
 
 ### UPD Commander Checker
 
-The CI and development workflow installs the Python UPD Commander Checker from the upstream repository at the pinned commit in `tools/requirements-upd.txt`, then runs `upd-commander-check .`. This generic UI/Process/Data check complements the Kadoka-specific `context.bat policy-check`; the checker is development-only and is not included in runtime or distribution dependencies.
+The CI and development workflow installs the Python UPD Commander Checker from the upstream repository at the pinned commit in `tools/requirements-upd.txt`, then runs `upd-commander-check .`. This generic UI/Process/Data check complements the Tomiya-specific `context.bat policy-check`; the checker is development-only and is not included in runtime or distribution dependencies.

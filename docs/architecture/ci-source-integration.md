@@ -1,6 +1,6 @@
 # CI / Source Analysis Integration
 
-Kadoka Code Atlas links CI structure to source analysis through conservative, language-neutral path hints. The CI analyzer does not open source files, resolve imports, or invoke language parsers.
+Tomiya Code Atlas links CI structure to source analysis through conservative, language-neutral path hints. The CI analyzer does not open source files, resolve imports, or invoke language parsers.
 
 ## Pipeline
 

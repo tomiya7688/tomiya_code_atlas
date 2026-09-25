@@ -1,5 +1,5 @@
 JavaParser is distributed under dual LGPL-3.0-or-later OR Apache-2.0 terms.
-Kadoka Code Atlas selects the Apache License 2.0 option for distribution.
+Tomiya Code Atlas selects the Apache License 2.0 option for distribution.
 Upstream project: https://github.com/javaparser/javaparser
 
 The bundled Java runtime is produced from an OpenJDK distribution. Its license and

@@ -53,7 +53,7 @@
   ],
   "helper_distribution": {
     "directory": "backends/cpp/",
-    "entrypoint": "kadoka-cpp-backend.exe",
+    "entrypoint": "tomiya-cpp-backend.exe",
     "protocol": "Parser Backend Contract v1 JSON",
     "bundled_assets": [
       "helper executable",

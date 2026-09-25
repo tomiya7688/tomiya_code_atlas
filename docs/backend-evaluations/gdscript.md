@@ -21,7 +21,7 @@ semantics must be layered separately behind the Language Adapter.
 
 ## Why tree-sitter-gdscript
 
-The grammar explicitly models the GDScript constructs Kadoka needs for a
+The grammar explicitly models the GDScript constructs Tomiya needs for a
 structural backend, including:
 
 - `signal`
@@ -58,7 +58,7 @@ Godot's own parser is authoritative and exposes concepts such as
 `DataType` model. That is attractive semantically.
 
 However, it is an internal C++ parser coupled to Godot cache, Resource,
-ScriptLanguage, Variant and other engine-core types. Shipping it as a Kadoka
+ScriptLanguage, Variant and other engine-core types. Shipping it as a Tomiya
 helper would mean maintaining a substantial Godot-derived executable/library,
 or requiring an installed Godot runtime. That conflicts with the current
 self-contained Windows onedir distribution goal.

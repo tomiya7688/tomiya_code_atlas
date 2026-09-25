@@ -1,4 +1,4 @@
-"""Renderers for Kadoka Code Atlas outputs."""
+"""Renderers for Tomiya Code Atlas outputs."""
 
 from .base import Renderer
 from .flowchart import render_flowchart

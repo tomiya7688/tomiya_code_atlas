@@ -1,6 +1,6 @@
 # AI Context
 
-Kadoka Code Atlas で AI が最初に読む小さい索引です。詳細仕様や履歴はここへ複製しません。
+Tomiya Code Atlas で AI が最初に読む小さい索引です。詳細仕様や履歴はここへ複製しません。
 
 ## Source of Truth
 - Current task / priority / unfinished work: GitHub Issues. `.codex/next_issue.md` があればその1件を優先する。
@@ -104,4 +104,4 @@ Use `docs/responsibility_map.md` or `context.bat role-map` before broad file dis
 
 Safe remote update は `remote-delta --ff` を明示した場合のみ許可し、dirty/diverged state では停止する。
 
-`ai-context-reducer` と `upd-commander-base-design` は設計参考元であり、Kadoka Code Atlas の実行時必須依存ではありません。
+`ai-context-reducer` と `upd-commander-base-design` は設計参考元であり、Tomiya Code Atlas の実行時必須依存ではありません。

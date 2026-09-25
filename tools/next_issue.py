@@ -13,7 +13,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO = "tomiya7688/kadoka_code_atlas"
+REPO = "tomiya7688/tomiya_code_atlas"
 OUTPUT = Path(".codex") / "next_issue.md"
 
 PRIORITY_LABELS = {
