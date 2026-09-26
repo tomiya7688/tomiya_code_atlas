@@ -1,0 +1,7 @@
+@startuml
+participant "Worker.run" as p_2c8b5a9cb7
+participant "transform" as p_dd8ce13ad1
+participant "finalize" as p_c983faa27b
+p_2c8b5a9cb7 -> p_dd8ce13ad1 : transform
+p_dd8ce13ad1 -> p_c983faa27b : finalize
+@enduml

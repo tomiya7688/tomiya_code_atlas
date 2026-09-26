@@ -1,0 +1,9 @@
+flowchart LR
+    n0["app\\n[compose]"]
+    n1[("db\\npostgres:17\\n[compose]")]
+    n0 -->|"depends_on [confirmed]"| n1
+    classDef confirmed stroke-width:2px;
+    classDef inferred stroke-dasharray:5 5;
+    classDef unknown stroke-dasharray:2 4;
+    class n0 confirmed;
+    class n1 confirmed;

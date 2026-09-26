@@ -1,0 +1,9 @@
+@startuml
+left to right direction
+class "Base" as c_077fe9c54e {
+}
+class "Worker" as c_99edd8c8e6 {
+  +run(self)
+}
+c_077fe9c54e <|-- c_99edd8c8e6
+@enduml

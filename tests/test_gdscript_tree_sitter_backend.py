@@ -101,3 +101,11 @@ def test_backend_manifest_registers_gdscript_tree_sitter() -> None:
 def test_backend_smoke_cli_loads_gdscript_native_parser(capsys) -> None:
     assert main(["backend-smoke", "gdscript"]) == 0
     assert "gdscript-tree-sitter" in capsys.readouterr().out
+
+
+def test_backend_smoke_cli_parses_supplied_gdscript_fixture(tmp_path, capsys) -> None:
+    source = tmp_path / "fixture.gd"
+    source.write_text("class_name LoadConfig\nextends RefCounted\nfunc load():\n    return true\n", encoding="utf-8")
+
+    assert main(["backend-smoke", "gdscript", "--source", str(source)]) == 0
+    assert "gdscript-tree-sitter" in capsys.readouterr().out

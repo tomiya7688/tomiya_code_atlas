@@ -16,16 +16,21 @@ if errorlevel 1 exit /b 1
 
 call build.bat
 if errorlevel 1 exit /b 1
-if not exist "dist\*.whl" (
+if not exist "dist\tomiya_code_atlas-*.whl" (
   echo [ERROR] Python wheel was not generated.
   exit /b 1
 )
-if not exist "dist\*.tar.gz" (
+if not exist "dist\tomiya_code_atlas-*.tar.gz" (
   echo [ERROR] Python source archive was not generated.
   exit /b 1
 )
-for %%W in (dist\*.whl) do set "WHEEL=%%~fW"
+set "WHEEL="
+for %%W in (dist\tomiya_code_atlas-*.whl) do set "WHEEL=%%~fW"
 %WHEEL_PYTHON% tools\verify_wheel.py "%WHEEL%"
+if errorlevel 1 exit /b 1
+set "SDIST="
+for %%S in (dist\tomiya_code_atlas-*.tar.gz) do set "SDIST=%%~fS"
+%WHEEL_PYTHON% tools\verify_wheel.py "%SDIST%"
 if errorlevel 1 exit /b 1
 
 call build_exe.bat
@@ -62,6 +67,8 @@ if errorlevel 1 (
 )
 
 %PYTHON% -m compileall -q Src tests
+if errorlevel 1 exit /b 1
+python tools\verify_distribution.py --exe dist\tomiya-code-atlas\tomiya-code-atlas.exe --gui
 if errorlevel 1 exit /b 1
 call context.bat policy-check
 if errorlevel 1 exit /b 1

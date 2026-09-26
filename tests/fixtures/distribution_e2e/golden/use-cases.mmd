@@ -1,0 +1,5 @@
+flowchart LR
+    actor1["User"]
+    uc1(["Save"])
+    actor1 -->|"self.save / command"| uc1
+    %% handler-chain: Window.on_save -> Window.persist

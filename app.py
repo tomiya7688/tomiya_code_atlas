@@ -102,6 +102,7 @@ def main(argv: list[str] | None = None) -> int:
     sequence_diagram.add_argument("--show-returns", action="store_true")
     backend_smoke = sub.add_parser("backend-smoke", help=argparse.SUPPRESS)
     backend_smoke.add_argument("language", choices=("gdscript", "csharp", "java"))
+    backend_smoke.add_argument("--source", help="Parse a real source fixture instead of the built-in smoke source.")
     args = parser.parse_args(arguments)
 
     if args.version:
@@ -125,65 +126,57 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "backend-smoke":
+        source_path = Path(args.source) if args.source else None
+        source_text = source_path.read_text(encoding="utf-8") if source_path else None
         if args.language == "gdscript":
             from Src.languages import GDScriptTreeSitterBackend
 
-            module = GDScriptTreeSitterBackend().parse(
-                "class_name Smoke\nextends RefCounted\nfunc run():\n    pass\n",
-                "<backend-smoke>",
-            )
-            if not any(entity.name == "Smoke" for entity in module.entities):
+            source = source_text or "class_name Smoke\nextends RefCounted\nfunc run():\n    pass\n"
+            module = GDScriptTreeSitterBackend().parse(source, str(source_path or "<backend-smoke>"))
+            expected = "LoadConfig" if source_path else "Smoke"
+            if not any(entity.name == expected for entity in module.entities):
                 return 1
             print(GDScriptTreeSitterBackend.descriptor.backend_id)
             return 0
         if args.language == "csharp":
             from Src.languages import CSharpRoslynBackend
 
-            module = CSharpRoslynBackend().parse(
+            source = source_text or (
                 "public interface I<T> { T Run(T value); }\n"
                 "public class Smoke<T> : I<T> {\n"
                 "    public T Run(T value) { return Helper(value); }\n"
                 "    private T Helper(T value) { return value; }\n"
-                "}\n",
-                "<backend-smoke.cs>",
+                "}\n"
             )
-            smoke = next(
-                (
-                    entity
-                    for entity in module.entities
-                    if entity.kind.value == "class" and entity.name == "Smoke"
-                ),
-                None,
-            )
-            if smoke is None or "I" not in smoke.bases or smoke.type_parameters != ("T",):
+            module = CSharpRoslynBackend().parse(source, str(source_path or "<backend-smoke.cs>"))
+            expected = "LoadConfig" if source_path else "Smoke"
+            target = next((entity for entity in module.entities if entity.kind.value == "class" and entity.name == expected), None)
+            if target is None:
+                return 1
+            if not source_path and ("I" not in target.bases or target.type_parameters != ("T",)):
                 return 1
             print(CSharpRoslynBackend.descriptor.backend_id)
             return 0
         if args.language == "java":
             from Src.languages import JavaParserSymbolSolverBackend
 
-            module = JavaParserSymbolSolverBackend().parse(
+            source = source_text or (
                 "package smoke;\n"
                 "interface I<T> { T run(T value); }\n"
                 "class Smoke<T> implements I<T> {\n"
                 "    public T run(T value) { return helper(value); }\n"
                 "    private T helper(T value) { return value; }\n"
-                "}\n",
-                "<backend-smoke.java>",
+                "}\n"
             )
-            smoke = next(
-                (
-                    entity
-                    for entity in module.entities
-                    if entity.kind.value == "class" and entity.name == "Smoke"
-                ),
-                None,
-            )
-            if smoke is None or "I" not in smoke.bases or smoke.type_parameters != ("T",):
+            module = JavaParserSymbolSolverBackend().parse(source, str(source_path or "<backend-smoke.java>"))
+            expected = "LoadConfig" if source_path else "Smoke"
+            target = next((entity for entity in module.entities if entity.kind.value == "class" and entity.name == expected), None)
+            if target is None:
+                return 1
+            if not source_path and ("I" not in target.bases or target.type_parameters != ("T",)):
                 return 1
             print(JavaParserSymbolSolverBackend.descriptor.backend_id)
             return 0
-
     if args.command == "deployment":
         deployment_service = DeploymentService()
         result = deployment_service.generate(
