@@ -36,9 +36,12 @@ jobs:
         shell: pwsh
         run: |
           $tag = $env:GITHUB_REF_NAME
-          $version = (Select-String -Path pyproject.toml -Pattern '^version = "([^"]+)"$').Matches[0].Groups[1].Value
+          $version = (& py -3 -c "from Src.version import __version__; print(__version__)").Trim()
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not read the canonical package version."
+          }
           if ($tag -ne "v$version") {
-            throw "Release tag $tag does not match pyproject version $version."
+            throw "Release tag $tag does not match package version $version."
           }
 
       - name: Build and verify release candidate
