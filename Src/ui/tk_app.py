@@ -43,21 +43,21 @@ from Src.process.operation_requirements import (
 PROJECT_NAME = "Tomiya Code Atlas"
 
 _OPERATION_LABELS = {
-    _OPERATION_COMMENTS: "コメントを生成",
-    _OPERATION_CALL_GRAPH: "コールグラフ（Mermaid）",
-    _OPERATION_CLASS_DIAGRAM: "クラス図",
-    _OPERATION_OBJECT_DIAGRAM: "オブジェクト図（Mermaid）",
-    _OPERATION_SEQUENCE_DIAGRAM: "シーケンス図",
-    _OPERATION_COMMUNICATION_DIAGRAM: "コミュニケーション図（Mermaid）",
-    _OPERATION_STATE_DIAGRAM: "状態遷移図（Mermaid）",
-    _OPERATION_PACKAGE_DIAGRAM: "パッケージ図（Mermaid）",
-    _OPERATION_COMPONENT_DIAGRAM: "コンポーネント図（Mermaid）",
-    _OPERATION_DEPLOYMENT_DIAGRAM: "デプロイメント図（Mermaid）",
-    _OPERATION_TIMING_CHART: "タイミングチャート（Mermaid）",
-    _OPERATION_USE_CASE_DIAGRAM: "ユースケース図（Mermaid）",
-    _OPERATION_RESPONSIBILITY: "クラス責務表",
-    _OPERATION_DESIGN_QUALITY: "設計品質レポート",
-    _OPERATION_CI: "GitHub Actions CI図",
+    _OPERATION_COMMENTS: "コードに説明コメントを追加",
+    _OPERATION_CALL_GRAPH: "関数・メソッドの呼び出し関係図",
+    _OPERATION_CLASS_DIAGRAM: "クラスの構成図",
+    _OPERATION_OBJECT_DIAGRAM: "オブジェクトの参照関係図",
+    _OPERATION_SEQUENCE_DIAGRAM: "処理が進む順番の図",
+    _OPERATION_COMMUNICATION_DIAGRAM: "オブジェクト間のやり取り図",
+    _OPERATION_STATE_DIAGRAM: "状態の変化を表す図",
+    _OPERATION_PACKAGE_DIAGRAM: "Pythonパッケージの構成図",
+    _OPERATION_COMPONENT_DIAGRAM: "Pythonコンポーネントの構成図",
+    _OPERATION_DEPLOYMENT_DIAGRAM: "配置・実行環境の構成図",
+    _OPERATION_TIMING_CHART: "処理時間のタイミング図",
+    _OPERATION_USE_CASE_DIAGRAM: "利用者と機能の関係図",
+    _OPERATION_RESPONSIBILITY: "クラスごとの役割一覧",
+    _OPERATION_DESIGN_QUALITY: "設計品質のチェック結果",
+    _OPERATION_CI: "GitHub Actionsの処理図",
 }
 
 
@@ -99,10 +99,13 @@ class AtlasTkApp:
         if configured_renderer not in {"mermaid", "plantuml"}:
             configured_renderer = "mermaid"
         self.path_var = tk.StringVar(value="未選択")
-        self.output_path_var = tk.StringVar(value=self.service.config.output_dir)
+        configured_output = Path(self.service.config.output_dir).expanduser()
+        self.output_path_var = tk.StringVar(
+            value=str(configured_output.resolve())
+        )
         self.language_var = tk.StringVar(value="言語：未選択")
         self.operation_var = tk.StringVar(value=_OPERATION_COMMENTS)
-        self.status_var = tk.StringVar(value="入力ファイルまたはプロジェクトを選択してください。")
+        self.status_var = tk.StringVar(value="① 解析するファイルまたはプロジェクトを選んでください。")
         self.renderer_var = tk.StringVar(value=configured_renderer)
         self.sequence_duplicate_var = tk.BooleanVar(
             value=sequence_settings["show_duplicate_calls"]
@@ -117,6 +120,7 @@ class AtlasTkApp:
         self.class_inheritance_var = tk.BooleanVar(value=True)
         self.class_uses_var = tk.BooleanVar(value=True)
         self.available_operation_ids = list(ALL_OPERATIONS)
+        self.operation_vars: dict[str, tk.BooleanVar] = {}
         self.last_run_succeeded = False
         self.last_error = ""
 
@@ -130,51 +134,48 @@ class AtlasTkApp:
         outer = ttk.Frame(self.root, padding=10)
         outer.pack(fill=tk.BOTH, expand=True)
 
-        chooser = ttk.Labelframe(outer, text="入力ファイル／プロジェクト", padding=6)
+        chooser = ttk.Labelframe(outer, text="① 解析するものを選ぶ", padding=6)
         chooser.pack(fill=tk.X)
         ttk.Label(chooser, textvariable=self.path_var).pack(side=tk.LEFT, fill=tk.X, expand=True)
-        ttk.Button(chooser, text="ファイルを選択（Alt+O）", command=self.open_file).pack(
+        ttk.Button(chooser, text="ファイルを選ぶ（Alt+O）", command=self.open_file).pack(
             side=tk.LEFT, padx=(8, 0)
         )
-        ttk.Button(chooser, text="フォルダーを選択（Alt+P）", command=self.open_folder).pack(
-            side=tk.LEFT, padx=(8, 0)
-        )
-
-        output_row = ttk.Labelframe(outer, text="出力先", padding=6)
-        output_row.pack(fill=tk.X, pady=(6, 0))
-        ttk.Entry(output_row, textvariable=self.output_path_var).pack(
-            side=tk.LEFT, fill=tk.X, expand=True
-        )
-        ttk.Button(output_row, text="参照…", command=self.choose_output_folder).pack(
+        ttk.Button(
+            chooser,
+            text="プロジェクトフォルダーを選ぶ（Alt+P）",
+            command=self.open_folder,
+        ).pack(
             side=tk.LEFT, padx=(8, 0)
         )
         ttk.Label(
             outer,
-            text="解析結果は指定フォルダー内の analysis_results に保存されます。",
+            text="ファイルを直接選ぶか、プロジェクトを選んで下の一覧から解析対象を選びます。",
         ).pack(anchor=tk.W, pady=(2, 0))
 
-        operations_frame = ttk.Labelframe(outer, text="実行する解析", padding=6)
+        operations_frame = ttk.Labelframe(outer, text="② 作りたい結果を選ぶ", padding=6)
         operations_frame.pack(fill=tk.X, pady=(6, 0))
         ttk.Label(
             operations_frame,
-            text="複数選択できます（Ctrl または Shift を押しながら選択）。対応する解析だけ表示します。",
+            text="必要な結果にチェックを付けてください。いくつでも選べます。",
         ).pack(anchor=tk.W)
-        operation_list_frame = ttk.Frame(operations_frame)
-        operation_list_frame.pack(fill=tk.X, pady=(4, 0))
-        self.operation_list = tk.Listbox(
-            operation_list_frame,
-            selectmode=tk.EXTENDED,
-            exportselection=False,
-            height=5,
-        )
-        operation_scroll = ttk.Scrollbar(
-            operation_list_frame, orient=tk.VERTICAL, command=self.operation_list.yview
-        )
-        self.operation_list.configure(yscrollcommand=operation_scroll.set)
-        self.operation_list.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        operation_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.operation_checks = ttk.Frame(operations_frame)
+        self.operation_checks.pack(fill=tk.X, pady=(4, 0))
         self._populate_operations(ALL_OPERATIONS, (_OPERATION_COMMENTS,))
-        self.operation_list.bind("<<ListboxSelect>>", self._on_operation_selected)
+
+        output_row = ttk.Labelframe(outer, text="③ 結果の保存場所", padding=6)
+        output_row.pack(fill=tk.X, pady=(6, 0))
+        ttk.Entry(output_row, textvariable=self.output_path_var).pack(
+            side=tk.LEFT, fill=tk.X, expand=True
+        )
+        ttk.Button(
+            output_row,
+            text="保存フォルダーを選ぶ…",
+            command=self.choose_output_folder,
+        ).pack(side=tk.LEFT, padx=(8, 0))
+        ttk.Label(
+            outer,
+            text="解析後に「解析結果を保存」を押すと、この場所に「解析結果」フォルダーを作成します。",
+        ).pack(anchor=tk.W, pady=(2, 0))
 
         controls = ttk.Frame(outer)
         controls.pack(fill=tk.X, pady=(10, 6))
@@ -190,7 +191,7 @@ class AtlasTkApp:
         ttk.Button(controls, text="解析を実行（Alt+R）", command=self.run_selected).pack(
             side=tk.LEFT, padx=(8, 0)
         )
-        ttk.Button(controls, text="出力先へ保存（Alt+S）", command=self.save_result).pack(
+        ttk.Button(controls, text="解析結果を保存（Alt+S）", command=self.save_result).pack(
             side=tk.LEFT, padx=(8, 0)
         )
 
@@ -244,11 +245,17 @@ class AtlasTkApp:
         pane = ttk.Panedwindow(outer, orient=tk.HORIZONTAL)
         pane.pack(fill=tk.BOTH, expand=True)
 
-        files_frame = ttk.Labelframe(pane, text="解析対象ファイル（クリックして切替）", padding=6)
+        files_frame = ttk.Labelframe(pane, text="解析対象ファイル", padding=6)
         result_frame = ttk.Labelframe(pane, text="生成結果／選択中の内容", padding=6)
         pane.add(files_frame, weight=1)
         pane.add(result_frame, weight=3)
 
+        ttk.Label(
+            files_frame,
+            text="プロジェクトを選んだ場合、ここから解析するファイルを選びます。",
+            wraplength=250,
+            justify=tk.LEFT,
+        ).pack(fill=tk.X, pady=(0, 4))
         self.file_list = tk.Listbox(files_frame, exportselection=False)
         file_scroll = ttk.Scrollbar(files_frame, orient=tk.VERTICAL, command=self.file_list.yview)
         self.file_list.configure(yscrollcommand=file_scroll.set)
@@ -278,27 +285,36 @@ class AtlasTkApp:
         selected: tuple[str, ...] | list[str] = (),
     ) -> None:
         self.available_operation_ids = list(operations)
-        self.operation_list.delete(0, tk.END)
-        for operation_id in self.available_operation_ids:
-            self.operation_list.insert(tk.END, _OPERATION_LABELS[operation_id])
+        for child in self.operation_checks.winfo_children():
+            child.destroy()
         selected_set = set(selected)
+        self.operation_vars = {}
         for index, operation_id in enumerate(self.available_operation_ids):
-            if operation_id in selected_set:
-                self.operation_list.selection_set(index)
+            variable = tk.BooleanVar(value=operation_id in selected_set)
+            self.operation_vars[operation_id] = variable
+            check = ttk.Checkbutton(
+                self.operation_checks,
+                text=_OPERATION_LABELS[operation_id],
+                variable=variable,
+                command=lambda selected_id=operation_id: self._on_operation_selected(
+                    selected_id
+                ),
+            )
+            check.grid(row=index // 2, column=index % 2, sticky=tk.W, padx=(0, 16))
+        self.operation_checks.columnconfigure(0, weight=1)
+        self.operation_checks.columnconfigure(1, weight=1)
         current = next((op for op in self.available_operation_ids if op in selected_set), None)
         if current is not None:
             self.operation_var.set(current)
 
-    def _on_operation_selected(self, _event: object) -> None:
-        selected = self._selected_operations()
-        if selected:
-            self.operation_var.set(selected[0])
+    def _on_operation_selected(self, operation_id: str) -> None:
+        self.operation_var.set(operation_id)
 
     def _selected_operations(self) -> tuple[str, ...]:
         return tuple(
-            self.available_operation_ids[index]
-            for index in self.operation_list.curselection()
-            if index < len(self.available_operation_ids)
+            operation_id
+            for operation_id in self.available_operation_ids
+            if self.operation_vars[operation_id].get()
         )
 
     def choose_output_folder(self) -> None:
@@ -342,7 +358,7 @@ class AtlasTkApp:
         self.base_path = base_path
         self.files = files
         self.current_file = None
-        self.path_var.set(str(base_path))
+        self.path_var.set(f"選択中：{base_path}")
         output_root = base_path if base_path.is_dir() else base_path.parent
         if not self.output_path_var.get().strip():
             self.output_path_var.set(str(output_root / "tomiya-code-atlas-output"))
@@ -372,6 +388,13 @@ class AtlasTkApp:
         self.current_file = self.files[index]
         language = self.service.detect_language(self.current_file)
         self.language_var.set(f"解析言語：{language}")
+        if self.base_path is not None and self.base_path.is_dir():
+            selected = self.current_file.relative_to(self.base_path)
+            self.path_var.set(
+                f"プロジェクト：{self.base_path}　／　解析対象：{selected}"
+            )
+        else:
+            self.path_var.set(f"解析対象：{self.current_file}")
         has_project_folder = self.base_path is not None and self.base_path.is_dir()
         allowed = compatible_operations(
             language=language,
@@ -444,11 +467,13 @@ class AtlasTkApp:
 
         self.last_outputs = tuple(combined)
         self.last_diagram_set = GuiOutputSet(self.last_outputs)
-        self.last_diagram_category = "analysis_results"
+        self.last_diagram_category = "解析結果"
         self.last_result = self._output_set_text(self.last_diagram_set)
         self.last_format = "bundle"
         self._show_output_set(self.last_diagram_set)
         status = f"解析完了：{len(completed)}件、生成ファイル：{len(combined)}件"
+        if combined:
+            status += "。保存するには「解析結果を保存」を押してください。"
         if failed:
             status += f"、失敗：{len(failed)}件"
             details = "\n".join(
@@ -709,7 +734,7 @@ class AtlasTkApp:
                 paths = self.service.save_output_collection(
                     output_root,
                     self.last_outputs,
-                    category="analysis_results",
+                    category="解析結果",
                 )
             else:
                 extension = {
@@ -720,13 +745,13 @@ class AtlasTkApp:
                     "source": self.current_file.suffix if self.current_file else ".txt",
                 }.get(self.last_format, ".txt")
                 name = self.current_file.stem if self.current_file else "analysis-result"
-                target = output_root / "analysis_results" / f"{name}{extension}"
+                target = output_root / "解析結果" / f"{name}{extension}"
                 self.service.save_text(target, self.last_result)
                 paths = (target,)
         except (OSError, ValueError) as exc:
             messagebox.showerror(PROJECT_NAME, f"解析結果を保存できませんでした。\n\n{exc}")
             return
-        self.status_var.set(f"{len(paths)}件の結果を保存しました：{output_root / 'analysis_results'}")
+        self.status_var.set(f"{len(paths)}件を保存しました：{output_root / '解析結果'}")
 
 
 def launch_gui(service: ApplicationService | None = None) -> None:
