@@ -176,7 +176,7 @@ jobs:
               dotnet restore "$project"
               echo "Checking OOP design for $project"
               dotnet run \
-                --project "$RUNNER_TEMP/oop-design-checker/src/frontends/cui/OopDesignChecker.Cui.csproj" \
+                --project "$RUNNER_TEMP/oop-design-checker/tools/oop-design-checker/src/frontends/cui/OopDesignChecker.Cui.csproj" \
                 -- "$project" \
                 --config "$GITHUB_WORKSPACE/oop-design-checker.json" \
                 --fail-on danger \
@@ -184,7 +184,7 @@ jobs:
             done
           else
             dotnet run \
-              --project "$RUNNER_TEMP/oop-design-checker/src/frontends/cui/OopDesignChecker.Cui.csproj" \
+              --project "$RUNNER_TEMP/oop-design-checker/tools/oop-design-checker/src/frontends/cui/OopDesignChecker.Cui.csproj" \
               -- . \
               --config "$GITHUB_WORKSPACE/oop-design-checker.json" \
               --fail-on danger \
