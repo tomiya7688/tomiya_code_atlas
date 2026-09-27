@@ -36,7 +36,7 @@ jobs:
         shell: pwsh
         run: |
           $tag = $env:GITHUB_REF_NAME
-          $version = (& py -3 -c "from Src.version import __version__; print(__version__)").Trim()
+          $version = (& python -c "from Src.version import __version__; print(__version__)").Trim()
           if ($LASTEXITCODE -ne 0) {
             throw "Could not read the canonical package version."
           }
