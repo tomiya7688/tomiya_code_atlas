@@ -50,7 +50,7 @@ jobs:
 
       - name: Archive verified Windows app directory
         shell: pwsh
-        run: Compress-Archive -Path dist\tomiya-code-atlas -DestinationPath dist\tomiya-code-atlas-windows-x64.zip
+        run: Compress-Archive -Path .build\dist\tomiya-code-atlas -DestinationPath .build\dist\tomiya-code-atlas-windows-x64.zip
 
       - name: Publish verified release artifacts
         shell: pwsh
@@ -58,9 +58,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $files = @(
-            (Get-ChildItem dist -File -Filter "tomiya_code_atlas-*.whl").FullName
-            (Get-ChildItem dist -File -Filter "tomiya_code_atlas-*.tar.gz").FullName
-            (Get-Item dist\tomiya-code-atlas-windows-x64.zip).FullName
+            (Get-ChildItem .build\packages -File -Filter "tomiya_code_atlas-*.whl").FullName
+            (Get-ChildItem .build\packages -File -Filter "tomiya_code_atlas-*.tar.gz").FullName
+            (Get-Item .build\dist\tomiya-code-atlas-windows-x64.zip).FullName
           )
           if ($files.Count -ne 3 -or $files -contains $null) {
             throw "Expected one wheel, one source archive, and the verified Windows app archive."

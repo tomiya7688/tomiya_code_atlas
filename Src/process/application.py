@@ -15,7 +15,7 @@ from Src.analyzers.package_dependencies import (
     build_package_dependency_graph,
 )
 from Src.data.files import read_text, write_text
-from Src.data.generated_outputs import save_generated_outputs
+from Src.data.generated_outputs import GeneratedOutputLike, save_generated_outputs
 from Src.data.project_files import detect_language, discover_supported_files
 from Src.evaluators import evaluate_ci
 from Src.evaluators.design_quality import (
@@ -404,6 +404,16 @@ class ApplicationService:
         category: str,
     ) -> tuple[Path, ...]:
         return save_generated_outputs(output_root, category, result.outputs)
+
+    def save_output_collection(
+        self,
+        output_root: Path,
+        outputs: tuple[GeneratedOutputLike, ...],
+        *,
+        category: str,
+    ) -> tuple[Path, ...]:
+        """Persist generated outputs through the shared Data boundary."""
+        return save_generated_outputs(output_root, category, outputs)
 
     def _diagram_renderer(self, renderer: str | None) -> str:
         normalized = (renderer or self.config.renderer).lower()

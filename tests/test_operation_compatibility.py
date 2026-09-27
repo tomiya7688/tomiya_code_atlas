@@ -63,7 +63,7 @@ def test_project_operations_require_folder_not_language():
         language="python",
         has_project_folder=True,
     )
-    assert is_operation_compatible(
+    assert not is_operation_compatible(
         OPERATION_COMPONENT_DIAGRAM,
         language="gdscript",
         has_project_folder=True,

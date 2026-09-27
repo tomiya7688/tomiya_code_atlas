@@ -25,52 +25,58 @@ if "%JAVA_HOME%"=="" (
     exit /b 1
 )
 
-if exist "backends\java" rmdir /S /Q "backends\java"
+if not exist ".build\backends" mkdir ".build\backends"
+if exist ".build\backends\java" rmdir /S /Q ".build\backends\java"
 call mvn -q -f "backend-src\java\pom.xml" package
 if errorlevel 1 exit /b 1
-mkdir "backends\java"
-copy /Y "backend-src\java\target\tomiya-java-backend.jar" "backends\java\tomiya-java-backend.jar" >nul
+mkdir ".build\backends\java"
+copy /Y "backend-src\java\target\tomiya-java-backend.jar" ".build\backends\java\tomiya-java-backend.jar" >nul
 if errorlevel 1 exit /b 1
-if exist "backends\java\runtime" rmdir /S /Q "backends\java\runtime"
-xcopy /E /I /Y "%JAVA_HOME%\*" "backends\java\runtime\" >nul
+if exist ".build\backends\java\runtime" rmdir /S /Q ".build\backends\java\runtime"
+xcopy /E /I /Y "%JAVA_HOME%\*" ".build\backends\java\runtime\" >nul
 if errorlevel 1 exit /b 1
 
-if exist "backends\csharp" rmdir /S /Q "backends\csharp"
-dotnet publish "backend-src\csharp\Tomiya.CSharp.Backend.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false -o "backends\csharp"
+if exist ".build\backends\csharp" rmdir /S /Q ".build\backends\csharp"
+dotnet publish "backend-src\csharp\Tomiya.CSharp.Backend.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false -o ".build\backends\csharp"
 if errorlevel 1 exit /b 1
 
 %PYTHON% -m pip install -e ".[exe]"
 if errorlevel 1 exit /b 1
 
-%PYTHON% -m PyInstaller --onedir --clean --name tomiya-code-atlas -y app.py
+if not exist ".build\dist" mkdir ".build\dist"
+if not exist ".build\pyinstaller-work" mkdir ".build\pyinstaller-work"
+if not exist ".build\spec" mkdir ".build\spec"
+%PYTHON% -m PyInstaller --onedir --clean --name tomiya-code-atlas --distpath .build\dist --workpath .build\pyinstaller-work --specpath .build\spec -y app.py
 if errorlevel 1 exit /b 1
 
 if exist "config" (
-    if not exist "dist\tomiya-code-atlas\config" mkdir "dist\tomiya-code-atlas\config"
-    xcopy /E /I /Y "config\*" "dist\tomiya-code-atlas\config\" >nul
+    if not exist ".build\dist\tomiya-code-atlas\config" mkdir ".build\dist\tomiya-code-atlas\config"
+    xcopy /E /I /Y "config\*" ".build\dist\tomiya-code-atlas\config\" >nul
     if errorlevel 1 exit /b 1
 )
 
 if exist "backends" (
-    if not exist "dist\tomiya-code-atlas\backends" mkdir "dist\tomiya-code-atlas\backends"
-    xcopy /E /I /Y "backends\*" "dist\tomiya-code-atlas\backends\" >nul
+    if not exist ".build\dist\tomiya-code-atlas\backends" mkdir ".build\dist\tomiya-code-atlas\backends"
+    xcopy /E /I /Y "backends\*" ".build\dist\tomiya-code-atlas\backends\" >nul
     if errorlevel 1 exit /b 1
 )
+if exist ".build\backends" xcopy /E /I /Y ".build\backends\*" ".build\dist\tomiya-code-atlas\backends\" >nul
+if errorlevel 1 exit /b 1
 
-if not exist "dist\tomiya-code-atlas\tomiya-code-atlas.exe" (
-    echo PyInstaller output missing: dist\tomiya-code-atlas\tomiya-code-atlas.exe
+if not exist ".build\dist\tomiya-code-atlas\tomiya-code-atlas.exe" (
+    echo PyInstaller output missing: .build\dist\tomiya-code-atlas\tomiya-code-atlas.exe
     exit /b 1
 )
-if not exist "dist\tomiya-code-atlas\backends\java\tomiya-java-backend.jar" (
+if not exist ".build\dist\tomiya-code-atlas\backends\java\tomiya-java-backend.jar" (
     echo Bundled Java helper missing from onedir output.
     exit /b 1
 )
-if not exist "dist\tomiya-code-atlas\backends\java\runtime\bin\java.exe" (
+if not exist ".build\dist\tomiya-code-atlas\backends\java\runtime\bin\java.exe" (
     echo Bundled private Java runtime missing from onedir output.
     exit /b 1
 )
 
 echo.
-echo App build completed: dist\tomiya-code-atlas\tomiya-code-atlas.exe
+echo App build completed: .build\dist\tomiya-code-atlas\tomiya-code-atlas.exe
 endlocal
 exit /b 0

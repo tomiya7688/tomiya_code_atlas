@@ -16,26 +16,29 @@ if errorlevel 1 exit /b 1
 
 call build.bat
 if errorlevel 1 exit /b 1
-if not exist "dist\tomiya_code_atlas-*.whl" (
+for /f %%V in ('%PYTHON% -c "from Src.version import __version__; print(__version__)"') do set "PACKAGE_VERSION=%%V"
+if not defined PACKAGE_VERSION (
+  echo [ERROR] Could not read package version.
+  exit /b 1
+)
+set "WHEEL=.build\packages\tomiya_code_atlas-%PACKAGE_VERSION%-py3-none-any.whl"
+set "SDIST=.build\packages\tomiya_code_atlas-%PACKAGE_VERSION%.tar.gz"
+if not exist "%WHEEL%" (
   echo [ERROR] Python wheel was not generated.
   exit /b 1
 )
-if not exist "dist\tomiya_code_atlas-*.tar.gz" (
+if not exist "%SDIST%" (
   echo [ERROR] Python source archive was not generated.
   exit /b 1
 )
-set "WHEEL="
-for %%W in (dist\tomiya_code_atlas-*.whl) do set "WHEEL=%%~fW"
 %WHEEL_PYTHON% tools\verify_wheel.py "%WHEEL%"
 if errorlevel 1 exit /b 1
-set "SDIST="
-for %%S in (dist\tomiya_code_atlas-*.tar.gz) do set "SDIST=%%~fS"
 %WHEEL_PYTHON% tools\verify_wheel.py "%SDIST%"
 if errorlevel 1 exit /b 1
 
 call build_exe.bat
 if errorlevel 1 exit /b 1
-if not exist "dist\tomiya-code-atlas\tomiya-code-atlas.exe" (
+if not exist ".build\dist\tomiya-code-atlas\tomiya-code-atlas.exe" (
   echo [ERROR] EXE was not generated.
   exit /b 1
 )
@@ -50,7 +53,7 @@ if not exist "dist\tomiya-code-atlas\tomiya-code-atlas.exe" (
 >>"%VERIFY_DIR%\workflow.yml" echo       - name: pytest
 >>"%VERIFY_DIR%\workflow.yml" echo         run: pytest
 
-"dist\tomiya-code-atlas\tomiya-code-atlas.exe" comment "%VERIFY_DIR%\sample.py" >"%VERIFY_DIR%\comment.out"
+".build\dist\tomiya-code-atlas\tomiya-code-atlas.exe" comment "%VERIFY_DIR%\sample.py" >"%VERIFY_DIR%\comment.out"
 if errorlevel 1 exit /b 1
 findstr /c:"# Retrieves config." "%VERIFY_DIR%\comment.out" >nul
 if errorlevel 1 (
@@ -58,7 +61,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-"dist\tomiya-code-atlas\tomiya-code-atlas.exe" ci "%VERIFY_DIR%\workflow.yml" --output "%VERIFY_DIR%\ci.mmd"
+".build\dist\tomiya-code-atlas\tomiya-code-atlas.exe" ci "%VERIFY_DIR%\workflow.yml" --output "%VERIFY_DIR%\ci.mmd"
 if errorlevel 1 exit /b 1
 findstr /c:"flowchart LR" "%VERIFY_DIR%\ci.mmd" >nul
 if errorlevel 1 (
@@ -68,7 +71,7 @@ if errorlevel 1 (
 
 %PYTHON% -m compileall -q Src tests
 if errorlevel 1 exit /b 1
-python tools\verify_distribution.py --exe dist\tomiya-code-atlas\tomiya-code-atlas.exe --gui
+python tools\verify_distribution.py --exe .build\dist\tomiya-code-atlas\tomiya-code-atlas.exe --gui
 if errorlevel 1 exit /b 1
 call context.bat policy-check
 if errorlevel 1 exit /b 1

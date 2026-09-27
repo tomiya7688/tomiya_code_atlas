@@ -34,7 +34,7 @@ def save_generated_outputs(
     paths: list[Path] = []
     seen: set[Path] = set()
     for output in outputs:
-        extension = _EXTENSIONS.get(output.format, ".txt")
+        extension = getattr(output, "extension", None) or _EXTENSIONS.get(output.format, ".txt")
         relative_dir = getattr(output, "relative_dir", ())
         path = target.joinpath(*relative_dir) / f"{output.name}{extension}"
         if path in seen:

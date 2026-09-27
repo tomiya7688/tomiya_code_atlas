@@ -7,22 +7,22 @@ with the current file / project target before Run is pressed.
 
 from __future__ import annotations
 
-# Display labels must stay in sync with Src/ui/tk_app.py combobox values.
-OPERATION_COMMENTS = "Generate comments"
-OPERATION_CALL_GRAPH = "Call graph (Mermaid)"
-OPERATION_CLASS_DIAGRAM = "Class diagrams"
-OPERATION_OBJECT_DIAGRAM = "Object diagrams (Mermaid)"
-OPERATION_SEQUENCE_DIAGRAM = "Sequence diagrams"
-OPERATION_COMMUNICATION_DIAGRAM = "Communication diagrams (Mermaid)"
-OPERATION_STATE_DIAGRAM = "State diagrams (Mermaid)"
-OPERATION_PACKAGE_DIAGRAM = "Package diagrams (Mermaid)"
-OPERATION_COMPONENT_DIAGRAM = "Component diagrams (Mermaid)"
-OPERATION_DEPLOYMENT_DIAGRAM = "Deployment diagrams (Mermaid)"
-OPERATION_TIMING_CHART = "Timing charts (Mermaid)"
-OPERATION_USE_CASE_DIAGRAM = "Use case diagrams (Mermaid)"
-OPERATION_RESPONSIBILITY = "Class responsibility tables"
-OPERATION_DESIGN_QUALITY = "Design quality report"
-OPERATION_CI = "GitHub Actions CI graph"
+# These are stable operation IDs. Localized presentation labels belong to the UI.
+OPERATION_COMMENTS = "comments"
+OPERATION_CALL_GRAPH = "call_graph"
+OPERATION_CLASS_DIAGRAM = "class_diagram"
+OPERATION_OBJECT_DIAGRAM = "object_diagram"
+OPERATION_SEQUENCE_DIAGRAM = "sequence_diagram"
+OPERATION_COMMUNICATION_DIAGRAM = "communication_diagram"
+OPERATION_STATE_DIAGRAM = "state_diagram"
+OPERATION_PACKAGE_DIAGRAM = "package_diagram"
+OPERATION_COMPONENT_DIAGRAM = "component_diagram"
+OPERATION_DEPLOYMENT_DIAGRAM = "deployment_diagram"
+OPERATION_TIMING_CHART = "timing_chart"
+OPERATION_USE_CASE_DIAGRAM = "use_case_diagram"
+OPERATION_RESPONSIBILITY = "responsibility_table"
+OPERATION_DESIGN_QUALITY = "design_quality"
+OPERATION_CI = "ci_graph"
 
 ALL_OPERATIONS: tuple[str, ...] = (
     OPERATION_COMMENTS,
@@ -80,8 +80,11 @@ def is_operation_compatible(
     has_project_folder: bool,
 ) -> bool:
     """Return whether *operation* can run against the current selection context."""
-    if operation in PROJECT_FOLDER_OPERATIONS:
+    if operation == OPERATION_DEPLOYMENT_DIAGRAM:
         return has_project_folder
+
+    if operation in {OPERATION_PACKAGE_DIAGRAM, OPERATION_COMPONENT_DIAGRAM}:
+        return language == "python" and has_project_folder
 
     if operation == OPERATION_CI:
         return language == "yaml"
