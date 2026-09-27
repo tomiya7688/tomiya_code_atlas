@@ -38,7 +38,9 @@ jobs:
           cache: maven
 
       - name: Install project and build tools
-        run: py -3 -m pip install -e ".[test,exe]"
+        run: |
+          New-Item -ItemType Directory -Force .build/metadata | Out-Null
+          py -3 -m pip install -e ".[test,exe]"
 
       - name: Run tests
         run: py -3 -m pytest -q

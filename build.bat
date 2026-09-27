@@ -13,6 +13,7 @@ if %errorlevel%==0 (
 if errorlevel 1 exit /b 1
 
 if not exist ".build\packages" mkdir ".build\packages"
+if not exist ".build\metadata" mkdir ".build\metadata"
 %PYTHON% -m build --outdir .build\packages
 if errorlevel 1 exit /b 1
 

@@ -20,6 +20,9 @@ jobs:
       - name: Install build tooling
         run: python -m pip install --upgrade pip build
 
+      - name: Prepare build directories
+        run: mkdir -p .build/metadata .build/packages
+
       - name: Build package
         run: python -m build --outdir .build/packages
 

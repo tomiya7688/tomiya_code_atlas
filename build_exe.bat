@@ -40,6 +40,7 @@ if exist ".build\backends\csharp" rmdir /S /Q ".build\backends\csharp"
 dotnet publish "backend-src\csharp\Tomiya.CSharp.Backend.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false -o ".build\backends\csharp"
 if errorlevel 1 exit /b 1
 
+if not exist ".build\metadata" mkdir ".build\metadata"
 %PYTHON% -m pip install -e ".[exe]"
 if errorlevel 1 exit /b 1
 
