@@ -30,15 +30,20 @@ jobs:
           cache: maven
 
       - name: Install project and release build tools
-        run: py -3 -m pip install -e ".[test,exe]" build
+        run: |
+          New-Item -ItemType Directory -Force .build/metadata | Out-Null
+          py -3 -m pip install -e ".[test,exe]" build
 
       - name: Match tag to package version
         shell: pwsh
         run: |
           $tag = $env:GITHUB_REF_NAME
-          $version = (Select-String -Path pyproject.toml -Pattern '^version = "([^"]+)"$').Matches[0].Groups[1].Value
+          $version = (& python -c "from Src.version import __version__; print(__version__)").Trim()
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not read the canonical package version."
+          }
           if ($tag -ne "v$version") {
-            throw "Release tag $tag does not match pyproject version $version."
+            throw "Release tag $tag does not match package version $version."
           }
 
       - name: Build and verify release candidate
@@ -47,7 +52,7 @@ jobs:
 
       - name: Archive verified Windows app directory
         shell: pwsh
-        run: Compress-Archive -Path dist\tomiya-code-atlas -DestinationPath dist\tomiya-code-atlas-windows-x64.zip
+        run: Compress-Archive -Path .build\dist\tomiya-code-atlas -DestinationPath .build\dist\tomiya-code-atlas-windows-x64.zip
 
       - name: Publish verified release artifacts
         shell: pwsh
@@ -55,9 +60,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $files = @(
-            (Get-ChildItem dist -File -Filter "tomiya_code_atlas-*.whl").FullName
-            (Get-ChildItem dist -File -Filter "tomiya_code_atlas-*.tar.gz").FullName
-            (Get-Item dist\tomiya-code-atlas-windows-x64.zip).FullName
+            (Get-ChildItem .build\packages -File -Filter "tomiya_code_atlas-*.whl").FullName
+            (Get-ChildItem .build\packages -File -Filter "tomiya_code_atlas-*.tar.gz").FullName
+            (Get-Item .build\dist\tomiya-code-atlas-windows-x64.zip).FullName
           )
           if ($files.Count -ne 3 -or $files -contains $null) {
             throw "Expected one wheel, one source archive, and the verified Windows app archive."

@@ -12,9 +12,11 @@ if %errorlevel%==0 (
 %PYTHON% -m pip install --upgrade pip build
 if errorlevel 1 exit /b 1
 
-%PYTHON% -m build
+if not exist ".build\packages" mkdir ".build\packages"
+if not exist ".build\metadata" mkdir ".build\metadata"
+%PYTHON% -m build --outdir .build\packages
 if errorlevel 1 exit /b 1
 
 echo.
-echo Build completed. Artifacts are in dist\
+echo Build completed. Artifacts are in .build\packages\
 endlocal

@@ -15,8 +15,9 @@ from Src.process.deployment_service import DeploymentAnalysisRequest, Deployment
 from Src.process.timing_service import TimingAnalysisRequest, TimingService
 from Src.process.use_case_service import UseCaseAnalysisRequest, UseCaseService
 from Src.data.files import write_text
+from Src.version import __version__
 PROJECT_NAME = "Tomiya Code Atlas"
-PROJECT_VERSION = "0.1.0"
+PROJECT_VERSION = __version__
 CONFIG_FILE_NAME = "tomiya-code-atlas.json"
 
 

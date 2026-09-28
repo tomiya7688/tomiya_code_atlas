@@ -1,0 +1,3 @@
+prune .build
+exclude .build/metadata/tomiya_code_atlas.egg-info/*
+global-exclude *.egg-info/*

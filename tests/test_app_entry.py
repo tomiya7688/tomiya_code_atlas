@@ -1,13 +1,22 @@
 import sys
+import tomllib
 from pathlib import Path
 
 import app
 from app import _default_config_path, main
+from Src.version import __version__
 
 
 def test_version_does_not_require_gui(capsys):
     assert main(["--version"]) == 0
-    assert "Tomiya Code Atlas 0.1.0" in capsys.readouterr().out
+    assert f"Tomiya Code Atlas {app.PROJECT_VERSION}" in capsys.readouterr().out
+
+
+def test_package_version_comes_from_canonical_source():
+    pyproject = tomllib.loads((Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8"))
+    assert "version" in pyproject["project"]["dynamic"]
+    assert pyproject["tool"]["setuptools"]["dynamic"]["version"]["attr"] == "Src.version.__version__"
+    assert app.PROJECT_VERSION == __version__
 
 
 def test_source_config_lives_under_config_directory():

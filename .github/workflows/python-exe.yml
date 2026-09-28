@@ -38,7 +38,9 @@ jobs:
           cache: maven
 
       - name: Install project and build tools
-        run: py -3 -m pip install -e ".[test,exe]"
+        run: |
+          New-Item -ItemType Directory -Force .build/metadata | Out-Null
+          py -3 -m pip install -e ".[test,exe]"
 
       - name: Run tests
         run: py -3 -m pytest -q
@@ -50,12 +52,12 @@ jobs:
       - name: Smoke test app
         shell: powershell
         run: |
-          $exe = ".\dist\tomiya-code-atlas\tomiya-code-atlas.exe"
-          $config = ".\dist\tomiya-code-atlas\config\tomiya-code-atlas.json"
-          $backendManifest = ".\dist\tomiya-code-atlas\backends\manifest.json"
-          $csharpBackend = ".\dist\tomiya-code-atlas\backends\csharp\tomiya-csharp-backend.exe"
-          $javaBackend = ".\dist\tomiya-code-atlas\backends\java\tomiya-java-backend.jar"
-          $javaRuntime = ".\dist\tomiya-code-atlas\backends\java\runtime\bin\java.exe"
+          $exe = ".\.build\dist\tomiya-code-atlas\tomiya-code-atlas.exe"
+          $config = ".\.build\dist\tomiya-code-atlas\config\tomiya-code-atlas.json"
+          $backendManifest = ".\.build\dist\tomiya-code-atlas\backends\manifest.json"
+          $csharpBackend = ".\.build\dist\tomiya-code-atlas\backends\csharp\tomiya-csharp-backend.exe"
+          $javaBackend = ".\.build\dist\tomiya-code-atlas\backends\java\tomiya-java-backend.jar"
+          $javaRuntime = ".\.build\dist\tomiya-code-atlas\backends\java\runtime\bin\java.exe"
           if (-not (Test-Path $exe)) {
             Write-Error "EXE not found: $exe"
             exit 1
@@ -116,11 +118,11 @@ jobs:
 
       - name: Run packaged distribution E2E
         shell: cmd
-        run: py -3 tools\verify_distribution.py --exe dist\tomiya-code-atlas\tomiya-code-atlas.exe --gui
+        run: py -3 tools\verify_distribution.py --exe .build\dist\tomiya-code-atlas\tomiya-code-atlas.exe --gui
 
       - name: Upload Windows app directory
         uses: actions/upload-artifact@v7
         with:
           name: tomiya-code-atlas-windows-x64
-          path: dist/tomiya-code-atlas/**
+          path: .build/dist/tomiya-code-atlas/**
           if-no-files-found: error

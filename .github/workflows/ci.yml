@@ -23,6 +23,7 @@ jobs:
 
       - name: Install project and test tooling
         run: |
+          mkdir -p .build/metadata
           python -m pip install --upgrade pip
           python -m pip install -e ".[test]"
 
@@ -136,6 +137,7 @@ jobs:
             -not -path './.dev/*' \
             -not -path './build/*' \
             -not -path './dist/*' \
+            -not -path './.build/*' \
             -not -path './tests/*' \
             -print -quit | grep -q .; then
             echo "present=true" >> "$GITHUB_OUTPUT"
@@ -167,6 +169,7 @@ jobs:
               -not -path './.dev/*' \
               -not -path './build/*' \
               -not -path './dist/*' \
+              -not -path './.build/*' \
               -not -path './tests/*' \
               | sort
           )
@@ -176,7 +179,7 @@ jobs:
               dotnet restore "$project"
               echo "Checking OOP design for $project"
               dotnet run \
-                --project "$RUNNER_TEMP/oop-design-checker/src/frontends/cui/OopDesignChecker.Cui.csproj" \
+                --project "$RUNNER_TEMP/oop-design-checker/tools/oop-design-checker/src/frontends/cui/OopDesignChecker.Cui.csproj" \
                 -- "$project" \
                 --config "$GITHUB_WORKSPACE/oop-design-checker.json" \
                 --fail-on danger \
@@ -184,7 +187,7 @@ jobs:
             done
           else
             dotnet run \
-              --project "$RUNNER_TEMP/oop-design-checker/src/frontends/cui/OopDesignChecker.Cui.csproj" \
+              --project "$RUNNER_TEMP/oop-design-checker/tools/oop-design-checker/src/frontends/cui/OopDesignChecker.Cui.csproj" \
               -- . \
               --config "$GITHUB_WORKSPACE/oop-design-checker.json" \
               --fail-on danger \
