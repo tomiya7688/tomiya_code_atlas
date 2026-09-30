@@ -44,3 +44,46 @@ def test_documentation_links_resolve() -> None:
                 unresolved.append(f"{source.relative_to(ROOT)} -> {target}")
 
     assert unresolved == []
+
+
+def test_v1_user_guides_have_english_names_and_reciprocal_japanese_links() -> None:
+    docs = ROOT / "docs"
+    english_files = {
+        "README.md": docs / "en" / "README.md",
+        "Building.md": docs / "en" / "Building.md",
+        "GUI-Usage.md": docs / "en" / "GUI-Usage.md",
+        "CLI-Reference.md": docs / "en" / "CLI-Reference.md",
+    }
+    for name, path in english_files.items():
+        assert path.is_file(), name
+        assert not JAPANESE_CHARACTERS.search(path.stem), name
+
+    expected_links = {
+        "README.md": "../../README.md",
+        "Building.md": "../../README.md",
+        "GUI-Usage.md": "../jp/GUI操作ガイド.md",
+        "CLI-Reference.md": "../../README.md",
+    }
+    for name, japanese_source in expected_links.items():
+        assert japanese_source in english_files[name].read_text(encoding="utf-8"), name
+
+    japanese_readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for name in ("README.md", "Building.md", "GUI-Usage.md", "CLI-Reference.md"):
+        assert f"docs/en/{name}" in japanese_readme
+    japanese_gui = (docs / "jp" / "GUI操作ガイド.md").read_text(encoding="utf-8")
+    assert "../en/GUI-Usage.md" in japanese_gui
+
+
+def test_english_cli_guide_keeps_real_entrypoint_and_command_names() -> None:
+    guide = (ROOT / "docs" / "en" / "CLI-Reference.md").read_text(encoding="utf-8")
+    for command in (
+        "python app.py --help",
+        "python app.py comment",
+        "python app.py ci",
+        "python app.py call-graph",
+        "python app.py class-diagram",
+        "python app.py sequence-diagram",
+        "--output-dir",
+        "--in-place",
+    ):
+        assert command in guide

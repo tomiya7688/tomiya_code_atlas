@@ -1,5 +1,7 @@
 # GUIの使い方
 
+英語版: [GUI Usage](../en/GUI-Usage.md)
+
 Tomiya Code AtlasのPython + PyInstaller版は、`app.py` または生成済みの `tomiya-code-atlas.exe` を引数なしで起動するとデスクトップGUIを開きます。
 
 初期GUIで利用できる機能:
