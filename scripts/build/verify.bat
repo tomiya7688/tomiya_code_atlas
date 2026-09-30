@@ -1,9 +1,14 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableExtensions
 cd /d "%~dp0\..\.."
 
+if not exist ".build\temp" mkdir ".build\temp"
+set "TEMP=%CD%\.build\temp"
+set "TMP=%TEMP%"
+
 if not exist ".venv\Scripts\python.exe" (
-  echo [ERROR] Project build environment was not found. Run scripts\build\setup.bat first.
+  echo [エラー] Python環境がありません。scripts\build\setup.batを実行してください。
   exit /b 1
 )
 set "PYTHON=.venv\Scripts\python.exe"
@@ -95,5 +100,5 @@ if errorlevel 1 exit /b 1
 
 rmdir /s /q "%VERIFY_DIR%" >nul 2>nul
 echo.
-echo Build and verification completed successfully.
+echo buildと検証が完了しました。
 exit /b 0
