@@ -111,12 +111,11 @@ tomiya-code-atlas/
 
 開発元からクローンした場合は、次のツールをインストールします。
 
-- Python 3.12 x64: [Windows向けPython配布](https://www.python.org/downloads/windows/)。`py -3.12` または `python` コマンドで起動できるようにします。
+- Python 3.12 x64を推奨。Python 3.11以降も利用できます: [Windows向けPython配布](https://www.python.org/downloads/windows/)。`py -3.12` または `python` コマンドで起動できるようにします。
 - .NET SDK 10 x64: [.NET 10ダウンロード](https://dotnet.microsoft.com/download/dotnet/10.0)。
-- JDK 25 x64: [Eclipse Temurin 25](https://adoptium.net/temurin/releases/?version=25&os=windows&arch=x64&package=jdk)。インストール後、`JAVA_HOME`をJDKのフォルダーに設定します。
-- Apache Maven: [Windowsを含むインストール手順](https://maven.apache.org/install)。Mavenの`bin`をPATHへ追加します。
+- JDK 25 x64: [Eclipse Temurin 25](https://adoptium.net/temurin/releases/?version=25&os=windows&arch=x64&package=jdk)。`JAVA_HOME`を設定するか、JDKの`bin`をPATHへ追加します。
 
-Python Launcher (`py`) がない場合は、`python` コマンドでPython 3.12が起動するようPATHを設定してください。リポジトリのルートで配布EXEを作るときは `build_exe.bat` を実行します。このバッチは `.venv` がなければ `scripts\build\setup.bat` を呼び出して準備します。
+Python Launcher (`py`) にPython 3.12がない場合は、`python` コマンドでPython 3.11以降が起動するようPATHを設定してください。リポジトリのルートで配布EXEを作るときは `build_exe.bat` を実行します。このバッチは `.venv` がなければ `scripts\build\setup.bat` を呼び出して準備します。Apache MavenはPATHに見つからない場合、公式配布物を取得して `.build\tools\` 内に準備します（初回のみネットワーク接続が必要です）。
 
 ```bat
 build_exe.bat
@@ -129,14 +128,12 @@ run_dist.bat
 
 `scripts\build\package.bat` はPython wheelとsource archiveを `.build\packages\` に作ります。これはPython packageであり、WindowsアプリのEXEではありません。
 
-配布用Windowsアプリには、Python 3.12に加えて .NET SDK 10、JDK 25、Mavenが必要です。`JAVA_HOME` をJDK 25のインストール先に設定し、次の確認コマンドがそれぞれ成功してから実行します。
+配布用Windowsアプリのbuildには、Python 3.11以降、.NET SDK 10、JDK 25が必要です。`JAVA_HOME`を設定するかJDKの`bin`をPATHに追加してください。Mavenは`build_exe.bat`が自動で準備します。次のコマンドで前提を確認できます。
 
 ```powershell
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-25"  # 実際のインストール先に置き換える
-py -3.12 --version       # または python --version
+py -3.12 --version       # 3.12がない場合は python --version（3.11以降）
 dotnet --list-sdks       # 10.x SDKが表示される
-mvn --version
-& "$env:JAVA_HOME\bin\java.exe" -version  # Java 25
+javac -version           # 25.xと表示される
 ```
 
 

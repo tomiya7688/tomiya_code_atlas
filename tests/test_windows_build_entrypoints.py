@@ -8,11 +8,13 @@ def read_repo_file(relative_path: str) -> str:
     return (ROOT / relative_path).read_text(encoding="utf-8")
 
 
-def test_setup_uses_project_local_python_312_environment() -> None:
+def test_setup_uses_project_local_supported_python_environment() -> None:
     setup = read_repo_file("scripts/build/setup.bat")
 
     assert "py -3.12" in setup
+    assert "sys.version_info >= (3, 11)" in setup
     assert ".venv\\Scripts\\python.exe" in setup
+    assert "-m ensurepip --upgrade --default-pip" in setup
     assert setup.index('mkdir ".build\\metadata"') < setup.index('pip install -e ".[test,exe]" build')
     assert 'pip install -e ".[test,exe]" build' in setup
 
@@ -35,10 +37,11 @@ def test_build_commands_use_the_setup_environment_and_documented_outputs() -> No
     assert '".venv\\Scripts\\python.exe" -m build --outdir .build\\packages' in package_build
     assert 'call scripts\\build\\setup.bat' in app_build
     assert app_build.index('call scripts\\build\\setup.bat') < app_build.index('where dotnet')
-    assert "Build stopped because scripts\\build\\setup.bat could not prepare" in app_build
+    assert "Python環境を準備できませんでした" in app_build
     assert '".venv\\Scripts\\python.exe" -m PyInstaller --onedir' in app_build
     assert "dotnet --list-sdks | findstr /b \"10.\"" in app_build
     assert 'findstr /c:"25."' in app_build
+    assert "resolve_maven.ps1" in app_build
     assert "for /f %%V in ('%PYTHON% -c \"from Src.version" in full_verification
     assert "call run_dist.bat --version" in full_verification
     assert "call scripts\\build\\run_source.bat --version" in full_verification
@@ -88,6 +91,16 @@ def test_readme_explains_user_build_and_launch_commands() -> None:
         "scripts\\dev\\",
     ):
         assert required_text in readme
+
+
+def test_maven_bootstrap_uses_verified_official_distribution() -> None:
+    resolver = read_repo_file("scripts/build/resolve_maven.ps1")
+
+    assert "repo.maven.apache.org/maven2/org/apache/maven/apache-maven/$version" in resolver
+    assert "Security.Cryptography.SHA512" in resolver
+    assert "SHA512" in resolver
+    assert 'Join-Path $toolsRoot "apache-maven-$version"' in resolver
+    assert 'Join-Path $mavenHome "bin\\mvn.cmd"' in resolver
 
 
 def test_windows_exe_workflow_verifies_the_documented_clean_runner_path() -> None:
