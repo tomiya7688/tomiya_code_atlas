@@ -3,8 +3,12 @@ setlocal
 cd /d "%~dp0"
 
 if not exist ".venv\Scripts\python.exe" (
-    echo Project build environment not found. Run setup.bat first.
-    exit /b 1
+    echo Preparing the project build environment.
+    call setup.bat
+    if errorlevel 1 (
+        echo Build stopped because setup.bat could not prepare the required Python environment.
+        exit /b 1
+    )
 )
 
 where dotnet >nul 2>nul

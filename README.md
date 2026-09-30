@@ -30,6 +30,10 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 最初の解析実装対象は Python です。言語固有処理は境界へ閉じ込め、中央の解析・生成・評価処理は可能な限り言語非依存にします。
 
+## Windows配布アプリをビルドする
+
+リポジトリのルートで `build_exe.bat` を実行してください。`.venv` がない場合は必要なPython環境の準備も試みます。ビルド結果は `.build\dist\tomiya-code-atlas\` に作られ、`run_dist.bat` で起動できます。必要なSDKが見つからない場合は、バッチが不足項目を表示します。
+
 ## Core architecture
 
 ```text
@@ -111,14 +115,14 @@ tomiya-code-atlas/
 - JDK 25 x64: [Eclipse Temurin 25](https://adoptium.net/temurin/releases/?version=25&os=windows&arch=x64&package=jdk)。インストール後、`JAVA_HOME`をJDKのフォルダーに設定します。
 - Apache Maven: [Windowsを含むインストール手順](https://maven.apache.org/install)。Mavenの`bin`をPATHへ追加します。
 
-Python Launcher (`py`) がない場合は、`python` コマンドでPython 3.12が起動するようPATHを設定してください。インストール後、リポジトリのルートで次を実行します。
+Python Launcher (`py`) がない場合は、`python` コマンドでPython 3.12が起動するようPATHを設定してください。リポジトリのルートで配布EXEを作るときは `build_exe.bat` を実行します。このバッチは `.venv` がなければ `setup.bat` を呼び出して準備します。
 
 ```bat
-setup.bat
-run.bat
+build_exe.bat
+run_dist.bat
 ```
 
-`setup.bat` はリポジトリ内の `.venv` を作り、実行・テスト・EXE作成に必要なPythonパッケージをそこへインストールします。`run.bat` はその仮想環境でソース版を起動します。Pythonや依存パッケージをグローバル環境へインストールしません。
+`setup.bat` はリポジトリ内の `.venv` を作り、実行・テスト・EXE作成に必要なPythonパッケージをそこへインストールします。ソース版を起動する場合は `run.bat` を使います。Pythonや依存パッケージをグローバル環境へインストールしません。
 
 ### 成果物を作る
 

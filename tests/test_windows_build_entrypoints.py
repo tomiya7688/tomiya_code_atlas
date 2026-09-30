@@ -33,6 +33,9 @@ def test_build_commands_use_the_setup_environment_and_documented_outputs() -> No
     full_verification = read_repo_file("verify_build.bat")
 
     assert '".venv\\Scripts\\python.exe" -m build --outdir .build\\packages' in package_build
+    assert 'call setup.bat' in app_build
+    assert app_build.index('call setup.bat') < app_build.index('where dotnet')
+    assert "Build stopped because setup.bat could not prepare" in app_build
     assert '".venv\\Scripts\\python.exe" -m PyInstaller --onedir' in app_build
     assert "dotnet --list-sdks | findstr /b \"10.\"" in app_build
     assert 'findstr /c:"25."' in app_build
