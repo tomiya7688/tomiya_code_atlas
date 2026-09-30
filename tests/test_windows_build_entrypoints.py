@@ -53,6 +53,14 @@ def test_only_direct_windows_build_and_distribution_entrypoints_remain_in_root()
         assert not (ROOT / old_root_helper).exists()
 
 
+def test_windows_build_entrypoints_resolve_paths_from_the_repository_root() -> None:
+    for helper in ("setup.bat", "package.bat", "run_source.bat", "verify.bat"):
+        source = read_repo_file(f"scripts/build/{helper}")
+        assert 'cd /d "%~dp0\\..\\.."' in source
+    for entrypoint in ("build_exe.bat", "run_dist.bat"):
+        assert 'cd /d "%~dp0"' in read_repo_file(entrypoint)
+
+
 def test_development_helpers_are_grouped_and_run_from_repository_root() -> None:
     helper_directory = ROOT / "scripts" / "dev"
     assert helper_directory.is_dir()

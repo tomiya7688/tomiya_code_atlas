@@ -31,6 +31,11 @@ Python is normally the first implementation target for new analysis features. Do
 
 Detailed ownership is in `docs/responsibility_map.md`.
 
+## Windows build entry points
+- The repository root keeps the user-facing `build_exe.bat` and `run_dist.bat` commands.
+- Setup, Python package building, source launching, and full verification live in `scripts/build/` and resolve paths from the repository root.
+- Keep workflow and documentation references aligned when these entry points change.
+
 ## Required architecture rules
 - Keep language-specific AST/parser/library types inside the language boundary.
 - Shared IR/models must remain language-neutral and should not own orchestration/evaluation/rendering behavior.
