@@ -13,6 +13,7 @@ def test_setup_uses_project_local_python_312_environment() -> None:
 
     assert "py -3.12" in setup
     assert ".venv\\Scripts\\python.exe" in setup
+    assert setup.index('mkdir ".build\\metadata"') < setup.index('pip install -e ".[test,exe]" build')
     assert 'pip install -e ".[test,exe]" build' in setup
 
 

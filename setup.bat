@@ -31,6 +31,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
+if not exist ".build\metadata" mkdir ".build\metadata"
+if errorlevel 1 exit /b 1
+
 ".venv\Scripts\python.exe" -m pip install --upgrade pip
 if errorlevel 1 exit /b 1
 ".venv\Scripts\python.exe" -m pip install -e ".[test,exe]" build
