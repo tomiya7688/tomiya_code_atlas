@@ -2,15 +2,11 @@
 setlocal
 cd /d "%~dp0"
 
-if exist ".venv\Scripts\python.exe" (
-    ".venv\Scripts\python.exe" app.py %*
-) else (
-    where py >nul 2>nul
-    if %errorlevel%==0 (
-        py -3 app.py %*
-    ) else (
-        python app.py %*
-    )
+if not exist ".venv\Scripts\python.exe" (
+    echo Project environment not found. Run setup.bat first.
+    exit /b 1
 )
 
-endlocal
+".venv\Scripts\python.exe" app.py %*
+set "RESULT=%errorlevel%"
+endlocal & exit /b %RESULT%

@@ -310,7 +310,7 @@ def main() -> int:
             "",
             "## Validation",
             "- Run targeted checks for the changed area first.",
-            "- Use `context.bat validation-plan` / `./context.sh validation-plan` for a deterministic plan after files change.",
+            "- Use `scripts/dev/context.bat validation-plan` / `./scripts/dev/context.sh validation-plan` for a deterministic plan after files change.",
             "- Run policy checks for architecture-sensitive changes.",
             "- Record anything not executed as Unverified.",
             "",
@@ -318,8 +318,8 @@ def main() -> int:
             "Search first, read second. Treat this capsule as an index, not source of truth.",
             "Return to the original Issue/source/tests/specification when the capsule is insufficient.",
             "Do not load unrelated Issues/docs/history or a full diff by default.",
-            "Use `context.bat remote-delta` when concurrent remote edits are possible.",
-            "Use `context.bat context-pack` after a working set exists if a richer temporary packet is useful.",
+            "Use `scripts/dev/context.bat remote-delta` when concurrent remote edits are possible.",
+            "Use `scripts/dev/context.bat context-pack` after a working set exists if a richer temporary packet is useful.",
             "",
         ]
     )

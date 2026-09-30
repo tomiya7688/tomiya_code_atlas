@@ -7,7 +7,9 @@ Tomiya Code Atlas uses GitHub Issues as the task ledger and defaults to `1 Issue
 
 ### Build verification
 
-`verify_build.bat` builds the wheel, source archive, and EXE, then runs both CLI outputs and static/test checks. `pull_request.bat` runs this verification before creating or updating the GitHub PR.
+`setup.bat` はPython 3.12で `.venv` を作り、プロジェクト・ビルド・テスト・PyInstallerの依存をインストールします。`build.bat` はwheelとsource archiveのみを作り、`build_exe.bat` はWindows onedirアプリを作ります。`run.bat` はソース版、`run_dist.bat` はビルド済みonedir版を起動します。`verify_build.bat` は両方の成果物を作り、ソース版と配布版の起動、配布物、policy、テストを確認します。`scripts/dev/pull_request.bat` はこの検証後にGitHub PRを作成または更新します。
+
+EXEビルドには追加で .NET SDK 10、JDK 25、Mavenが必要です。`JAVA_HOME` をJDK 25のインストール先に設定してください。Python EXEワークフローはクリーンなWindowsランナー上で、同じ `setup.bat` と `verify_build.bat` を実行します。
 
 作業開始時は、リモートの最新状態を確認してから Issue の実装に入る。
 
@@ -23,14 +25,14 @@ fast-forward できない場合は、ローカルコミットを確認してか�
 ```text
 Issue
  -> priority + Goal / Required / Acceptance
- -> prepare_work.bat / prepare_work.sh
+ -> scripts/dev/prepare_work.bat / scripts/dev/prepare_work.sh
  -> Task Capsule + remote delta + Context Pack
  -> Responsibility / Change Routing
  -> bounded search / structure index
  -> implementation
  -> targeted validation + policy check
  -> compact diff / compact log when useful
- -> pull_request.bat
+ -> scripts/dev/pull_request.bat
  -> CI / review / merge
 ```
 
@@ -42,7 +44,7 @@ Issue
 
 Priority labels are authoritative; `[P0]`-`[P3]` title prefixes are a fallback. Explicit meta/roadmap/umbrella/index items are skipped by automatic selection when actionable work exists.
 
-Issues should contain Goal, Required constraints, Acceptance, Priority, and Out of Scope/Deferred when needed. `next_issue.bat` extracts these into `.codex/next_issue.md`; the original Issue remains authoritative.
+Issues should contain Goal, Required constraints, Acceptance, Priority, and Out of Scope/Deferred when needed. `scripts/dev/next_issue.bat` extracts these into `.codex/next_issue.md`; the original Issue remains authoritative.
 
 ## Exploration control
 
@@ -58,25 +60,25 @@ Task Capsule / metadata
  -> detailed docs only if needed
 ```
 
-Stop broad exploration when Goal, Required, Acceptance, and the working set are sufficient. `context.bat exploration-stop` checks those fields mechanically; a passing result means broad discovery can stop, not that implementation is correct.
+Stop broad exploration when Goal, Required, Acceptance, and the working set are sufficient. `scripts/dev/context.bat exploration-stop` checks those fields mechanically; a passing result means broad discovery can stop, not that implementation is correct.
 
 ## Routing sources
 - `docs/responsibility_map.md`: module/file ownership
 - `specification/architecture-policy.md`: normative Required/Recommended/Advisory rules
 - `docs/current_state.md`: current capabilities and blockers
 - `docs/specs/`: feature details, only when routed by the task
-- `context.bat role-map`: mechanical file-role index
-- `context.bat truth-candidates`: likely authoritative locations without claiming authority automatically
+- `scripts/dev/context.bat role-map`: mechanical file-role index
+- `scripts/dev/context.bat truth-candidates`: likely authoritative locations without claiming authority automatically
 
 Large documents should be entered through heading search (`doc-index`) or bounded text search rather than unconditional full reads.
 
 ## Search-first / Read-second
-`context.bat search` and `path-find` are dependency-free bounded fallbacks. If `rg`, `fd`, IDE index, ctags, tree-sitter, or another stronger local tool is already available, it may be preferred; Tomiya must not require it for the basic workflow.
+`scripts/dev/context.bat search` and `path-find` are dependency-free bounded fallbacks. If `rg`, `fd`, IDE index, ctags, tree-sitter, or another stronger local tool is already available, it may be preferred; Tomiya must not require it for the basic workflow.
 
 Search/index output selects source to read. It never replaces the source itself.
 
 ## Source Structure Index
-`context.bat structure-index` emits a deterministic Python symbol/import index for `Src/` and `tools/`. It is a fallback routing index; richer Common IR/call/dependency analysis from Code Atlas should replace or augment it as the project matures.
+`scripts/dev/context.bat structure-index` emits a deterministic Python symbol/import index for `Src/` and `tools/`. It is a fallback routing index; richer Common IR/call/dependency analysis from Code Atlas should replace or augment it as the project matures.
 
 Prefer bounded expansion:
 
@@ -87,15 +89,15 @@ target symbol -> direct relations -> matching tests -> deeper graph only if need
 Fan-in/fan-out/cycles are impact-routing signals, not automatic design verdicts.
 
 ## Remote Delta First
-Use `context.bat remote-delta` when another AI/chat/developer may have changed remote state. Inspect ahead/behind, commit subjects, changed files, shortstat, then the bounded diff excerpt. Read full changes only when the current task intersects them.
+Use `scripts/dev/context.bat remote-delta` when another AI/chat/developer may have changed remote state. Inspect ahead/behind, commit subjects, changed files, shortstat, then the bounded diff excerpt. Read full changes only when the current task intersects them.
 
 `remote-delta --ff` is explicit. It refuses dirty/diverged state and only performs a fast-forward.
 
 ## Context Pack
-`context.bat context-pack` creates `.codex/context_pack.md` from the current Task Capsule, changed files, validation plan, compact diff, remote status, and exploration status. It is temporary derived context, not a specification; regenerate it instead of accumulating old packets.
+`scripts/dev/context.bat context-pack` creates `.codex/context_pack.md` from the current Task Capsule, changed files, validation plan, compact diff, remote status, and exploration status. It is temporary derived context, not a specification; regenerate it instead of accumulating old packets.
 
 ## Repository profile / context budget
-`context.bat profile` reports repository statistics, approximate full-read token cost, file types, and largest text files. Use it to identify context hotspots, not as a quality score.
+`scripts/dev/context.bat profile` reports repository statistics, approximate full-read token cost, file types, and largest text files. Use it to identify context hotspots, not as a quality score.
 
 ## Compact change and log inspection
 `compact-diff` returns changed-file status, shortstat, and commit subjects. This is the default handoff/PR summary input. Full diff is still used for actual review or ambiguity when needed.
@@ -103,7 +105,7 @@ Use `context.bat remote-delta` when another AI/chat/developer may have changed r
 `compact-log` keeps error/warning/failure lines plus a bounded tail. Successful logs should normally be summarized as pass/fail; expand raw logs only around a failure.
 
 ## Validation Routing
-`context.bat validation-plan` maps changed files to useful evidence.
+`scripts/dev/context.bat validation-plan` maps changed files to useful evidence.
 
 - logic: targeted tests -> regression -> broader suite when baseline permits
 - architecture: targeted tests + `policy-check`
@@ -133,14 +135,14 @@ A Required-rule exception records rule, reason, scope, mitigation, removal/revie
 Do not duplicate the same detailed specification across these surfaces.
 
 ## Commands
-Windows: `context.bat command`; Linux/macOS: `./context.sh command`.
+Windows: `scripts/dev/context.bat command`; Linux/macOS: `./scripts/dev/context.sh command`.
 
 Main commands:
 - discovery: `profile`, `doc-index`, `search`, `path-find`, `role-map`, `truth-candidates`, `structure-index`
 - state/change: `remote-delta`, `compact-diff`, `context-pack`
 - control: `exploration-stop`, `validation-plan`, `policy-check`, `compact-log`
 
-`prepare_work.bat` / `prepare_work.sh` runs the normal preparation chain. `next_issue.bat` creates the priority-first Task Capsule. `pull_request.bat` performs the low-context validation/commit/push/PR flow.
+`scripts/dev/prepare_work.bat` / `scripts/dev/prepare_work.sh` runs the normal preparation chain. `scripts/dev/next_issue.bat` creates the priority-first Task Capsule. `scripts/dev/pull_request.bat` performs the low-context validation/commit/push/PR flow.
 
 ## Adopted methods
 The project adopts the applicable high-value methods from `ai-context-reducer` and UPD policy practice: compact AI entrypoint, Current State, Task Capsule/Context Pack, Search-first/Read-second, bounded search/path discovery, exploration stop conditions, explicit Out of Scope, priority-first actionable Issue selection, Task/Change Routing, Responsibility Map, file-role and source-of-truth indexing, Source Structure Index, context profile/budget/hotspots, Remote Delta First, compact diff/log handling, Validation Routing, Policy Routing/rule strength/scoped exceptions, deterministic-first structural analysis, generated/noisy-data exclusion, compact handoff reporting, and clear information responsibilities.
@@ -149,4 +151,4 @@ We do not maintain a second permanent full-repository analysis framework or an a
 
 ### UPD Commander Checker
 
-The CI and development workflow installs the Python UPD Commander Checker from the upstream repository at the pinned commit in `tools/requirements-upd.txt`, then runs `upd-commander-check .`. This generic UI/Process/Data check complements the Tomiya-specific `context.bat policy-check`; the checker is development-only and is not included in runtime or distribution dependencies.
+The CI and development workflow installs the Python UPD Commander Checker from the upstream repository at the pinned commit in `tools/requirements-upd.txt`, then runs `upd-commander-check .`. This generic UI/Process/Data check complements the Tomiya-specific `scripts/dev/context.bat policy-check`; the checker is development-only and is not included in runtime or distribution dependencies.

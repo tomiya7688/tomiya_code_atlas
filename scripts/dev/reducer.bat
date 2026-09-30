@@ -1,6 +1,6 @@
 @echo off
 setlocal
-cd /d "%~dp0"
+cd /d "%~dp0\..\.."
 
 set "REDUCER_REPO=https://github.com/tomiya7688/ai-context-reducer.git"
 set "REDUCER_DIR=%CD%\.dev\ai-context-reducer"

@@ -412,7 +412,7 @@ def current_changed_paths(root: Path = ROOT, base: str = "origin/main") -> list[
 
 def build_context_pack(root: Path = ROOT, base: str = "origin/main") -> str:
     task_file = root / ".codex" / "next_issue.md"
-    task = task_file.read_text(encoding="utf-8") if task_file.exists() else "No generated task capsule. Run next_issue.bat first."
+    task = task_file.read_text(encoding="utf-8") if task_file.exists() else "No generated task capsule. Run scripts/dev/next_issue.bat first."
     paths = current_changed_paths(root, base)
     plan = validation_plan(paths)
     diff = compact_diff(root, base)

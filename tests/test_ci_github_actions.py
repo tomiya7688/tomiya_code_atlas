@@ -122,4 +122,6 @@ def test_python_artifact_workflows_run_e2e_before_uploading_exact_outputs() -> N
     assert "tools/verify_wheel.py .build/packages/*.whl" in build_source
     assert "tools/verify_wheel.py .build/packages/*.tar.gz" in build_source
     assert "Upload tested Python package artifacts" in build_source
-    assert "tools\\verify_distribution.py --exe .build\\dist\\tomiya-code-atlas\\tomiya-code-atlas.exe --gui" in exe_source
+    assert "call setup.bat" in exe_source
+    assert "call verify_build.bat" in exe_source
+    assert "Upload Windows app directory" in exe_source

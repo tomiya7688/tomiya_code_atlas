@@ -30,9 +30,8 @@ jobs:
           cache: maven
 
       - name: Install project and release build tools
-        run: |
-          New-Item -ItemType Directory -Force .build/metadata | Out-Null
-          py -3 -m pip install -e ".[test,exe]" build
+        shell: cmd
+        run: call setup.bat
 
       - name: Match tag to package version
         shell: pwsh

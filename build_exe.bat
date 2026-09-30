@@ -2,16 +2,19 @@
 setlocal
 cd /d "%~dp0"
 
-where py >nul 2>nul
-if %errorlevel%==0 (
-    set "PYTHON=py -3"
-) else (
-    set "PYTHON=python"
+if not exist ".venv\Scripts\python.exe" (
+    echo Project build environment not found. Run setup.bat first.
+    exit /b 1
 )
 
 where dotnet >nul 2>nul
 if errorlevel 1 (
     echo .NET SDK 10 is required to build the bundled C# Roslyn backend.
+    exit /b 1
+)
+dotnet --list-sdks | findstr /b "10." >nul
+if errorlevel 1 (
+    echo .NET SDK 10 was not found. Install the .NET 10 SDK and run build_exe.bat again.
     exit /b 1
 )
 
@@ -22,6 +25,15 @@ if errorlevel 1 (
 )
 if "%JAVA_HOME%"=="" (
     echo JAVA_HOME must point to the JDK used to build the private Java runtime.
+    exit /b 1
+)
+if not exist "%JAVA_HOME%\bin\java.exe" (
+    echo JAVA_HOME does not contain bin\java.exe: %JAVA_HOME%
+    exit /b 1
+)
+"%JAVA_HOME%\bin\java.exe" -version 2>&1 | findstr /c:"25." >nul
+if errorlevel 1 (
+    echo JDK 25 is required. Set JAVA_HOME to the JDK 25 installation.
     exit /b 1
 )
 
@@ -41,13 +53,13 @@ dotnet publish "backend-src\csharp\Tomiya.CSharp.Backend.csproj" -c Release -r w
 if errorlevel 1 exit /b 1
 
 if not exist ".build\metadata" mkdir ".build\metadata"
-%PYTHON% -m pip install -e ".[exe]"
-if errorlevel 1 exit /b 1
 
 if not exist ".build\dist" mkdir ".build\dist"
+if exist ".build\dist\tomiya-code-atlas" rmdir /S /Q ".build\dist\tomiya-code-atlas"
+if errorlevel 1 exit /b 1
 if not exist ".build\pyinstaller-work" mkdir ".build\pyinstaller-work"
 if not exist ".build\spec" mkdir ".build\spec"
-%PYTHON% -m PyInstaller --onedir --clean --name tomiya-code-atlas --distpath .build\dist --workpath .build\pyinstaller-work --specpath .build\spec -y app.py
+".venv\Scripts\python.exe" -m PyInstaller --onedir --clean --name tomiya-code-atlas --distpath .build\dist --workpath .build\pyinstaller-work --specpath .build\spec -y app.py
 if errorlevel 1 exit /b 1
 
 if exist "config" (

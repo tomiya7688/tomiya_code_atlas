@@ -56,7 +56,7 @@ def current_branch() -> str:
 def ensure_work_branch(issue_number: int | None) -> str:
     branch = current_branch()
     if not branch:
-        sys.exit("ERROR: Detached HEAD is not supported by pull_request.bat.")
+        sys.exit("ERROR: Detached HEAD is not supported by scripts/dev/pull_request.bat.")
 
     if branch != BASE_BRANCH:
         return branch

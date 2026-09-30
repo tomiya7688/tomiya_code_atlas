@@ -52,26 +52,26 @@ The complete Required/Recommended/Advisory policy is `specification/architecture
 - Class diagrams default to caller-centered grouping; heavily referenced classes may get dedicated callee-centered views.
 
 ## Low-context workflow
-The current `ai-context-reducer` is a development-only dependency. Use `reducer.bat setup` on Windows or `./reducer.sh setup` on Unix-like systems to clone/update the latest reducer into `.dev/ai-context-reducer` and analyze this repository. The `.dev/` checkout is intentionally ignored and must never be included in product builds or release artifacts.
+The current `ai-context-reducer` is a development-only dependency. Use `scripts/dev/reducer.bat setup` on Windows or `./scripts/dev/reducer.sh setup` on Unix-like systems to clone/update the latest reducer into `.dev/ai-context-reducer` and analyze this repository. The `.dev/` checkout is intentionally ignored and must never be included in product builds or release artifacts.
 
-`prepare_work.bat` invokes the reducer first, then falls back to the repository-local context helpers if reducer setup is unavailable.
+`scripts/dev/prepare_work.bat` invokes the reducer first, then falls back to the repository-local context helpers if reducer setup is unavailable.
 
-Before general Issue work, use `next_issue.bat` to select one priority task and create a structured Task Capsule.
+Before general Issue work, use `scripts/dev/next_issue.bat` to select one priority task and create a structured Task Capsule.
 
-For concurrent work, use `context.bat remote-delta` (or `./context.sh remote-delta`) before broad re-reading. It reports ahead/behind, commit subjects, changed files, shortstat, and a bounded diff excerpt. `--ff` is explicit and only allows a clean fast-forward.
+For concurrent work, use `scripts/dev/context.bat remote-delta` (or `./scripts/dev/context.sh remote-delta`) before broad re-reading. It reports ahead/behind, commit subjects, changed files, shortstat, and a bounded diff excerpt. `--ff` is explicit and only allows a clean fast-forward.
 
 Useful commands:
-- `reducer.bat update` / `./reducer.sh update`
-- `reducer.bat analyze` / `./reducer.sh analyze`
-- `context.bat profile`
-- `context.bat doc-index`
-- `context.bat structure-index`
-- `context.bat compact-diff`
-- `context.bat validation-plan`
-- `context.bat policy-check`
-- `context.bat context-pack`
+- `scripts/dev/reducer.bat update` / `./scripts/dev/reducer.sh update`
+- `scripts/dev/reducer.bat analyze` / `./scripts/dev/reducer.sh analyze`
+- `scripts/dev/context.bat profile`
+- `scripts/dev/context.bat doc-index`
+- `scripts/dev/context.bat structure-index`
+- `scripts/dev/context.bat compact-diff`
+- `scripts/dev/context.bat validation-plan`
+- `scripts/dev/context.bat policy-check`
+- `scripts/dev/context.bat context-pack`
 
-Use `pull_request.bat` after completing an Issue. It validates, commits, pushes, and creates a compact PR without requiring a full-diff read merely to write the summary.
+Use `scripts/dev/pull_request.bat` after completing an Issue. It validates, commits, pushes, and creates a compact PR without requiring a full-diff read merely to write the summary.
 
 ## Context discipline
 - Search first, read second.

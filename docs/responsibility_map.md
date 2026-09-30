@@ -5,6 +5,8 @@ Use this map to route a task before opening implementation files. Keep each resp
 | Area | Responsibility | Normal dependencies / notes |
 |---|---|---|
 | `app.py`, `run.bat` | launch surface / future UI entry | call application/process services; do not absorb analysis or storage logic |
+| `setup.bat`, `build*.bat`, `run*.bat`, `verify_build.bat` | Windows setup, build, launch, and distribution verification | `setup.bat` prepares `.venv`; source and packaged launchers stay explicit |
+| `scripts/dev/` | Windows/Linux/macOS Issue, context, reducer, and PR helper entry points | scripts change to repository root before resolving `tools/` paths |
 | `Src/languages/` | language-specific parsing and adapters | external parser/AST details stop here; produce shared models / IR |
 | `Src/analyzers/` | deterministic relationship / flow / graph analysis | consume shared models; must not depend on renderer syntax |
 | `Src/models/` | passive shared data contracts | keep cross-layer data small and serialization-friendly; avoid feature orchestration |
