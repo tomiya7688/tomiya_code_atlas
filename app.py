@@ -89,10 +89,20 @@ def _print_outputs(result: object) -> None:
         print(output.content, end="")
 
 
+def _configure_cli_streams() -> None:
+    """Keep Japanese CLI output usable under non-Japanese Windows locales."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
 def main(argv: list[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
     if not arguments:
         return _launch_gui()
+    if argv is None:
+        _configure_cli_streams()
 
     parser = JapaneseArgumentParser(description=f"{PROJECT_NAME} のコマンドラインツール")
     parser.add_argument("--version", action="store_true", help="バージョンを表示して終了")

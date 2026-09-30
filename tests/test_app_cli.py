@@ -1,9 +1,29 @@
 from pathlib import Path
+import os
+import subprocess
+import sys
 from tempfile import TemporaryDirectory
 
 import pytest
 
 from app import main
+
+
+def test_cli_help_uses_utf8_under_legacy_windows_encoding():
+    environment = os.environ.copy()
+    environment["PYTHONIOENCODING"] = "cp1252"
+    result = subprocess.run(
+        [sys.executable, "app.py", "--help"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=environment,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert "使い方:" in result.stdout
+    assert "オプション" in result.stdout
 
 
 def test_comment_cli_writes_output_file():
