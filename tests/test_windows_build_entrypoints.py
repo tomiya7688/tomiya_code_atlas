@@ -141,3 +141,4 @@ def test_windows_exe_workflow_verifies_the_documented_clean_runner_path() -> Non
     assert 'python-version: "3.12"' in workflow
     assert "call scripts\\build\\setup.bat" in workflow
     assert "call scripts\\build\\verify.bat" in workflow
+    assert "      - name: 配布アプリのsmoke test\n        shell: pwsh" in workflow

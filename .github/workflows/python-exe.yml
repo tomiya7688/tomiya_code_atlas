@@ -55,7 +55,7 @@ jobs:
         run: call scripts\build\verify.bat
 
       - name: 配布アプリのsmoke test
-        shell: powershell
+        shell: pwsh
         run: |
           $exe = ".\.build\dist\tomiya-code-atlas\tomiya-code-atlas.exe"
           $config = ".\.build\dist\tomiya-code-atlas\config\tomiya-code-atlas.json"
