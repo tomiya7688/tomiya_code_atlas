@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 FIXTURE = Path("tests/fixtures/backend_conformance/csharp.cs")
-EVALUATION = Path("docs/backend-evaluations/csharp.json")
+EVALUATION = Path("tests/fixtures/backend-evaluations/csharp.json")
 
 
 def test_csharp_fixture_exercises_semantic_binding_cases() -> None:

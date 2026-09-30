@@ -6,11 +6,12 @@ Tomiya Code Atlas で AI が最初に読む小さい索引です。詳細仕様�
 - Current task / priority / unfinished work: GitHub Issues. `.codex/next_issue.md` があればその1件を優先する。
 - Implemented behavior: `Src/`, `tools/`, `tests/`
 - Normative project rules: `specification/architecture-policy.md`
-- Current capability / blocker snapshot: `docs/current_state.md`
-- Responsibility routing: `docs/responsibility_map.md`
-- Architecture explanation: `docs/architecture/upd_commander.md`
-- Feature specs: `docs/specs/`
-- Project operations: `docs/project_operations.md`
+- Current capability / blocker snapshot: `docs/jp/現状.md`
+- Responsibility routing: `docs/jp/責務マップ.md`
+- Architecture explanation: `docs/jp/構成/UPDコマンダー適用.md`
+- Feature specs: `docs/jp/機能仕様/`
+- Project operations: `docs/jp/開発運用.md`
+- English translations: `docs/en/` (derived from Japanese source documents)
 - Human overview: `README.md`
 
 Generated `.codex/` packets, indexes, diagrams, reports, and summaries are derived indexes, not source of truth.
@@ -18,7 +19,7 @@ Generated `.codex/` packets, indexes, diagrams, reports, and summaries are deriv
 ## Read First
 1. `AI_CONTEXT.md`
 2. `.codex/next_issue.md`（存在する場合）
-3. `docs/responsibility_map.md`
+3. `docs/jp/責務マップ.md`
 4. current task に適用される `specification/` / feature spec
 5. target source + matching tests
 
@@ -51,7 +52,7 @@ Broad exploration を止める条件:
 - Issue/PR/context workflow -> `tools/`, `scripts/dev/`; Windows build entry points -> root `build_exe.bat` / `run_dist.bat`, helpers -> `scripts/build/`
 - architecture rule -> `specification/architecture-policy.md`
 
-Use `docs/responsibility_map.md` or `scripts/dev/context.bat role-map` before broad file discovery.
+Use `docs/jp/責務マップ.md` or `scripts/dev/context.bat role-map` before broad file discovery.
 
 ## Architecture Constraints
 - Language-specific AST / parser types stay behind language adapters.

@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 FIXTURE = Path("tests/fixtures/backend_conformance/cpp.cpp")
-EVALUATION = Path("docs/backend-evaluations/cpp.json")
+EVALUATION = Path("tests/fixtures/backend-evaluations/cpp.json")
 
 
 def test_cpp_fixture_exercises_template_macro_include_and_overload_cases() -> None:

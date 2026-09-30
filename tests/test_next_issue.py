@@ -89,4 +89,4 @@ def test_route_working_set_uses_title_for_existing_unlabeled_issues() -> None:
 
     assert "Src/analyzers/" in route["source"]
     assert "Src/renderers/" in route["source"]
-    assert "docs/specs/diagrams.md" in route["docs"]
+    assert "docs/jp/機能仕様/図表生成.md" in route["docs"]

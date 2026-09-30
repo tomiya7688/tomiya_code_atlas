@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path("tests/fixtures/backend_conformance")
-EVALUATION = Path("docs/backend-evaluations/gdscript.json")
+EVALUATION = Path("tests/fixtures/backend-evaluations/gdscript.json")
 
 
 def test_gdscript_conformance_fixture_covers_godot_specific_features() -> None:
