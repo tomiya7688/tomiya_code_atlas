@@ -1,100 +1,100 @@
-# Tomiya Code Atlas Architecture Policy
+# Tomiya Code Atlas 設計方針
 
-This document contains normative project rules. Explanatory background lives in `docs/`.
+この文書は、プロジェクト全体で守る規範を定めます。設計背景や詳しい説明は `docs/` に記載します。
 
-## Rule strength
+## 規則の強さ
 
-- **Required**: violation is not acceptable unless an explicit scoped exception exists.
-- **Recommended**: default choice; deviation needs a concrete reason when it affects architecture or maintenance.
-- **Advisory**: review signal, not an automatic violation.
+- **Required（必須）**: 明示した対象範囲の例外がない限り、違反を認めません。
+- **Recommended（推奨）**: 原則として採用します。設計や保守に影響する場合、異なる方法を選ぶ具体的な理由が必要です。
+- **Advisory（助言）**: review時の確認材料です。自動的な違反とは判定しません。
 
-Automated checks must distinguish confirmed violations from warnings/review candidates.
+自動チェックは、確認済みの違反と警告・review候補を区別します。
 
-## Required: language and IR boundaries
+## Required（必須）: 言語境界とIR境界
 
-1. Language-specific parser / AST / semantic-library types must not leak above the language-adapter boundary.
-2. Shared IR / models must remain language-neutral enough for another adapter to produce equivalent information.
-3. Analyzer / evaluator logic must not generate Mermaid, PlantUML, or other renderer syntax directly.
-4. Renderer code must not parse source languages or depend on language adapters.
-5. External parser libraries may be used inside adapters, but replacing one must not require rewriting unrelated generators/evaluators/renderers.
-6. Machine-obtainable structural information should use deterministic analysis before LLM inference where practical.
+1. 言語固有のparser、AST、意味解析ライブラリの型を言語adapter境界より上へ漏らしてはいけません。
+2. 共通IR/modelは、別のadapterも同等の情報を生成できる程度に言語非依存でなければなりません。
+3. Analyzer/evaluatorは、Mermaid、PlantUMLなどrenderer固有の構文を直接生成してはいけません。
+4. Rendererはソース言語を解析したり、言語adapterへ依存したりしてはいけません。
+5. 外部parserライブラリはadapter内で利用できます。ただし、ライブラリの置き換えに無関係なgenerator/evaluator/rendererの書き直しが必要になってはいけません。
+6. 機械的に取得できる構造情報は、実用上可能な場合、LLMによる推論より決定的な解析で取得します。
 
-## Required: UPD application boundary
+## Required（必須）: UPDアプリケーション境界
 
-Tomiya applies the UI / Process / Data separation at application level.
+Tomiya Code Atlasは、アプリケーション全体でUI / Process / Dataの責務を分離します。
 
-1. UI handles user input, presentation, launch flow, and display decisions.
-2. Process handles orchestration and language-independent analysis/generation/evaluation flow.
-3. Data handles source/config/file/external-data access and persistence details.
-4. UI must not directly depend on Data implementation details.
-5. Process must not know UI presentation details or storage-format details.
-6. Data must not make UI or analysis-domain decisions.
-7. A Commander selects/routs work; real analysis, transformation, I/O, rendering, or calculation must live in Processing/services.
-8. A Messenger carries requests/results across a boundary; it must not select domain algorithms or perform real processing.
+1. UIは、利用者の入力、表示、起動の流れ、表示上の判断を扱います。
+2. Processは、処理の調整と言語非依存の解析・生成・評価の流れを扱います。
+3. Dataは、ソース、設定、ファイル、外部データへのアクセスと永続化の詳細を扱います。
+4. UIはData実装の詳細へ直接依存してはいけません。
+5. ProcessはUIの表示詳細や保存形式の詳細を知ってはいけません。
+6. DataはUIや解析領域の判断を行ってはいけません。
+7. Commanderは処理を選択・振り分けます。実際の解析、変換、入出力、描画、計算はProcessing/serviceに置きます。
+8. Messengerは境界を越えて要求・結果を運びます。領域アルゴリズムを選択したり実処理を行ったりしてはいけません。
 
-Equivalent explicit boundaries may be used without literally naming every module `Commander` or `Messenger`; the responsibility rule is normative, the naming convention is not.
+各moduleを必ず`Commander`または`Messenger`と命名する必要はありません。責務のルールは必須ですが、名前は規範ではありません。
 
-## Required: information responsibilities
+## Required（必須）: 情報の責務
 
-1. `README.md` is a human-facing overview and entry point, not the full specification.
-2. `AI_CONTEXT.md` is the compact AI routing index, not a duplicate specification.
-3. `docs/jp/現状.md` describes current capabilities / blockers only; it is not a changelog.
-4. `docs/` explains architecture and feature design.
-5. `specification/` contains normative project rules.
-6. GitHub Issues are the source of truth for requested work, priority, discussion, and incomplete tasks.
-7. Source and tests are the source of truth for implemented behavior.
-8. Generated Context Packs, indexes, diagrams, and reports are derived artifacts and must not silently become authoritative specifications.
+1. `README.md`は人向けの概要と入口であり、詳細仕様をすべて載せる場所ではありません。
+2. `AI_CONTEXT.md`はAI向けの簡潔な案内であり、仕様を複製する場所ではありません。
+3. `docs/jp/現状.md`は現在の機能と阻害要因だけを記載し、変更履歴にはしません。
+4. `docs/`はアーキテクチャと機能設計を説明します。
+5. `specification/`は規範となるプロジェクトルールを定めます。
+6. GitHub Issueは、依頼内容、優先度、議論、未完了作業の正本です。
+7. 実装済みの挙動はソースコードとテストを正本とします。
+8. 生成されたContext Pack、index、図、reportは派生情報です。正本として扱ってはいけません。
 
-## Required: task / context discipline
+## Required（必須）: 作業とcontextの規律
 
-1. Work should normally be anchored to one Issue; `1 Issue ~= 1 PR` is the default.
-2. Search / metadata / indexes should narrow the working set before broad file reading.
-3. Stop broad exploration when Goal, Required constraints, Acceptance, and the working set are sufficient.
-4. Do not mix unrelated refactors into the active Issue.
-5. Full diff, full logs, all Issues, and all docs must not be loaded by default merely for completeness.
-6. A compact summary must preserve a path/ID back to its source of truth.
-7. Unknown or unvalidated areas must be reported as `Unverified` rather than hidden by speculative broad reading.
-8. Remote changes should be inspected as a compact delta before broad re-reading when concurrent edits are possible.
+1. 作業は通常1つのIssueに紐付けます。原則は`1 Issue ~= 1 PR`です。
+2. 広くファイルを読む前に、検索、metadata、indexで対象を絞ります。
+3. Goal、必須制約、Acceptance、作業対象が十分に分かったら、広範な探索を止めます。
+4. 作業中のIssueと無関係なrefactorを混ぜてはいけません。
+5. 網羅性だけを理由に、full diff、全log、全Issue、全docsを既定で読み込んではいけません。
+6. 簡潔な要約には、正本へ戻るためのpathまたはIDを残します。
+7. 不明または未検証の範囲は、推測で隠さず`Unverified`と報告します。
+8. 他の作業者がremoteを変更した可能性がある場合、広く読み直す前に変更の概要を確認します。
 
-## Required: validation evidence
+## Required（必須）: 検証根拠
 
-1. Validation must inspect the behavior/property claimed by the change; `0 tests` or empty scans are not sufficient evidence.
-2. Start with targeted evidence and expand only as required by the change type / completion gate.
-3. GUI/visual acceptance cannot be inferred solely from unit tests when visual correctness is part of Acceptance.
-4. Package/distribution changes require artifact-level validation when source-only checks cannot prove the packaged result.
-5. Successful logs should stay compact; failure logs may expand only around relevant evidence.
-6. CI/policy automation must not convert uncertain semantic design judgments into hard errors without sufficient confidence.
+1. 検証は、主張する挙動や特性を実際に確認しなければなりません。対象外のtestや空のscanは根拠になりません。
+2. まず対象を絞った検証を行い、変更内容や完了条件に応じて範囲を広げます。
+3. 画面・見た目がAcceptanceに含まれる場合、unit testだけで受け入れ可能とは判断しません。
+4. package・配布物の変更は、ソースだけでは分からない場合、生成物を検証します。
+5. 成功logは簡潔に保ちます。失敗時は、関連箇所に絞って調査します。
+6. CI/policy自動化は、意味上の判断に十分な確信がない限り、review候補を自動的な違反にしてはいけません。
 
-## Recommended
+## Recommended（推奨）
 
-- Reuse one structural analysis result for multiple diagrams/evaluators instead of reparsing.
-- Prefer bounded graph traversal around target symbols.
-- Use fan-in / fan-out / cycle information to prioritize impact review, not as automatic quality verdicts.
-- Keep Responsibility Map entries current with architectural ownership changes.
-- Use disposable temporary workspaces for validation that generates files.
-- Prefer reproducible transformations and dry-run modes for bulk changes.
-- Keep messages/results small, explicit, and framework-neutral across boundaries.
-- Keep error conversion at the owning boundary instead of leaking framework/storage exceptions across layers.
+- 複数の図・evaluatorでは、同じ構造解析結果を再利用します。
+- 対象symbol周辺のgraph traversalは、必要な範囲に絞ります。
+- fan-in / fan-out / cycle情報は、影響調査の優先付けに使い、自動的な品質判定には使いません。
+- 責務マップを最新のmodule所有関係に保ちます。
+- 生成物が発生する検証には使い捨ての一時workspaceを使います。
+- 一括変換には、再現可能な手順とdry-runを優先します。
+- 境界を越えるmessage/resultは小さく、明示的でframework非依存にします。
+- 例外変換は担当境界で行い、frameworkやstorageの例外を別層へ漏らしません。
 
-## Advisory review signals
+## Advisory（助言）: review時の確認材料
 
-- A file/module responsibility requires several unrelated clauses to explain.
-- Commander/Messenger code contains loops, calculations, direct file/network/database calls, or format conversion.
-- Generator code directly imports a language adapter.
-- Renderer code directly consumes low-level analysis objects rather than a stable logical output contract.
-- A Context Pack keeps growing instead of linking to source-of-truth files.
+- moduleの責務を説明するために、無関係な条項が複数必要になる。
+- Commander/Messengerにloop、計算、直接のfile/network/databaseアクセス、形式変換がある。
+- Generatorが言語adapterを直接importしている。
+- Rendererが安定した論理出力契約を介さず、低水準の解析objectを直接利用している。
+- Context Packが正本へのlinkを増やさず、肥大化している。
 
-These are review signals; existing transitional code may legitimately trigger warnings while migration work is tracked.
+これらはreviewの手掛かりです。移行中に追跡している既存構造が該当しても、直ちに違反とは限りません。
 
-## Exception record
+## 例外の記録
 
-A Required-rule exception must record, in the Issue/PR or a dedicated exception document:
+Required規則の例外は、Issue/PRまたは専用文書へ次の情報を記録します。
 
-- rule
-- reason
-- scope
-- mitigation / alternative
-- removal condition or future review point
-- source-of-truth reference
+- 対象rule
+- 理由
+- 適用範囲
+- 軽減策または代替手段
+- 例外を取り除く条件または再確認時期
+- 正本への参照
 
-An exception applies only to the stated scope and must not silently become a general policy change.
+例外は明示した範囲だけに適用します。一般規則を暗黙に変更してはいけません。

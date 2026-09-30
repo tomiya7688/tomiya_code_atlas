@@ -510,7 +510,7 @@ class AtlasTkApp:
         try:
             if operation == _OPERATION_DEPLOYMENT_DIAGRAM:
                 if self.base_path is None or not self.base_path.is_dir():
-                    raise ValueError("Deployment diagrams require opening a project folder.")
+                    raise ValueError("配置図を作るには、先にプロジェクトフォルダーを選んでください。")
                 outputs = self.deployment_service.generate(
                     DeploymentAnalysisRequest(
                         self.base_path,
@@ -537,7 +537,7 @@ class AtlasTkApp:
                 result_format = "mermaid-bundle"
             elif operation == _OPERATION_COMMENTS:
                 if language == "yaml":
-                    raise ValueError("Comment generation is not available for YAML files.")
+                    raise ValueError("YAMLファイルには説明コメントを追加できません。")
                 result = self.service.generate_comments(CommentRequest(path, language))
                 content = result.content
                 result_format = "source"
@@ -601,7 +601,7 @@ class AtlasTkApp:
                 result_format = "mermaid-bundle"
             elif operation == _OPERATION_PACKAGE_DIAGRAM:
                 if self.base_path is None or not self.base_path.is_dir():
-                    raise ValueError("Package diagrams require opening a project folder.")
+                    raise ValueError("パッケージ図を作るには、先にプロジェクトフォルダーを選んでください。")
                 outputs = self.service.generate_package_diagrams(
                     ProjectAnalysisRequest(self.base_path, "python")
                 )
@@ -611,7 +611,7 @@ class AtlasTkApp:
                 result_format = "mermaid-bundle"
             elif operation == _OPERATION_COMPONENT_DIAGRAM:
                 if self.base_path is None or not self.base_path.is_dir():
-                    raise ValueError("Component diagrams require opening a project folder.")
+                    raise ValueError("コンポーネント図を作るには、先にプロジェクトフォルダーを選んでください。")
                 outputs = self.service.generate_component_diagrams(
                     ProjectAnalysisRequest(self.base_path, "python")
                 )
@@ -634,12 +634,12 @@ class AtlasTkApp:
                 result_format = result.format
             elif operation == _OPERATION_CI:
                 if path.suffix.lower() not in {".yml", ".yaml"}:
-                    raise ValueError("CI analysis expects a GitHub Actions YAML file.")
+                    raise ValueError("CI解析にはGitHub ActionsのYAMLファイルを選んでください。")
                 result = self.service.analyze_ci(CIRequest(path))
                 content = result.content
                 result_format = "mermaid"
             else:
-                raise ValueError(f"Unknown operation: {operation}")
+                raise ValueError(f"不明な解析操作です: {operation}")
         except Exception as exc:
             self.last_run_succeeded = False
             self.last_error = str(exc)

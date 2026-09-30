@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Any
 from Src.process.application import (
     ApplicationService,
     CIRequest,
@@ -19,6 +20,44 @@ from Src.version import __version__
 PROJECT_NAME = "Tomiya Code Atlas"
 PROJECT_VERSION = __version__
 CONFIG_FILE_NAME = "tomiya-code-atlas.json"
+
+
+class JapaneseArgumentParser(argparse.ArgumentParser):
+    """Present argparse's user-facing help and common errors in Japanese."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._positionals.title = "引数"
+        self._optionals.title = "オプション"
+        for action in self._actions:
+            if isinstance(action, argparse._HelpAction):
+                action.help = "このヘルプを表示して終了"
+
+    def format_usage(self) -> str:
+        return super().format_usage().replace("usage:", "使い方:", 1)
+
+    def format_help(self) -> str:
+        return super().format_help().replace("usage:", "使い方:", 1)
+
+    def error(self, message: str) -> None:
+        if message.startswith("unrecognized arguments: "):
+            message = message.replace("unrecognized arguments: ", "認識できない引数: ", 1)
+        elif message.startswith("the following arguments are required: "):
+            message = message.replace(
+                "the following arguments are required: ", "必須の引数が指定されていません: ", 1
+            )
+        elif message.startswith("invalid choice: "):
+            message = message.replace("invalid choice: ", "無効な選択肢です: ", 1)
+            message = message.replace(" (choose from ", "（選択可能: ").replace(")", "）")
+        elif message.startswith("argument ") and message.endswith(": expected one argument"):
+            argument = message.removeprefix("argument ").removesuffix(": expected one argument")
+            message = f"{argument} の値を指定してください。"
+        elif ": invalid int value:" in message:
+            argument, value = message.split(": invalid int value:", maxsplit=1)
+            message = f"{argument} には整数を指定してください: {value.strip()}"
+        else:
+            message = f"引数の指定を確認してください: {message}"
+        super().error(message)
 
 
 def _runtime_root() -> Path:
@@ -55,55 +94,55 @@ def main(argv: list[str] | None = None) -> int:
     if not arguments:
         return _launch_gui()
 
-    parser = argparse.ArgumentParser(description=PROJECT_NAME)
-    parser.add_argument("--version", action="store_true", help="Show version and exit.")
-    sub = parser.add_subparsers(dest="command")
-    sub.add_parser("gui", help="Open the desktop GUI.")
-    comment = sub.add_parser("comment", help="Generate deterministic source comments.")
-    comment.add_argument("source")
-    comment.add_argument("--language", help="Adapter name; inferred from the extension.")
-    comment.add_argument("--output")
-    comment.add_argument("--in-place", action="store_true")
-    ci = sub.add_parser("ci", help="Analyze a GitHub Actions workflow.")
-    ci.add_argument("source")
-    ci.add_argument("--output")
-    ci.add_argument("--check", action="store_true", help="Report quality findings and fail on errors.")
-    deployment = sub.add_parser("deployment", help="Generate project deployment diagrams.")
-    deployment.add_argument("root")
-    deployment.add_argument("--mode", choices=("simple", "full"), default="full")
-    deployment.add_argument("--output-dir")
-    timing = sub.add_parser("timing", help="Generate logical timing charts from source.")
-    timing.add_argument("source")
-    timing.add_argument("--language", help="Adapter name; inferred from the extension.")
-    timing.add_argument("--output-dir")
-    use_cases = sub.add_parser("use-cases", help="Generate GUI-originated use case diagrams.")
-    use_cases.add_argument("source")
-    use_cases.add_argument("--language", help="Adapter name; inferred from the extension.")
-    use_cases.add_argument("--output-dir")
-    use_cases.add_argument("--max-depth", type=int, default=5)
-    call_graph = sub.add_parser("call-graph", help="Generate partitioned call graphs.")
-    call_graph.add_argument("source")
-    call_graph.add_argument("--language", help="Adapter name; inferred from the extension.")
-    call_graph.add_argument("--output-dir")
-    call_graph.add_argument("--fan-in-threshold", type=int, default=3)
-    call_graph.add_argument("--root")
-    call_graph.add_argument("--max-depth", type=int)
-    class_diagram = sub.add_parser("class-diagram", help="Generate class diagrams.")
-    class_diagram.add_argument("source")
-    class_diagram.add_argument("--language", help="Adapter name; inferred from the extension.")
-    class_diagram.add_argument("--renderer", choices=("mermaid", "plantuml"))
-    class_diagram.add_argument("--output-dir")
-    sequence_diagram = sub.add_parser("sequence-diagram", help="Generate sequence diagrams.")
-    sequence_diagram.add_argument("source")
-    sequence_diagram.add_argument("--language", help="Adapter name; inferred from the extension.")
-    sequence_diagram.add_argument("--renderer", choices=("mermaid", "plantuml"))
-    sequence_diagram.add_argument("--output-dir")
-    sequence_diagram.add_argument("--max-depth", type=int, default=8)
-    sequence_diagram.add_argument("--hide-duplicate-calls", action="store_true")
-    sequence_diagram.add_argument("--show-returns", action="store_true")
+    parser = JapaneseArgumentParser(description=f"{PROJECT_NAME} のコマンドラインツール")
+    parser.add_argument("--version", action="store_true", help="バージョンを表示して終了")
+    sub = parser.add_subparsers(dest="command", title="コマンド", parser_class=JapaneseArgumentParser)
+    sub.add_parser("gui", help="デスクトップ画面を起動")
+    comment = sub.add_parser("comment", help="ソースコードへ説明コメントを生成")
+    comment.add_argument("source", help="解析するソースファイル")
+    comment.add_argument("--language", help="解析言語（省略時は拡張子から判定）")
+    comment.add_argument("--output", help="結果を書き出すファイル")
+    comment.add_argument("--in-place", action="store_true", help="入力ファイルを上書き")
+    ci = sub.add_parser("ci", help="GitHub Actionsのワークフローを解析")
+    ci.add_argument("source", help="解析するYAMLファイル")
+    ci.add_argument("--output", help="結果を書き出すファイル")
+    ci.add_argument("--check", action="store_true", help="品質上の問題を確認し、エラーがあれば失敗にする")
+    deployment = sub.add_parser("deployment", help="プロジェクトの配置図を生成")
+    deployment.add_argument("root", help="解析するプロジェクトフォルダー")
+    deployment.add_argument("--mode", choices=("simple", "full"), default="full", help="解析範囲")
+    deployment.add_argument("--output-dir", help="結果の保存先フォルダー")
+    timing = sub.add_parser("timing", help="ソースコードからタイミング図を生成")
+    timing.add_argument("source", help="解析するソースファイル")
+    timing.add_argument("--language", help="解析言語（省略時は拡張子から判定）")
+    timing.add_argument("--output-dir", help="結果の保存先フォルダー")
+    use_cases = sub.add_parser("use-cases", help="GUI操作からユースケース図を生成")
+    use_cases.add_argument("source", help="解析するソースファイル")
+    use_cases.add_argument("--language", help="解析言語（省略時は拡張子から判定）")
+    use_cases.add_argument("--output-dir", help="結果の保存先フォルダー")
+    use_cases.add_argument("--max-depth", type=int, default=5, help="呼び出しをたどる最大階層")
+    call_graph = sub.add_parser("call-graph", help="呼び出し関係図を生成")
+    call_graph.add_argument("source", help="解析するソースファイル")
+    call_graph.add_argument("--language", help="解析言語（省略時は拡張子から判定）")
+    call_graph.add_argument("--output-dir", help="結果の保存先フォルダー")
+    call_graph.add_argument("--fan-in-threshold", type=int, default=3, help="参照数による分割しきい値")
+    call_graph.add_argument("--root", help="探索の起点")
+    call_graph.add_argument("--max-depth", type=int, help="呼び出しをたどる最大階層")
+    class_diagram = sub.add_parser("class-diagram", help="クラス図を生成")
+    class_diagram.add_argument("source", help="解析するソースファイル")
+    class_diagram.add_argument("--language", help="解析言語（省略時は拡張子から判定）")
+    class_diagram.add_argument("--renderer", choices=("mermaid", "plantuml"), help="図の形式")
+    class_diagram.add_argument("--output-dir", help="結果の保存先フォルダー")
+    sequence_diagram = sub.add_parser("sequence-diagram", help="シーケンス図を生成")
+    sequence_diagram.add_argument("source", help="解析するソースファイル")
+    sequence_diagram.add_argument("--language", help="解析言語（省略時は拡張子から判定）")
+    sequence_diagram.add_argument("--renderer", choices=("mermaid", "plantuml"), help="図の形式")
+    sequence_diagram.add_argument("--output-dir", help="結果の保存先フォルダー")
+    sequence_diagram.add_argument("--max-depth", type=int, default=8, help="呼び出しをたどる最大階層")
+    sequence_diagram.add_argument("--hide-duplicate-calls", action="store_true", help="重複する呼び出しを省略")
+    sequence_diagram.add_argument("--show-returns", action="store_true", help="戻り値を表示")
     backend_smoke = sub.add_parser("backend-smoke", help=argparse.SUPPRESS)
     backend_smoke.add_argument("language", choices=("gdscript", "csharp", "java"))
-    backend_smoke.add_argument("--source", help="Parse a real source fixture instead of the built-in smoke source.")
+    backend_smoke.add_argument("--source", help="組み込み例の代わりに実際のソースファイルを解析")
     args = parser.parse_args(arguments)
 
     if args.version:
@@ -196,7 +235,7 @@ def main(argv: list[str] | None = None) -> int:
         path = Path(args.source)
         language = args.language or service.detect_language(path)
         if language == "unknown":
-            parser.error(f"unsupported source file type: {path.suffix or path.name}")
+            parser.error(f"対応していないファイル形式です: {path.suffix or path.name}")
         timing_service = TimingService()
         result = timing_service.generate(TimingAnalysisRequest(path, language))
         if args.output_dir:
@@ -211,7 +250,7 @@ def main(argv: list[str] | None = None) -> int:
         path = Path(args.source)
         language = args.language or service.detect_language(path)
         if language == "unknown":
-            parser.error(f"unsupported source file type: {path.suffix or path.name}")
+            parser.error(f"対応していないファイル形式です: {path.suffix or path.name}")
         use_case_service = UseCaseService()
         result = use_case_service.generate(
             UseCaseAnalysisRequest(path, language),
@@ -229,7 +268,7 @@ def main(argv: list[str] | None = None) -> int:
         path = Path(args.source)
         language = args.language or service.detect_language(path)
         if language == "unknown":
-            parser.error(f"unsupported source file type: {path.suffix or path.name}")
+            parser.error(f"対応していないファイル形式です: {path.suffix or path.name}")
         call_graph_service = CallGraphService()
         result = call_graph_service.generate(
             CallGraphAnalysisRequest(path, language),
@@ -249,7 +288,7 @@ def main(argv: list[str] | None = None) -> int:
         path = Path(args.source)
         language = args.language or service.detect_language(path)
         if language == "unknown":
-            parser.error(f"unsupported source file type: {path.suffix or path.name}")
+            parser.error(f"対応していないファイル形式です: {path.suffix or path.name}")
         request = SourceAnalysisRequest(path, language)
         if args.command == "class-diagram":
             result = service.generate_class_diagrams(request, renderer=args.renderer)
@@ -279,15 +318,18 @@ def main(argv: list[str] | None = None) -> int:
             print(result.content, end="")
         if args.check:
             for finding in result.findings:
-                print(f"{finding.severity}: {finding.code}: {finding.message}", file=sys.stderr)
+                severity = {"error": "エラー", "warning": "警告", "info": "情報"}.get(
+                    finding.severity, finding.severity
+                )
+                print(f"{severity}: {finding.code}: {finding.message}", file=sys.stderr)
             return 1 if any(finding.severity == "error" for finding in result.findings) else 0
         return 0
     if args.output and args.in_place:
-        parser.error("--output and --in-place cannot be combined")
+        parser.error("--output と --in-place は同時に指定できません")
     path = Path(args.source)
     language = args.language or service.detect_language(path)
     if language == "unknown":
-        parser.error(f"unsupported source file type: {path.suffix or path.name}")
+        parser.error(f"対応していないファイル形式です: {path.suffix or path.name}")
     result = service.generate_comments(CommentRequest(path, language))
     if args.in_place:
         write_text(path, result.content)

@@ -90,7 +90,7 @@ GDScript fixtureには次を含めます。
 
 fixtureはbackendに依存させず、tree-sitter node名をCommon IR goldenに加えません。
 
-## Licenseと再配布
+## ライセンスと再配布
 
 - tree-sitter-gdscript: MIT。
 - Godot Engine parser source: MIT。

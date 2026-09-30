@@ -61,7 +61,7 @@ Python hostは定義済みParser Backend Contract v1を介してhelperを起動�
 
 Maven／Gradle metadataは依存の発見に役立つ場合がありますが、基本的なJava sourceを解析するだけで利用者にMaven／Gradleを導入させません。外部依存が不足する場合はsymbolを作り出さず、未解決の事実として残します。
 
-## License
+## ライセンス
 
 JavaParserはLGPLまたはApache License 2.0で提供されます。Tomiyaでは **Apache-2.0** を利用し、必要なnoticeを保持します。
 

@@ -77,7 +77,7 @@ backends/
 
 Clang本体を同梱しても、system／vendor headerへの依存は解消しません。たとえばMSVC標準libraryの正確な意味解析には、解析対象projectが使うtoolchain／SDKのheaderが必要な場合があります。設定が欠けても可能な範囲の部分的な構造結果を返し、不足を報告します。
 
-## License
+## ライセンス
 
 LLVM／Clangは **Apache-2.0 WITH LLVM-exception** です。tree-sitter-cppはMITです。
 
