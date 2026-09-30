@@ -148,6 +148,23 @@ def test_class_diagram_cli_writes_plantuml_folder():
         assert diagrams[0].read_text(encoding="utf-8").startswith("@startuml\n")
 
 
+def test_class_diagram_cli_explains_unsupported_language(capsys):
+    with TemporaryDirectory() as folder:
+        source = Path(folder) / "sample.cs"
+        source.write_text("class Sample {}\n", encoding="utf-8")
+
+        exit_code = main(
+            ["class-diagram", str(source), "--language", "csharp", "--renderer", "mermaid"]
+        )
+
+    captured = capsys.readouterr()
+    assert exit_code != 0
+    assert "Pythonソースのみ対応" in captured.err
+    assert "指定された言語: csharp" in captured.err
+    assert "comment コマンド" in captured.err
+    assert "Traceback" not in captured.err
+
+
 def test_sequence_diagram_cli_writes_plantuml_with_returns():
     with TemporaryDirectory() as folder:
         root = Path(folder)
