@@ -140,7 +140,9 @@ def main(argv: list[str] | None = None) -> int:
     sequence_diagram.add_argument("--max-depth", type=int, default=8, help="呼び出しをたどる最大階層")
     sequence_diagram.add_argument("--hide-duplicate-calls", action="store_true", help="重複する呼び出しを省略")
     sequence_diagram.add_argument("--show-returns", action="store_true", help="戻り値を表示")
-    backend_smoke = sub.add_parser("backend-smoke", help=argparse.SUPPRESS)
+    backend_smoke = sub.add_parser(
+        "backend-smoke", help="CI向けのbackend動作確認（開発用）"
+    )
     backend_smoke.add_argument("language", choices=("gdscript", "csharp", "java"))
     backend_smoke.add_argument("--source", help="組み込み例の代わりに実際のソースファイルを解析")
     args = parser.parse_args(arguments)
