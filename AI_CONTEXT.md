@@ -48,7 +48,7 @@ Broad exploration を止める条件:
 - logical generation -> `Src/generators/`
 - output formatting -> `Src/renderers/`
 - design evaluation -> `Src/evaluators/`
-- Issue/PR/context workflow -> `tools/`, root `*.bat` / `*.sh`
+- Issue/PR/context workflow -> `tools/`, `scripts/dev/`; Windows build entry points -> root `build_exe.bat` / `run_dist.bat`, helpers -> `scripts/build/`
 - architecture rule -> `specification/architecture-policy.md`
 
 Use `docs/responsibility_map.md` or `scripts/dev/context.bat role-map` before broad file discovery.

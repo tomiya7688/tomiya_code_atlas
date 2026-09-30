@@ -8,7 +8,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-call verify_build.bat
+call scripts\build\verify.bat
 if errorlevel 1 exit /b 1
 
 python tools\create_pr.py

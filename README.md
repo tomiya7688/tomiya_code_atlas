@@ -115,18 +115,18 @@ tomiya-code-atlas/
 - JDK 25 x64: [Eclipse Temurin 25](https://adoptium.net/temurin/releases/?version=25&os=windows&arch=x64&package=jdk)。インストール後、`JAVA_HOME`をJDKのフォルダーに設定します。
 - Apache Maven: [Windowsを含むインストール手順](https://maven.apache.org/install)。Mavenの`bin`をPATHへ追加します。
 
-Python Launcher (`py`) がない場合は、`python` コマンドでPython 3.12が起動するようPATHを設定してください。リポジトリのルートで配布EXEを作るときは `build_exe.bat` を実行します。このバッチは `.venv` がなければ `setup.bat` を呼び出して準備します。
+Python Launcher (`py`) がない場合は、`python` コマンドでPython 3.12が起動するようPATHを設定してください。リポジトリのルートで配布EXEを作るときは `build_exe.bat` を実行します。このバッチは `.venv` がなければ `scripts\build\setup.bat` を呼び出して準備します。
 
 ```bat
 build_exe.bat
 run_dist.bat
 ```
 
-`setup.bat` はリポジトリ内の `.venv` を作り、実行・テスト・EXE作成に必要なPythonパッケージをそこへインストールします。ソース版を起動する場合は `run.bat` を使います。Pythonや依存パッケージをグローバル環境へインストールしません。
+`scripts\build\setup.bat` はリポジトリ内の `.venv` を作り、実行・テスト・EXE作成に必要なPythonパッケージをそこへインストールします。ソース版を起動する場合は `scripts\build\run_source.bat` を使います。Pythonや依存パッケージをグローバル環境へインストールしません。
 
 ### 成果物を作る
 
-`build.bat` はPython wheelとsource archiveを `.build\packages\` に作ります。これはPython packageであり、WindowsアプリのEXEではありません。
+`scripts\build\package.bat` はPython wheelとsource archiveを `.build\packages\` に作ります。これはPython packageであり、WindowsアプリのEXEではありません。
 
 配布用Windowsアプリには、Python 3.12に加えて .NET SDK 10、JDK 25、Mavenが必要です。`JAVA_HOME` をJDK 25のインストール先に設定し、次の確認コマンドがそれぞれ成功してから実行します。
 
@@ -146,7 +146,7 @@ run_dist.bat
 
 `build_exe.bat` はJava/C# backendとPyInstaller onedirアプリを作り、`run_dist.bat` はビルド済みの `.build\dist\tomiya-code-atlas\tomiya-code-atlas.exe` を起動します。ビルド済み配布物を別の場所へ展開した場合は、そのフォルダーの `tomiya-code-atlas.exe` を直接起動します。onedir配布ではEXE単体を移動せず、フォルダー全体を使ってください。ダウンロード済み配布物の実行時には、Python、.NET SDK、JDK、Mavenの別途インストールは不要です。
 
-リリース前の完全検証は `verify_build.bat` です。packageとEXEのビルド、配布物CLI/GUI smoke、テスト、policy checkをまとめて実行します。上記のビルド要件を満たした環境で、先に `setup.bat` を実行してください。
+リリース前の完全検証は `scripts\build\verify.bat` です。packageとEXEのビルド、配布物CLI/GUI smoke、テスト、policy checkをまとめて実行します。上記のビルド要件を満たした環境で実行してください。
 
 ## 開発用コマンド
 

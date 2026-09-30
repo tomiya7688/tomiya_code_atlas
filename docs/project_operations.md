@@ -7,9 +7,9 @@ Tomiya Code Atlas uses GitHub Issues as the task ledger and defaults to `1 Issue
 
 ### Build verification
 
-`setup.bat` はPython 3.12で `.venv` を作り、プロジェクト・ビルド・テスト・PyInstallerの依存をインストールします。`build.bat` はwheelとsource archiveのみを作り、`build_exe.bat` はWindows onedirアプリを作ります。`run.bat` はソース版、`run_dist.bat` はビルド済みonedir版を起動します。`verify_build.bat` は両方の成果物を作り、ソース版と配布版の起動、配布物、policy、テストを確認します。`scripts/dev/pull_request.bat` はこの検証後にGitHub PRを作成または更新します。
+ルートの `build_exe.bat` はWindows onedirアプリを作り、`run_dist.bat` はビルド済みアプリを起動します。セットアップ、Python package作成、ソース版起動、総合検証の補助batは `scripts/build/` にまとめています。具体的には `setup.bat` がPython 3.12で `.venv` を作り、`package.bat` がwheelとsource archiveを作成、`run_source.bat` がソース版を起動し、`verify.bat` が両方の成果物と配布物、policy、テストを確認します。`scripts/dev/pull_request.bat` はこの検証後にGitHub PRを作成または更新します。
 
-EXEビルドには追加で .NET SDK 10、JDK 25、Mavenが必要です。`JAVA_HOME` をJDK 25のインストール先に設定してください。Python EXEワークフローはクリーンなWindowsランナー上で、同じ `setup.bat` と `verify_build.bat` を実行します。
+EXEビルドには追加で .NET SDK 10、JDK 25、Mavenが必要です。`JAVA_HOME` をJDK 25のインストール先に設定してください。Python EXEワークフローはクリーンなWindowsランナー上で、同じ `scripts/build/setup.bat` と `scripts/build/verify.bat` を実行します。
 
 作業開始時は、リモートの最新状態を確認してから Issue の実装に入る。
 

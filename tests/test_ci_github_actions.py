@@ -108,7 +108,7 @@ def test_release_workflow_gates_publishing_on_the_verified_tag_candidate() -> No
     assert workflow.name == "Release"
     assert workflow.trigger == ("push",)
     assert '"v*"' in source
-    assert "call verify_build.bat" in source
+    assert "call scripts\\build\\verify.bat" in source
     assert "gh release create" in source
     assert "--verify-tag" in source
 
@@ -122,6 +122,6 @@ def test_python_artifact_workflows_run_e2e_before_uploading_exact_outputs() -> N
     assert "tools/verify_wheel.py .build/packages/*.whl" in build_source
     assert "tools/verify_wheel.py .build/packages/*.tar.gz" in build_source
     assert "Upload tested Python package artifacts" in build_source
-    assert "call setup.bat" in exe_source
-    assert "call verify_build.bat" in exe_source
+    assert "call scripts\\build\\setup.bat" in exe_source
+    assert "call scripts\\build\\verify.bat" in exe_source
     assert "Upload Windows app directory" in exe_source

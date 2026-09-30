@@ -310,7 +310,7 @@ def validation_plan(paths: Iterable[str]) -> list[str]:
         plan.append("python -m pytest -k 'call_graph or generator or renderer'")
     if any(path.startswith(("specification/", "docs/architecture/", "Src/")) for path in files):
         plan.append("python tools/context_tool.py policy-check")
-    if any(path in {"app.py", "run.bat"} for path in files):
+    if any(path in {"app.py", "scripts/build/run_source.bat"} for path in files):
         plan.append("python app.py")
     if any(path == "pyproject.toml" or path.startswith(".github/workflows/") for path in files):
         plan.extend(["python app.py", "python -m build"])

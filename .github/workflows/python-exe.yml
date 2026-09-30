@@ -10,13 +10,11 @@ on:
       - "backend-src/**"
       - "pyproject.toml"
       - "README.md"
-      - "setup.bat"
-      - "build.bat"
+      - "scripts/build/**"
       - "build_exe.bat"
-      - "run.bat"
       - "run_dist.bat"
       - "tools/verify_distribution.py"
-      - "verify_build.bat"
+      - "scripts/dev/pull_request.bat"
       - "scripts/dev/**"
       - "tests/**"
       - ".github/workflows/python-exe.yml"
@@ -46,11 +44,11 @@ jobs:
       - name: Install project and build tools
         shell: cmd
         run: |
-          call setup.bat
+          call scripts\build\setup.bat
 
       - name: Build and verify from the documented entry points
         shell: cmd
-        run: call verify_build.bat
+        run: call scripts\build\verify.bat
 
       - name: Smoke test app
         shell: powershell

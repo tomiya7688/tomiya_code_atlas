@@ -4,9 +4,9 @@ cd /d "%~dp0"
 
 if not exist ".venv\Scripts\python.exe" (
     echo Preparing the project build environment.
-    call setup.bat
+    call scripts\build\setup.bat
     if errorlevel 1 (
-        echo Build stopped because setup.bat could not prepare the required Python environment.
+        echo Build stopped because scripts\build\setup.bat could not prepare the required Python environment.
         exit /b 1
     )
 )

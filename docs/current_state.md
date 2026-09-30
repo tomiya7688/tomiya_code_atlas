@@ -11,7 +11,7 @@ This file is a compact snapshot of what is currently present in the repository. 
 - Evaluators under `Src/evaluators/` provide deterministic CI quality checks and graph-based design-quality evaluation.
 - Application process services, contracts, config, and data helpers live under `Src/process/` and `Src/data/`. Tkinter GUI entry is under `Src/ui/`.
 - Automated tests cover call graph, comments (including multi-language adapters), diagrams, CI analysis/evaluation, design quality, contracts, context tooling, and packaging smoke.
-- `app.py`, `setup.bat`, `run.bat`, `run_dist.bat`, packaging metadata, and GitHub Actions provide the current launch/build foundation.
+- `app.py`, root `build_exe.bat` / `run_dist.bat`, `scripts/build/`, packaging metadata, and GitHub Actions provide the current launch/build foundation.
 - Windows build and run entry points remain in the root; development-only Issue/context/reducer/PR commands are grouped under `scripts/dev/`.
 - CI runs the full pytest suite on Python 3.11 / 3.12 / 3.13, architecture policy check, UPD Commander policy check, and self-analysis smoke.
 - `scripts/dev/next_issue.bat` and `scripts/dev/pull_request.bat` provide the low-context Issue -> PR workflow.

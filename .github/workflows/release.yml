@@ -31,7 +31,7 @@ jobs:
 
       - name: Install project and release build tools
         shell: cmd
-        run: call setup.bat
+        run: call scripts\build\setup.bat
 
       - name: Match tag to package version
         shell: pwsh
@@ -47,7 +47,7 @@ jobs:
 
       - name: Build and verify release candidate
         shell: cmd
-        run: call verify_build.bat
+        run: call scripts\build\verify.bat
 
       - name: Archive verified Windows app directory
         shell: pwsh
