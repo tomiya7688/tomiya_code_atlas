@@ -13,7 +13,7 @@ if errorlevel 1 exit /b 1
 
 call build.bat
 if errorlevel 1 exit /b 1
-for /f %%V in ('"%PYTHON%" -c "from Src.version import __version__; print(__version__)"') do set "PACKAGE_VERSION=%%V"
+for /f %%V in ('%PYTHON% -c "from Src.version import __version__; print(__version__)"') do set "PACKAGE_VERSION=%%V"
 if not defined PACKAGE_VERSION (
   echo [ERROR] Could not read package version.
   exit /b 1

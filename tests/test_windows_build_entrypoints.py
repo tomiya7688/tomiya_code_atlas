@@ -36,6 +36,7 @@ def test_build_commands_use_the_setup_environment_and_documented_outputs() -> No
     assert '".venv\\Scripts\\python.exe" -m PyInstaller --onedir' in app_build
     assert "dotnet --list-sdks | findstr /b \"10.\"" in app_build
     assert 'findstr /c:"25."' in app_build
+    assert "for /f %%V in ('%PYTHON% -c \"from Src.version" in full_verification
     assert "call run_dist.bat --version" in full_verification
     assert "call run.bat --version" in full_verification
 
