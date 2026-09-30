@@ -1,3 +1,6 @@
+from pathlib import Path
+from time import perf_counter
+
 from Src.generators import CommentGenerator
 from Src.models import CommentTarget
 
@@ -17,3 +20,17 @@ def test_java_idempotent():
     source = "public class Ready {\n    public boolean isReady() { return true; }\n}\n"
     once = generator.generate(source, "java")
     assert generator.generate(once, "java") == once
+
+
+def test_java_comment_generation_finishes_for_backend_source():
+    source_path = (
+        Path(__file__).resolve().parents[1]
+        / "backend-src/java/src/main/java/dev/tomiya/backend/Main.java"
+    )
+    source = source_path.read_text(encoding="utf-8")
+
+    started = perf_counter()
+    result = CommentGenerator().generate(source, "java")
+
+    assert perf_counter() - started < 2.0
+    assert len(result) > len(source)
