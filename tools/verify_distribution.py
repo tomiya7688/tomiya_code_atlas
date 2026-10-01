@@ -6,6 +6,7 @@ import argparse
 import difflib
 import json
 import os
+import struct
 import subprocess
 import sys
 import tempfile
@@ -93,6 +94,50 @@ def _only_output(root: Path, suffix: str) -> Path:
     if len(matches) != 1:
         raise DistributionCheckError(f"Expected one {suffix} output below {root}, found {len(matches)}")
     return matches[0]
+
+
+def _verify_application_icon(exe: Path) -> None:
+    assets = exe.parent / "assets"
+    png_256 = assets / "atlas-kun-256.png"
+    png_64 = assets / "atlas-kun-64.png"
+    ico = assets / "atlas-kun.ico"
+    license_file = assets / "LICENSE.md"
+    for path in (png_256, png_64, ico, license_file):
+        if not path.is_file():
+            raise DistributionCheckError(f"Application icon asset is missing: {path}")
+
+    def png_dimensions(data: bytes, source: Path) -> tuple[int, int]:
+        if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) < 24:
+            raise DistributionCheckError(f"Invalid PNG icon asset: {source}")
+        return struct.unpack_from(">II", data, 16)
+
+    if png_dimensions(png_256.read_bytes(), png_256) != (256, 256):
+        raise DistributionCheckError("The packaged 256px window icon has the wrong dimensions")
+    if png_dimensions(png_64.read_bytes(), png_64) != (64, 64):
+        raise DistributionCheckError("The packaged 64px window icon has the wrong dimensions")
+
+    data = ico.read_bytes()
+    if len(data) < 6:
+        raise DistributionCheckError("The packaged ICO file is truncated")
+    reserved, icon_type, count = struct.unpack_from("<HHH", data)
+    if reserved != 0 or icon_type != 1 or count != 7:
+        raise DistributionCheckError("The packaged ICO must contain seven Windows icon sizes")
+    dimensions: set[tuple[int, int]] = set()
+    for index in range(count):
+        width, height, _, _, _, _, length, offset = struct.unpack_from("<BBBBHHII", data, 6 + index * 16)
+        width, height = width or 256, height or 256
+        end = offset + length
+        if end > len(data):
+            raise DistributionCheckError("The packaged ICO contains an invalid image offset")
+        actual = png_dimensions(data[offset:end], ico)
+        if actual != (width, height):
+            raise DistributionCheckError(f"ICO entry {width}px contains an image of {actual[0]}x{actual[1]}")
+        dimensions.add((width, height))
+    expected = {(size, size) for size in (16, 24, 32, 48, 64, 128, 256)}
+    if dimensions != expected:
+        raise DistributionCheckError(f"The packaged ICO sizes differ from the required set: {dimensions!r}")
+    if "Tomiya Character License v1.0.1" not in license_file.read_text(encoding="utf-8"):
+        raise DistributionCheckError("The packaged icon license notice is not Tomiya Character License v1.0.1")
 
 
 def _verify_language_comments(exe: Path, workspace: Path) -> None:
@@ -299,6 +344,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="tomiya-distribution-e2e-") as temp:
         workspace = Path(temp)
         try:
+            _verify_application_icon(exe)
             _verify_cli_contract(exe, workspace)
             _verify_language_comments(exe, workspace)
             _verify_semantic_backends(exe, workspace)

@@ -79,7 +79,21 @@ if exist ".build\dist\tomiya-code-atlas" rmdir /S /Q ".build\dist\tomiya-code-at
 if errorlevel 1 exit /b 1
 if not exist ".build\pyinstaller-work" mkdir ".build\pyinstaller-work"
 if not exist ".build\spec" mkdir ".build\spec"
-".venv\Scripts\python.exe" -m PyInstaller --onedir --clean --name tomiya-code-atlas --distpath .build\dist --workpath .build\pyinstaller-work --specpath .build\spec -y app.py
+if not exist ".build\generated-assets" mkdir ".build\generated-assets"
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\build\generate_app_icon.ps1" -OutputDirectory ".build\generated-assets"
+if errorlevel 1 exit /b 1
+for %%I in (".build\generated-assets\atlas-kun.ico") do set "APP_ICON=%%~fI"
+".venv\Scripts\python.exe" -m PyInstaller --onedir --clean --icon "%APP_ICON%" --name tomiya-code-atlas --distpath .build\dist --workpath .build\pyinstaller-work --specpath .build\spec -y app.py
+if errorlevel 1 exit /b 1
+
+if not exist ".build\dist\tomiya-code-atlas\assets" mkdir ".build\dist\tomiya-code-atlas\assets"
+copy /Y ".build\generated-assets\atlas-kun-256.png" ".build\dist\tomiya-code-atlas\assets\atlas-kun-256.png" >nul
+if errorlevel 1 exit /b 1
+copy /Y "assets\characters\atlas-kun\atlas-kun-64.png" ".build\dist\tomiya-code-atlas\assets\atlas-kun-64.png" >nul
+if errorlevel 1 exit /b 1
+copy /Y ".build\generated-assets\atlas-kun.ico" ".build\dist\tomiya-code-atlas\assets\atlas-kun.ico" >nul
+if errorlevel 1 exit /b 1
+copy /Y "assets\characters\atlas-kun\LICENSE.md" ".build\dist\tomiya-code-atlas\assets\LICENSE.md" >nul
 if errorlevel 1 exit /b 1
 
 if exist "config" (

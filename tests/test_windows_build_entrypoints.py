@@ -39,7 +39,9 @@ def test_build_commands_use_the_setup_environment_and_documented_outputs() -> No
     assert 'call scripts\\build\\setup.bat' in app_build
     assert app_build.index('call scripts\\build\\setup.bat') < app_build.index('where dotnet')
     assert "Python環境を準備できませんでした" in app_build
-    assert '".venv\\Scripts\\python.exe" -m PyInstaller --onedir' in app_build
+    assert "generate_app_icon.ps1" in app_build
+    assert 'set "APP_ICON=%%~fI"' in app_build
+    assert '--icon "%APP_ICON%"' in app_build
     assert "dotnet --list-sdks | findstr /b \"10.\"" in app_build
     assert 'findstr /c:"25."' in app_build
     assert "resolve_maven.ps1" in app_build
