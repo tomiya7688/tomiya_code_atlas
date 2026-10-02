@@ -28,7 +28,7 @@ if errorlevel 1 (
 
 call run_dist.bat --help >"%VERIFY_DIR%\help.out"
 if errorlevel 1 exit /b 1
-findstr /c:"使用方法:" "%VERIFY_DIR%\help.out" >nul
+findstr /c:"--help, -h" "%VERIFY_DIR%\help.out" >nul
 if errorlevel 1 (
   echo [エラー] Go版EXEのhelp smoke testに失敗しました。
   exit /b 1
@@ -36,7 +36,7 @@ if errorlevel 1 (
 
 ".venv\Scripts\python.exe" -m compileall -q Src tests tools
 if errorlevel 1 exit /b 1
-".venv\Scripts\python.exe" -m pytest --basetemp "%VERIFY_DIR%\pytest-temp"
+".venv\Scripts\python.exe" -m pytest -p no:cacheprovider --ignore-glob="pytest-cache-files-*" --basetemp "%VERIFY_DIR%\pytest-temp"
 if errorlevel 1 exit /b 1
 call scripts\dev\context.bat policy-check
 if errorlevel 1 exit /b 1

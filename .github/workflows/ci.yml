@@ -36,6 +36,10 @@ jobs:
         working-directory: backends/go
         run: go build -o tomiya-go-backend .
 
+      - name: Go Common IR conformance test
+        working-directory: go
+        run: go test ./...
+
       - name: Python sourceをcompile
         run: python -m compileall -q app.py Src tools tests
 

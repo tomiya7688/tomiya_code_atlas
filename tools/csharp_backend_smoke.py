@@ -9,12 +9,43 @@ from pathlib import Path
 
 
 FIXTURE = Path("tests/fixtures/backend_conformance/csharp.cs")
+PROTOCOL_FIXTURE = Path("tests/fixtures/backend_conformance/helper_protocol_cases_v1.json")
 
 
 def main(argv: list[str] | None = None) -> int:
     command = list(sys.argv[1:] if argv is None else argv)
     if not command:
         raise SystemExit("usage: csharp_backend_smoke.py <helper command...>")
+
+    protocol_fixture = json.loads(PROTOCOL_FIXTURE.read_text(encoding="utf-8"))
+    protocol_case = protocol_fixture["cases"]["csharp"]
+    protocol_request = {
+        "contract_version": protocol_fixture["contract_version"],
+        **protocol_case["request"],
+    }
+    protocol_completed = subprocess.run(
+        command,
+        input=json.dumps(protocol_request),
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=False,
+    )
+    if protocol_completed.returncode != 0:
+        sys.stderr.write(protocol_completed.stderr)
+        return protocol_completed.returncode
+    protocol_response = json.loads(protocol_completed.stdout)
+    assert protocol_response["contract_version"] == protocol_fixture["contract_version"]
+    assert protocol_response["request_id"] == protocol_request["request_id"]
+    assert protocol_response["ok"] is True
+    protocol_module = protocol_response["ir"]
+    assert protocol_module["schema_version"] == protocol_fixture["schema_version"]
+    assert protocol_module["language"] == "csharp"
+    assert {item["name"] for item in protocol_module["entities"]} >= set(
+        protocol_case["expected_entity_names"]
+    )
+    assert protocol_module["imports"] == protocol_case["expected_imports"]
+    assert isinstance(protocol_module["diagnostics"], list)
 
     request = {
         "contract_version": "1",
@@ -41,6 +72,7 @@ def main(argv: list[str] | None = None) -> int:
     assert response["request_id"] == "csharp-ci-smoke"
     assert response["ok"] is True
     module = response["ir"]
+    assert module["schema_version"] == "1"
     entities = module["entities"]
 
     worker = next(

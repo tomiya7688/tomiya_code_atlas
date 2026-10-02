@@ -77,7 +77,16 @@ def run_tests() -> None:
     base = Path(".pytest-pr-temp")
     base.mkdir(parents=True, exist_ok=True)
     completed = subprocess.run(
-        [sys.executable, "-m", "pytest", "--basetemp", str(base)],
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            "--ignore-glob=pytest-cache-files-*",
+            "--basetemp",
+            str(base),
+        ],
         text=True,
     )
     if completed.returncode != 0:

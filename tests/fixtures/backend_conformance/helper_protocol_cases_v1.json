@@ -1,0 +1,28 @@
+{
+  "contract_version": "1",
+  "schema_version": "1",
+  "cases": {
+    "go": {
+      "request": {
+        "request_id": "shared-go-helper-v1",
+        "operation": "parse",
+        "language": "go",
+        "source": "package demo\n\nimport \"fmt\"\n\nfunc Run() {\n\tfmt.Println(\"ready\")\n}\n",
+        "path": "demo.go"
+      },
+      "expected_entity_names": ["demo", "Run"],
+      "expected_imports": ["\"fmt\""]
+    },
+    "csharp": {
+      "request": {
+        "request_id": "shared-csharp-helper-v1",
+        "operation": "parse",
+        "language": "csharp",
+        "source": "namespace Demo;\npublic class Worker {\n    public void Run() {\n        Helper();\n    }\n    private void Helper() {}\n}\n",
+        "path": "Demo.cs"
+      },
+      "expected_entity_names": ["Worker", "Run", "Helper"],
+      "expected_imports": []
+    }
+  }
+}

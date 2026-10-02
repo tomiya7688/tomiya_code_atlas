@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from pathlib import Path
 
+from Src.generators.call_graph import build_call_graph
 from Src.languages.python_project import PythonProjectLanguageAdapter
 
 
@@ -60,6 +62,41 @@ def test_golden_contract_contains_only_language_independent_semantics() -> None:
     assert golden["contract_version"] == "1"
     assert golden["projection"] == "common-ir-semantic-subset"
     assert not (set(_walk_keys(golden)) & FORBIDDEN_BACKEND_KEYS)
+
+
+def test_serialized_common_ir_fixture_covers_wire_and_logical_output_contract() -> None:
+    fixture = _load("serialized_common_ir_v1.json")
+    module = fixture["common_ir"]
+
+    assert fixture["schema_version"] == "1"
+    parsed = PythonProjectLanguageAdapter().parse(fixture["source"])
+    assert json.loads(json.dumps(asdict(parsed))) == module
+    assert fixture["diagnostic_example"]["line"] >= 1
+
+    graph = fixture["logical_output"]["call_graph"]
+    actual_graph = build_call_graph(parsed)
+    assert graph["nodes"] == sorted(set(graph["nodes"]))
+    assert graph["nodes"] == sorted(actual_graph.nodes)
+    assert graph["edges"] == sorted(
+        graph["edges"], key=lambda edge: (edge["caller"], edge["callee"], edge["call_type"])
+    )
+    assert graph["edges"] == [asdict(edge) for edge in actual_graph.edges]
+    assert not (set(_walk_keys(fixture)) & FORBIDDEN_BACKEND_KEYS)
+
+
+def test_go_and_csharp_helpers_share_protocol_conformance_cases() -> None:
+    fixture = _load("helper_protocol_cases_v1.json")
+
+    assert fixture["contract_version"] == "1"
+    assert fixture["schema_version"] == "1"
+    assert set(fixture["cases"]) == {"go", "csharp"}
+    for language, case in fixture["cases"].items():
+        request = case["request"]
+        assert request["operation"] == "parse"
+        assert request["language"] == language
+        assert request["request_id"]
+        assert request["source"]
+        assert case["expected_entity_names"]
 
 
 def test_python_fixture_matches_common_ir_semantic_golden() -> None:
