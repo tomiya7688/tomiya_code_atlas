@@ -46,9 +46,9 @@ Source
   -> Mermaid / PlantUML / text / table
 ```
 
-アプリケーション全体は UPD Commander Base Design を参考に UI / Process / Data の責務を分けます。Commander は呼び出しの交通整理、Messenger は境界通信のみを担当し、実処理を持ちません。
+アプリケーション全体では UI / Process / Data の責務を分け、処理の振り分けと境界通信を薄く保ちます。解析や入出力などの実処理は、それぞれの専門moduleが担当します。
 
-規定は [`specification/architecture-policy.md`](specification/architecture-policy.md)、日本語での説明は [`docs/jp/構成/UPDコマンダー適用.md`](docs/jp/構成/UPDコマンダー適用.md) を参照してください。
+規定は [`specification/architecture-policy.md`](specification/architecture-policy.md)、moduleごとの責務は [`docs/jp/責務マップ.md`](docs/jp/責務マップ.md) を参照してください。
 
 ## repository構成
 
@@ -162,7 +162,7 @@ Linux/macOSでは `./scripts/dev/prepare_work.sh` を使います。これは優
 | `scripts\dev\context.bat profile` | repo規模とcontext使用量を確認 |
 | `scripts\dev\context.bat remote-delta` | ahead/behindとリモート変更を確認 |
 | `scripts\dev\context.bat validation-plan` | 変更ファイルから検証を選ぶ |
-| `scripts\dev\context.bat policy-check` | architecture / UPD boundaryを確認 |
+| `scripts\dev\context.bat policy-check` | architecture boundaryを確認 |
 | `scripts\dev\context.bat context-pack` | 一時Context Packを生成 |
 | `scripts\dev\reducer.bat setup` | 開発専用reducerを準備 |
 | `scripts\dev\pull_request.bat` | 検証、commit、push、PR作成 |
@@ -187,7 +187,7 @@ AI向け入口は `AI_CONTEXT.md` と `AGENTS.md` です。
 
 READMEは概要だけを保持します。日本語の個別機能仕様は `docs/jp/機能仕様/`、Issueごとの要件・Acceptance CriteriaはGitHub Issues、横断的な必須規則は `specification/` を正本とします。`docs/en/` は日本語正本から作る英語版です。
 
-`ai-context-reducer` と `upd-commander-base-design` は設計・運用の参考元であり、実行時必須依存ではありません。
+`ai-context-reducer` は開発専用の補助toolで、実行時必須依存ではありません。
 
 ## ライセンス
 
