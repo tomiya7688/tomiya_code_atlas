@@ -9,9 +9,13 @@ on:
       - "backends/**"
       - "backend-src/**"
       - "pyproject.toml"
+      - "README.md"
+      - "scripts/build/**"
       - "build_exe.bat"
+      - "run_dist.bat"
       - "tools/verify_distribution.py"
-      - "verify_build.bat"
+      - "scripts/dev/pull_request.bat"
+      - "scripts/dev/**"
       - "tests/**"
       - ".github/workflows/python-exe.yml"
   workflow_dispatch:
@@ -25,7 +29,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - uses: actions/setup-dotnet@v6
         with:
@@ -38,16 +42,13 @@ jobs:
           cache: maven
 
       - name: Install project and build tools
-        run: |
-          New-Item -ItemType Directory -Force .build/metadata | Out-Null
-          py -3 -m pip install -e ".[test,exe]"
-
-      - name: Run tests
-        run: py -3 -m pytest -q
-
-      - name: Build onedir app
         shell: cmd
-        run: call build_exe.bat
+        run: |
+          call scripts\build\setup.bat
+
+      - name: Build and verify from the documented entry points
+        shell: cmd
+        run: call scripts\build\verify.bat
 
       - name: Smoke test app
         shell: powershell
@@ -115,10 +116,6 @@ jobs:
             Write-Error "Java backend smoke failed: $javaOutput"
             exit 1
           }
-
-      - name: Run packaged distribution E2E
-        shell: cmd
-        run: py -3 tools\verify_distribution.py --exe .build\dist\tomiya-code-atlas\tomiya-code-atlas.exe --gui
 
       - name: Upload Windows app directory
         uses: actions/upload-artifact@v7

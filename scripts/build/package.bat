@@ -1,20 +1,15 @@
 @echo off
 setlocal
-cd /d "%~dp0"
+cd /d "%~dp0\..\.."
 
-where py >nul 2>nul
-if %errorlevel%==0 (
-    set "PYTHON=py -3"
-) else (
-    set "PYTHON=python"
+if not exist ".venv\Scripts\python.exe" (
+    echo Project build environment not found. Run scripts\build\setup.bat first.
+    exit /b 1
 )
-
-%PYTHON% -m pip install --upgrade pip build
-if errorlevel 1 exit /b 1
 
 if not exist ".build\packages" mkdir ".build\packages"
 if not exist ".build\metadata" mkdir ".build\metadata"
-%PYTHON% -m build --outdir .build\packages
+".venv\Scripts\python.exe" -m build --outdir .build\packages
 if errorlevel 1 exit /b 1
 
 echo.

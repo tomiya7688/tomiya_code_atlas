@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 set -eu
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../.."
 
 REDUCER_REPO="https://github.com/tomiya7688/ai-context-reducer.git"
 REDUCER_DIR="$PWD/.dev/ai-context-reducer"

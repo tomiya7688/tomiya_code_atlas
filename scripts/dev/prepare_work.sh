@@ -1,6 +1,10 @@
 #!/usr/bin/env sh
 set -eu
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../.."
+
+if ! ./scripts/dev/reducer.sh setup; then
+  echo "[WARN] ai-context-reducer setup failed; continuing with repository-local context tools." >&2
+fi
 
 if ! command -v python3 >/dev/null 2>&1; then
   echo "[ERROR] python3 was not found in PATH." >&2

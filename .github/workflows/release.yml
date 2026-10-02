@@ -30,9 +30,8 @@ jobs:
           cache: maven
 
       - name: Install project and release build tools
-        run: |
-          New-Item -ItemType Directory -Force .build/metadata | Out-Null
-          py -3 -m pip install -e ".[test,exe]" build
+        shell: cmd
+        run: call scripts\build\setup.bat
 
       - name: Match tag to package version
         shell: pwsh
@@ -48,7 +47,7 @@ jobs:
 
       - name: Build and verify release candidate
         shell: cmd
-        run: call verify_build.bat
+        run: call scripts\build\verify.bat
 
       - name: Archive verified Windows app directory
         shell: pwsh

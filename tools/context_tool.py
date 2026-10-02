@@ -310,7 +310,7 @@ def validation_plan(paths: Iterable[str]) -> list[str]:
         plan.append("python -m pytest -k 'call_graph or generator or renderer'")
     if any(path.startswith(("specification/", "docs/architecture/", "Src/")) for path in files):
         plan.append("python tools/context_tool.py policy-check")
-    if any(path in {"app.py", "run.bat"} for path in files):
+    if any(path in {"app.py", "scripts/build/run_source.bat"} for path in files):
         plan.append("python app.py")
     if any(path == "pyproject.toml" or path.startswith(".github/workflows/") for path in files):
         plan.extend(["python app.py", "python -m build"])
@@ -412,7 +412,7 @@ def current_changed_paths(root: Path = ROOT, base: str = "origin/main") -> list[
 
 def build_context_pack(root: Path = ROOT, base: str = "origin/main") -> str:
     task_file = root / ".codex" / "next_issue.md"
-    task = task_file.read_text(encoding="utf-8") if task_file.exists() else "No generated task capsule. Run next_issue.bat first."
+    task = task_file.read_text(encoding="utf-8") if task_file.exists() else "No generated task capsule. Run scripts/dev/next_issue.bat first."
     paths = current_changed_paths(root, base)
     plan = validation_plan(paths)
     diff = compact_diff(root, base)

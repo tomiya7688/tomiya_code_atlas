@@ -3,7 +3,7 @@
 - [ ] The release tag matches the canonical version in `Src/version.py` and the built package metadata.
 - [ ] The package Build workflow passes its wheel and source archive install-and-run checks.
 - [ ] The Python EXE workflow passes its packaged CLI, backend, and GUI startup checks.
-- [ ] The Release workflow passes `verify_build.bat` for the exact wheel, source archive, and Windows one-dir app directory attached to the release.
+- [ ] The Release workflow passes `scripts/build/verify.bat` for the exact wheel, source archive, and Windows one-dir app directory attached to the release.
 - [ ] Manual acceptance in Issue #165 is complete before publishing v1.0.0.
 
 Record the manual acceptance run using [`manual-acceptance-record-template.md`](manual-acceptance-record-template.md), and attach or link the completed record from Issue #165.

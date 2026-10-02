@@ -32,7 +32,7 @@ Broad exploration を止める条件:
 - target source / tests / direct dependencies の working set が分かる
 - 必要なら Out of Scope / Deferred が分かる
 
-十分なら実装へ進み、不明点が発生したときだけ追加探索する。`context.bat exploration-stop` で Task Capsule の機械確認もできる。
+十分なら実装へ進み、不明点が発生したときだけ追加探索する。`scripts/dev/context.bat exploration-stop` で Task Capsule の機械確認もできる。
 
 ## Context Priority
 - P0: current task / Required / Acceptance
@@ -48,10 +48,10 @@ Broad exploration を止める条件:
 - logical generation -> `Src/generators/`
 - output formatting -> `Src/renderers/`
 - design evaluation -> `Src/evaluators/`
-- Issue/PR/context workflow -> `tools/`, root `*.bat` / `*.sh`
+- Issue/PR/context workflow -> `tools/`, `scripts/dev/`; Windows build entry points -> root `build_exe.bat` / `run_dist.bat`, helpers -> `scripts/build/`
 - architecture rule -> `specification/architecture-policy.md`
 
-Use `docs/responsibility_map.md` or `context.bat role-map` before broad file discovery.
+Use `docs/responsibility_map.md` or `scripts/dev/context.bat role-map` before broad file discovery.
 
 ## Architecture Constraints
 - Language-specific AST / parser types stay behind language adapters.
@@ -63,7 +63,7 @@ Use `docs/responsibility_map.md` or `context.bat role-map` before broad file dis
 - Confirmed architecture violations and review warnings must be distinguished.
 
 ## Working Rules
-- Search first, read second. `context.bat search` / `path-find` are dependency-free bounded fallbacks.
+- Search first, read second. `scripts/dev/context.bat search` / `path-find` are dependency-free bounded fallbacks.
 - unrelated refactor を混ぜない。
 - all docs / all Issues / repo history / full diff / full logs を無条件に読まない。
 - changed files の次は changed symbols / direct dependencies へ絞る。
@@ -77,16 +77,16 @@ Use `docs/responsibility_map.md` or `context.bat role-map` before broad file dis
 ## Validation
 - change type に応じた smallest sufficient evidence を最初に選ぶ。
 - `0 tests` / empty scan / unrelated smoke は成功根拠にしない。
-- architecture-sensitive changes: `context.bat policy-check`
+- architecture-sensitive changes: `scripts/dev/context.bat policy-check`
 - tooling changes: targeted project-operation tests
 - UI/visual acceptance: headless checks first, visual correctness がAcceptanceなら実画面確認も必要
 - package/distribution changes: source checks + artifact/build smoke
 - 実行できない範囲は `Unverified` として明示する。
 
 ## Low-context Commands
-最短の作業開始は `prepare_work.bat` / `./prepare_work.sh`。最優先 Issue のTask Capsule、remote delta、Context Packを順に準備する。
+最短の作業開始は `scripts/dev/prepare_work.bat` / `./scripts/dev/prepare_work.sh`。最優先 Issue のTask Capsule、remote delta、Context Packを順に準備する。
 
-`context.bat` / `./context.sh` の主なcommand:
+`scripts/dev/context.bat` / `./scripts/dev/context.sh` の主なcommand:
 - `profile` — repo規模 / context budget / hotspot候補
 - `doc-index` — Markdown heading index
 - `search` / `path-find` — bounded dependency-free search
@@ -100,7 +100,7 @@ Use `docs/responsibility_map.md` or `context.bat role-map` before broad file dis
 - `compact-log` — failure/warningとbounded tailだけを残す
 - `context-pack` — `.codex/context_pack.md` を生成
 
-`next_issue.bat` は priority-first Task Capsuleを `.codex/next_issue.md` へ生成し、`pull_request.bat` は validation -> compact summary -> push -> PR を行う。
+`scripts/dev/next_issue.bat` は priority-first Task Capsuleを `.codex/next_issue.md` へ生成し、`scripts/dev/pull_request.bat` は validation -> compact summary -> push -> PR を行う。
 
 Safe remote update は `remote-delta --ff` を明示した場合のみ許可し、dirty/diverged state では停止する。
 

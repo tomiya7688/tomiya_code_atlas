@@ -1,20 +1,22 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableExtensions
-cd /d "%~dp0"
+cd /d "%~dp0\..\.."
 
-where python >nul 2>nul
-if errorlevel 1 (
-  echo [ERROR] Python was not found in PATH.
+if not exist ".build\temp" mkdir ".build\temp"
+set "TEMP=%CD%\.build\temp"
+set "TMP=%TEMP%"
+
+if not exist ".venv\Scripts\python.exe" (
+  echo [エラー] Python環境がありません。scripts\build\setup.batを実行してください。
   exit /b 1
 )
-set "PYTHON=python"
-where py >nul 2>nul
-if not errorlevel 1 ( set "WHEEL_PYTHON=py -3" ) else ( set "WHEEL_PYTHON=%PYTHON%" )
+set "PYTHON=.venv\Scripts\python.exe"
 set "VERIFY_DIR=%TEMP%\tomiya-code-atlas-verify-%RANDOM%"
 mkdir "%VERIFY_DIR%" >nul 2>nul
 if errorlevel 1 exit /b 1
 
-call build.bat
+call scripts\build\package.bat
 if errorlevel 1 exit /b 1
 for /f %%V in ('%PYTHON% -c "from Src.version import __version__; print(__version__)"') do set "PACKAGE_VERSION=%%V"
 if not defined PACKAGE_VERSION (
@@ -31,9 +33,9 @@ if not exist "%SDIST%" (
   echo [ERROR] Python source archive was not generated.
   exit /b 1
 )
-%WHEEL_PYTHON% tools\verify_wheel.py "%WHEEL%"
+"%PYTHON%" tools\verify_wheel.py "%WHEEL%"
 if errorlevel 1 exit /b 1
-%WHEEL_PYTHON% tools\verify_wheel.py "%SDIST%"
+"%PYTHON%" tools\verify_wheel.py "%SDIST%"
 if errorlevel 1 exit /b 1
 
 call build_exe.bat
@@ -53,7 +55,15 @@ if not exist ".build\dist\tomiya-code-atlas\tomiya-code-atlas.exe" (
 >>"%VERIFY_DIR%\workflow.yml" echo       - name: pytest
 >>"%VERIFY_DIR%\workflow.yml" echo         run: pytest
 
-".build\dist\tomiya-code-atlas\tomiya-code-atlas.exe" comment "%VERIFY_DIR%\sample.py" >"%VERIFY_DIR%\comment.out"
+call run_dist.bat --version >"%VERIFY_DIR%\version.out"
+if errorlevel 1 exit /b 1
+findstr /c:"Tomiya Code Atlas" "%VERIFY_DIR%\version.out" >nul
+if errorlevel 1 (
+  echo [ERROR] run_dist.bat did not launch the packaged app.
+  exit /b 1
+)
+
+call run_dist.bat comment "%VERIFY_DIR%\sample.py" >"%VERIFY_DIR%\comment.out"
 if errorlevel 1 exit /b 1
 findstr /c:"# Retrieves config." "%VERIFY_DIR%\comment.out" >nul
 if errorlevel 1 (
@@ -61,7 +71,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-".build\dist\tomiya-code-atlas\tomiya-code-atlas.exe" ci "%VERIFY_DIR%\workflow.yml" --output "%VERIFY_DIR%\ci.mmd"
+call run_dist.bat ci "%VERIFY_DIR%\workflow.yml" --output "%VERIFY_DIR%\ci.mmd"
 if errorlevel 1 exit /b 1
 findstr /c:"flowchart LR" "%VERIFY_DIR%\ci.mmd" >nul
 if errorlevel 1 (
@@ -69,18 +79,26 @@ if errorlevel 1 (
   exit /b 1
 )
 
-%PYTHON% -m compileall -q Src tests
+call scripts\build\run_source.bat --version >"%VERIFY_DIR%\source-version.out"
 if errorlevel 1 exit /b 1
-python tools\verify_distribution.py --exe .build\dist\tomiya-code-atlas\tomiya-code-atlas.exe --gui
+findstr /c:"Tomiya Code Atlas" "%VERIFY_DIR%\source-version.out" >nul
+if errorlevel 1 (
+  echo [ERROR] scripts\build\run_source.bat did not launch the source application.
+  exit /b 1
+)
+
+"%PYTHON%" -m compileall -q Src tests
 if errorlevel 1 exit /b 1
-call context.bat policy-check
+"%PYTHON%" tools\verify_distribution.py --exe .build\dist\tomiya-code-atlas\tomiya-code-atlas.exe --gui
 if errorlevel 1 exit /b 1
-%PYTHON% -m pytest --basetemp "%VERIFY_DIR%\pytest-temp"
+call scripts\dev\context.bat policy-check
+if errorlevel 1 exit /b 1
+"%PYTHON%" -m pytest --basetemp "%VERIFY_DIR%\pytest-temp"
 if errorlevel 1 exit /b 1
 git diff --check
 if errorlevel 1 exit /b 1
 
 rmdir /s /q "%VERIFY_DIR%" >nul 2>nul
 echo.
-echo Build and verification completed successfully.
+echo buildと検証が完了しました。
 exit /b 0

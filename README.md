@@ -30,6 +30,10 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 最初の解析実装対象は Python です。言語固有処理は境界へ閉じ込め、中央の解析・生成・評価処理は可能な限り言語非依存にします。
 
+## Windows配布アプリをビルドする
+
+リポジトリのルートで `build_exe.bat` を実行してください。`.venv` がない場合は必要なPython環境の準備も試みます。ビルド結果は `.build\dist\tomiya-code-atlas\` に作られ、`run_dist.bat` で起動できます。必要なSDKが見つからない場合は、バッチが不足項目を表示します。
+
 ## Core architecture
 
 ```text
@@ -59,6 +63,7 @@ Src/
 config/            # runtime configuration and examples
 tests/             # automated evidence
 tools/             # Issue / PR / context helpers
+scripts/dev/       # developer-only Issue / context / PR entry points
 docs/              # explanations, current state, routing, feature specs
 specification/     # normative project rules
 app.py             # application entry point
@@ -101,46 +106,67 @@ tomiya-code-atlas/
 - 循環呼び出しは設定にかかわらずシーケンス図から除外し、無限展開を防止します
 - GUI上のチェック項目で、その実行時だけ設定を上書きできます
 
-## Project operations
+## Windowsでのセットアップと起動
 
-GitHub Issue をタスク台帳として扱い、原則 `1 Issue ~= 1 PR` です。
+開発元からクローンした場合は、次のツールをインストールします。
 
-作業開始の推奨入口:
+- Python 3.12 x64を推奨。Python 3.11以降も利用できます: [Windows向けPython配布](https://www.python.org/downloads/windows/)。`py -3.12` または `python` コマンドで起動できるようにします。
+- .NET SDK 10 x64: [.NET 10ダウンロード](https://dotnet.microsoft.com/download/dotnet/10.0)。
+- JDK 25 x64: [Eclipse Temurin 25](https://adoptium.net/temurin/releases/?version=25&os=windows&arch=x64&package=jdk)。`JAVA_HOME`を設定するか、JDKの`bin`をPATHへ追加します。
 
-```text
-prepare_work.bat
+Python Launcher (`py`) にPython 3.12がない場合は、`python` コマンドでPython 3.11以降が起動するようPATHを設定してください。リポジトリのルートで配布EXEを作るときは `build_exe.bat` を実行します。このバッチは `.venv` がなければ `scripts\build\setup.bat` を呼び出して準備します。Apache MavenはPATHに見つからない場合、公式配布物を取得して `.build\tools\` 内に準備します（初回のみネットワーク接続が必要です）。
+
+```bat
+build_exe.bat
+run_dist.bat
 ```
 
-Linux/macOS:
+`scripts\build\setup.bat` はリポジトリ内の `.venv` を作り、実行・テスト・EXE作成に必要なPythonパッケージをそこへインストールします。ソース版を起動する場合は `scripts\build\run_source.bat` を使います。Pythonや依存パッケージをグローバル環境へインストールしません。
 
-```text
-./prepare_work.sh
+### 成果物を作る
+
+`scripts\build\package.bat` はPython wheelとsource archiveを `.build\packages\` に作ります。これはPython packageであり、WindowsアプリのEXEではありません。
+
+配布用Windowsアプリのbuildには、Python 3.11以降、.NET SDK 10、JDK 25が必要です。`JAVA_HOME`を設定するかJDKの`bin`をPATHに追加してください。Mavenは`build_exe.bat`が自動で準備します。次のコマンドで前提を確認できます。
+
+```powershell
+py -3.12 --version       # 3.12がない場合は python --version（3.11以降）
+dotnet --list-sdks       # 10.x SDKが表示される
+javac -version           # 25.xと表示される
 ```
 
-これは次を行います。
 
-```text
-priority-first Issue selection
-  -> Task Capsule
-  -> Remote Delta First
-  -> Context Pack
+```bat
+build_exe.bat
+run_dist.bat
 ```
 
-個別コマンド:
-- `next_issue.bat` — 最優先の actionable Issue を1件だけTask Capsule化
-- `context.bat profile` — repo規模 / context budget / hotspot候補
-- `context.bat doc-index` — docsの見出し索引
-- `context.bat remote-delta` — ahead/behind / remote commits / changed files / bounded diff
-- `context.bat compact-diff` — changed files / shortstat / commit summary
-- `context.bat structure-index` — Python symbol/import index
-- `context.bat validation-plan` — changed filesから検証をルーティング
-- `context.bat policy-check` — architecture / UPD boundary のcompact check
-- `context.bat context-pack` — 一時作業Context Pack生成
-- `pull_request.bat` — validation / commit / compact summary / push / PR
+`build_exe.bat` はJava/C# backendとPyInstaller onedirアプリを作り、`run_dist.bat` はビルド済みの `.build\dist\tomiya-code-atlas\tomiya-code-atlas.exe` を起動します。ビルド済み配布物を別の場所へ展開した場合は、そのフォルダーの `tomiya-code-atlas.exe` を直接起動します。onedir配布ではEXE単体を移動せず、フォルダー全体を使ってください。ダウンロード済み配布物の実行時には、Python、.NET SDK、JDK、Mavenの別途インストールは不要です。
 
-Linux/macOSでは `./context.sh <command>` を使用できます。
+リリース前の完全検証は `scripts\build\verify.bat` です。packageとEXEのビルド、配布物CLI/GUI smoke、テスト、policy checkをまとめて実行します。上記のビルド要件を満たした環境で実行してください。
 
-詳細は [`docs/project_operations.md`](docs/project_operations.md) を参照してください。
+## 開発用コマンド
+
+GitHub Issueをタスク台帳として扱い、原則 `1 Issue ~= 1 PR` です。開発補助コマンドはルートから `scripts\dev\` へまとめています。
+
+```bat
+scripts\dev\prepare_work.bat
+```
+
+Linux/macOSでは `./scripts/dev/prepare_work.sh` を使います。これは優先Issueの選択、Task Capsule作成、remote delta確認、Context Pack生成を行います。
+
+| コマンド | 用途 |
+| --- | --- |
+| `scripts\dev\next_issue.bat` | 最優先の actionable Issue をTask Capsule化 |
+| `scripts\dev\context.bat profile` | repo規模とcontext使用量を確認 |
+| `scripts\dev\context.bat remote-delta` | ahead/behindとリモート変更を確認 |
+| `scripts\dev\context.bat validation-plan` | 変更ファイルから検証を選ぶ |
+| `scripts\dev\context.bat policy-check` | architecture / UPD boundaryを確認 |
+| `scripts\dev\context.bat context-pack` | 一時Context Packを生成 |
+| `scripts\dev\reducer.bat setup` | 開発専用reducerを準備 |
+| `scripts\dev\pull_request.bat` | 検証、commit、push、PR作成 |
+
+他のcontextコマンドは `scripts\dev\context.bat --help` を参照してください。Linux/macOSでは同じ場所の `context.sh`、`reducer.sh`、`prepare_work.sh` を使います。詳細は [`docs/project_operations.md`](docs/project_operations.md) を参照してください。
 
 ## AI context policy
 
