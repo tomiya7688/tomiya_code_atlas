@@ -4,6 +4,8 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 目的は、コードを読む前に「何があるか」「どこから呼ばれるか」「何に依存するか」「どこが複雑か」を短時間で把握できる状態を作ることです。
 
+製品本体はGoへ移行中です。現在のGo配布版はbuild可能なbootstrapで、解析機能やGUIは未移植です。既存機能の説明は移行中のPython source版を指し、移行完了までは [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで進捗を管理します。
+
 ## 主な機能
 
 主な対象:
@@ -34,7 +36,9 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 ## Windows配布アプリをビルドする
 
-リポジトリのルートで `build_exe.bat` を実行してください。`.venv` がない場合は必要なPython環境の準備も試みます。ビルド結果は `.build\dist\tomiya-code-atlas\` に作られ、`run_dist.bat` で起動できます。必要なSDKが見つからない場合は、バッチが不足項目を表示します。
+Go版への移行を開始しています。ルートで `build_exe.bat` を実行すると、Go 1.22以降を使って `.build\dist\tomiya-code-atlas.exe` を作成します。現段階のGo版はhelp/versionのみの移行用bootstrapです。GitHub Actionsの `Go EXE` workflowからもWindows EXEを取得できます。
+
+Python版は移行期間中の参照用ソースとして残します。Goの配布EXEはGitHub Actionsから取得でき、Python/PyInstallerのEXE buildは行いません。
 
 ## 基本アーキテクチャ
 
@@ -69,84 +73,31 @@ scripts/dev/       # 開発用Issue / context / PR入口
 docs/jp/           # 日本語正本
 docs/en/           # 日本語正本から作成した英語版
 specification/     # 規範となるプロジェクトルール
-app.py             # アプリケーション起動入口
+go/                # Go版のmoduleと製品コマンド
+app.py             # 移行中のPython版アプリケーション入口
 ```
 
 文書は日本語を正本とし、[`docs/jp/現状.md`](docs/jp/現状.md)で現在の能力と既知制約を、[`docs/jp/責務マップ.md`](docs/jp/責務マップ.md)で責務から探す場所を確認できます。利用者向けの英語版は[`docs/en/README.md`](docs/en/README.md)から、[ビルド手順](docs/en/Building.md)、[GUIガイド](docs/en/GUI-Usage.md)、[CLIリファレンス](docs/en/CLI-Reference.md)を参照できます。
-
-## 配布フォルダーの構成
-
-Windows配布物は PyInstaller `onedir` を使用します。設定や今後の外部リソースをEXE本体へ埋め込まず、配布ディレクトリ内で分離します。
-
-```text
-tomiya-code-atlas/
-  tomiya-code-atlas.exe
-  config/
-    tomiya-code-atlas.json
-    tomiya-code-atlas.example.json
-  _internal/
-```
-
-実行時設定は `config/tomiya-code-atlas.json` を読みます。PyInstaller版ではEXEのあるディレクトリを基準にし、ソース実行時もリポジトリの `config/` を基準にします。
-
-## シーケンス図の設定
-
-`config/tomiya-code-atlas.json` を編集すると起動時に読み込みます。設定例は `config/tomiya-code-atlas.example.json` を参照してください。
-
-```json
-{
-  "generator_options": {
-    "sequence_diagram": {
-      "show_duplicate_calls": true,
-      "show_returns": false
-    }
-  }
-}
-```
-
-- `show_duplicate_calls`: 同一callerから同一calleeへの同一呼び出しを複数回表示するか
-- `show_returns`: 戻り値メッセージを表示するか
-- 循環呼び出しは設定にかかわらずシーケンス図から除外し、無限展開を防止します
-- GUI上のチェック項目で、その実行時だけ設定を上書きできます
 
 ## Windowsでのセットアップと起動
 
 開発元からクローンした場合は、次のツールをインストールします。
 
-- Python 3.12 x64を推奨。Python 3.11以降も利用できます: [Windows向けPython配布](https://www.python.org/downloads/windows/)。`py -3.12` を優先して使い、利用できない場合は `python` コマンドから3.11以降を起動します。
-- .NET SDK 10 x64: [.NET 10ダウンロード](https://dotnet.microsoft.com/download/dotnet/10.0)。
-- JDK 25 x64: [Eclipse Temurin 25](https://adoptium.net/temurin/releases/?version=25&os=windows&arch=x64&package=jdk)。JDKの`bin`をPATHに追加すれば利用できます。`JAVA_HOME`を設定した場合はその値を使います。
+- Go 1.22以降: [GoのWindows配布](https://go.dev/dl/)。Go版EXEをローカルbuildするときに使います。
+- Python 3.11以降: [Windows向けPython配布](https://www.python.org/downloads/windows/)。Python版のsource実行とtestにのみ使います。配布EXEのbuildや実行には不要です。
 
-Python Launcher (`py`) にPython 3.12がない場合は、`python` コマンドでPython 3.11以降が起動するようPATHを設定してください。リポジトリのルートで配布EXEを作るときは `build_exe.bat` を実行します。このバッチは `.venv` がなければ `scripts\build\setup.bat` を呼び出して準備します。JDKは `JAVA_HOME`、またはPATH上の `javac` から検出します。Apache MavenはPATHに見つからない場合、公式配布物を取得して`.build\tools\`内に配置し、SHA-512 checksumを検証します（初回のみネットワーク接続が必要です）。
+Go版EXEのbuildにはGo 1.22以降が必要です。Python版のsource実行やtestを行う場合は、Python 3.11以降と `scripts\build\setup.bat` を使ってください。
 
-```bat
-build_exe.bat
-run_dist.bat
-```
-
-`scripts\build\setup.bat` はリポジトリ内の `.venv` を作り、実行・テスト・EXE作成に必要なPythonパッケージをそこへインストールします。ソース版を起動する場合は `scripts\build\run_source.bat` を使います。Pythonや依存パッケージをグローバル環境へインストールしません。
-
-### 成果物を作る
-
-`scripts\build\package.bat` はPython wheelとsource archiveを `.build\packages\` に作ります。これはPython packageであり、WindowsアプリのEXEではありません。
-
-配布用Windowsアプリのbuildには、Python 3.11以降、.NET SDK 10、JDK 25が必要です。JDKの`bin`をPATHに追加するか、`JAVA_HOME`を設定してください。Apache Mavenは`build_exe.bat`が自動で準備します。次のコマンドで前提を確認できます。
-
-```powershell
-py -3.12 --version       # 3.12がない場合は python --version（3.11以降）
-dotnet --list-sdks       # 10.x SDKが表示される
-javac -version           # 25.xと表示される
-```
-
+`scripts\build\setup.bat` はリポジトリ内の `.venv` を作り、Pythonのsource実行とtestに必要なpackageをインストールします。ソース版を起動する場合は `scripts\build\run_source.bat` を使います。Pythonや依存packageをglobal環境へインストールしません。Go版EXEのbuildと実行にはPython環境は不要です。
 
 ```bat
 build_exe.bat
 run_dist.bat
 ```
 
-`build_exe.bat` はJava/C# backendとPyInstaller onedirアプリを作り、`run_dist.bat` はビルド済みの `.build\dist\tomiya-code-atlas\tomiya-code-atlas.exe` を起動します。ビルド済み配布物を別の場所へ展開した場合は、そのフォルダーの `tomiya-code-atlas.exe` を直接起動します。onedir配布ではEXE単体を移動せず、フォルダー全体を使ってください。ダウンロード済み配布物の実行時には、Python、.NET SDK、JDK、Mavenの別途インストールは不要です。
+`build_exe.bat` はGo版の `.build\dist\tomiya-code-atlas.exe` を作り、`run_dist.bat` はそのEXEを起動します。現時点のGo版は移行用bootstrapで、解析機能は後続Issueで順次移植します。GitHub Actionsの `Go EXE` workflowはWindows EXEを作成・起動確認し、artifactとして公開します。
 
-リリース前の完全検証は `scripts\build\verify.bat` です。packageとEXEのビルド、配布物CLI/GUI smoke、テスト、policy checkをまとめて実行します。上記のビルド要件を満たした環境で実行してください。
+`scripts\build\verify.bat` はGo EXEのbuild/smokeとPython source test、policy checkを実行します。Python配布物をbuildしません。v1.0.0のrelease workflowはGo移行が完了するまで用意しません。
 
 ## 開発用コマンド
 

@@ -1,5 +1,7 @@
 # Command-line reference
 
+The Go distribution currently supports only help and version output while the port is in progress. The commands below describe the existing Python source implementation.
+
 Japanese source: [README](../../README.md). This guide documents the commands currently exposed by `app.py`; run `python app.py <command> --help` for the live option list.
 
 ## Start here
@@ -11,11 +13,11 @@ python app.py --help
 python app.py --version
 ```
 
-For a packaged Windows distribution, use `run_dist.bat` from the repository root or invoke `tomiya-code-atlas.exe` from its distribution folder:
+The Go Windows executable currently supports only `--help` and `--version`. The following product commands are available only in the legacy Python source implementation; they are not yet available through `run_dist.bat`:
 
 ```bat
-run_dist.bat --help
-run_dist.bat comment sample.py
+python app.py --help
+python app.py comment sample.py
 ```
 
 With no command, the application opens the desktop GUI. `python app.py gui` opens it explicitly.
@@ -35,9 +37,9 @@ The language adapter is inferred from the file extension unless `--language` is 
 ### Analyze a GitHub Actions workflow
 
 ```text
-python app.py ci .github/workflows/build.yml
-python app.py ci .github/workflows/build.yml --output workflow.md
-python app.py ci .github/workflows/build.yml --check
+python app.py ci .github/workflows/ci.yml
+python app.py ci .github/workflows/ci.yml --output workflow.md
+python app.py ci .github/workflows/ci.yml --check
 ```
 
 `--check` reports quality findings and exits with failure when errors are found.

@@ -10,7 +10,7 @@ The Japanese documents are the source of truth. Start with the [Japanese README]
 
 The tool currently targets Python, GDScript, C#, C++, Java, and Go. Feature support varies by command and language. See the [Japanese current-status document](../jp/現状.md) for the authoritative capability and limitation list.
 
-The Windows distribution uses PyInstaller `onedir`. Build it with `build_exe.bat` from the repository root; the result is placed under `.build\dist\tomiya-code-atlas\`.
+The product is being ported to Go. The current Go Windows executable is only a buildable bootstrap; analysis features and the GUI have not been ported yet. The existing feature descriptions refer to the Python source implementation during migration. Track progress in [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) and its child issues.
 
 ## Architecture
 

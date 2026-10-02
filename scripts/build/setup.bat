@@ -67,12 +67,12 @@ if errorlevel 1 (
     echo [エラー] pipを更新できませんでした。ネットワーク接続と一時フォルダーへの書き込み権限を確認してください。
     exit /b 1
 )
-".venv\Scripts\python.exe" -m pip install -e ".[test,exe]" build
+".venv\Scripts\python.exe" -m pip install -e ".[test]"
 if errorlevel 1 (
     echo [エラー] Python依存パッケージを準備できませんでした。ネットワーク接続と一時フォルダーへの書き込み権限を確認してください。
     exit /b 1
 )
 
 echo.
-echo Python環境の準備が完了しました。ソース起動は scripts\build\run_source.bat、Windowsアプリのbuildは build_exe.bat を実行してください。
+echo Pythonのsource実行とtest環境の準備が完了しました。Go版Windowsアプリのbuildは build_exe.bat を実行してください。
 endlocal & exit /b 0

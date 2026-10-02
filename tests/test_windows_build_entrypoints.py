@@ -8,15 +8,16 @@ def read_repo_file(relative_path: str) -> str:
     return (ROOT / relative_path).read_text(encoding="utf-8")
 
 
-def test_setup_uses_project_local_supported_python_environment() -> None:
+def test_python_environment_is_only_for_source_tests_and_does_not_install_pyinstaller() -> None:
     setup = read_repo_file("scripts/build/setup.bat")
 
     assert "py -3.12" in setup
     assert "sys.version_info >= (3, 11)" in setup
     assert ".venv\\Scripts\\python.exe" in setup
     assert "-m ensurepip --upgrade --default-pip" in setup
-    assert setup.index('mkdir ".build\\metadata"') < setup.index('pip install -e ".[test,exe]" build')
-    assert 'pip install -e ".[test,exe]" build' in setup
+    assert 'pip install -e ".[test]"' in setup
+    assert ".[test,exe]" not in setup
+    assert "pyinstaller" not in setup.lower()
 
 
 def test_source_and_distribution_launchers_have_distinct_targets() -> None:
@@ -26,41 +27,52 @@ def test_source_and_distribution_launchers_have_distinct_targets() -> None:
     assert "Python環境が見つかりません" in source_launcher
     assert "scripts\\build\\setup.bat" in source_launcher
     assert '".venv\\Scripts\\python.exe" app.py %*' in source_launcher
-    assert ".build\\dist\\tomiya-code-atlas\\tomiya-code-atlas.exe" in distribution_launcher
+    assert ".build\\dist\\tomiya-code-atlas.exe" in distribution_launcher
     assert '"%APP%" %*' in distribution_launcher
 
 
-def test_build_commands_use_the_setup_environment_and_documented_outputs() -> None:
-    package_build = read_repo_file("scripts/build/package.bat")
+def test_root_build_creates_only_the_go_distribution_executable() -> None:
     app_build = read_repo_file("build_exe.bat")
-    full_verification = read_repo_file("scripts/build/verify.bat")
+    go_build = read_repo_file("scripts/build/build_go.bat")
 
-    assert '".venv\\Scripts\\python.exe" -m build --outdir .build\\packages' in package_build
-    assert 'call scripts\\build\\setup.bat' in app_build
-    assert app_build.index('call scripts\\build\\setup.bat') < app_build.index('where dotnet')
-    assert "Python環境を準備できませんでした" in app_build
-    assert "generate_app_icon.ps1" in app_build
-    assert 'set "APP_ICON=%%~fI"' in app_build
-    assert '--icon "%APP_ICON%"' in app_build
-    assert "dotnet --list-sdks | findstr /b \"10.\"" in app_build
-    assert 'findstr /c:"25."' in app_build
-    assert "resolve_maven.ps1" in app_build
-    assert "for /f %%V in ('%PYTHON% -c \"from Src.version" in full_verification
-    assert "call run_dist.bat --version" in full_verification
-    assert "call scripts\\build\\run_source.bat --version" in full_verification
+    assert "call scripts\\build\\build_go.bat" in app_build
+    assert 'cd /d "%~dp0\\..\\.."' in go_build
+    assert 'set "GOCACHE=%CD%\\.build\\go-cache"' in go_build
+    assert 'set "GOTMPDIR=%CD%\\.build\\go-temp"' in go_build
+    assert "pushd go" in go_build
+    assert "go test ./..." in go_build
+    assert "go build -trimpath" in go_build
+    assert ".build\\dist\\tomiya-code-atlas.exe" in go_build
+    assert "pip install" not in go_build
+    assert "PyInstaller" not in go_build
+
+
+def test_verification_tests_sources_and_go_exe_without_building_python_artifacts() -> None:
+    verification = read_repo_file("scripts/build/verify.bat")
+
+    assert "call build_exe.bat" in verification
+    assert "call run_dist.bat --version" in verification
+    assert "call run_dist.bat --help" in verification
+    assert '".venv\\Scripts\\python.exe" -m pytest' in verification
+    assert "policy-check" in verification
+    assert "build_python" not in verification
+    assert "PyInstaller" not in verification
+    assert "package.bat" not in verification
 
 
 def test_only_direct_windows_build_and_distribution_entrypoints_remain_in_root() -> None:
     assert (ROOT / "build_exe.bat").is_file()
     assert (ROOT / "run_dist.bat").is_file()
-    for helper in ("setup.bat", "package.bat", "run_source.bat", "verify.bat"):
+    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat"):
         assert (ROOT / "scripts" / "build" / helper).is_file()
+    for removed_helper in ("package.bat", "build_python_legacy.bat"):
+        assert not (ROOT / "scripts" / "build" / removed_helper).exists()
     for old_root_helper in ("setup.bat", "build.bat", "run.bat", "verify_build.bat"):
         assert not (ROOT / old_root_helper).exists()
 
 
-def test_windows_build_entrypoints_resolve_paths_from_the_repository_root() -> None:
-    for helper in ("setup.bat", "package.bat", "run_source.bat", "verify.bat"):
+def test_windows_build_helpers_resolve_paths_from_the_repository_root() -> None:
+    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat"):
         source = read_repo_file(f"scripts/build/{helper}")
         assert 'cd /d "%~dp0\\..\\.."' in source
     for entrypoint in ("build_exe.bat", "run_dist.bat"):
@@ -77,21 +89,18 @@ def test_development_helpers_are_grouped_and_run_from_repository_root() -> None:
     assert "scripts\\dev\\reducer.bat setup" in read_repo_file("scripts/dev/prepare_work.bat")
 
 
-def test_readme_explains_user_build_and_launch_commands() -> None:
+def test_readme_explains_go_build_and_python_test_only_usage() -> None:
     readme = read_repo_file("README.md")
 
     for required_text in (
-        "Python 3.12",
-        "scripts\\build\\setup.bat",
-        "scripts\\build\\run_source.bat",
-        "scripts\\build\\package.bat",
+        "Go 1.22以降",
         "build_exe.bat",
         "run_dist.bat",
+        "scripts\\build\\setup.bat",
+        "scripts\\build\\run_source.bat",
         "scripts\\build\\verify.bat",
-        ".NET SDK 10",
-        "JDK 25",
-        "Maven",
-        "scripts\\dev\\",
+        "Python/PyInstallerのEXE buildは行いません",
+        "Go EXE",
     ):
         assert required_text in readme
 
@@ -110,37 +119,19 @@ def test_windows_user_entrypoint_errors_are_japanese() -> None:
     assert "Project environment not found" not in source_launcher
 
 
-def test_github_workflow_names_and_visible_diagnostics_are_japanese() -> None:
-    workflows = (
-        read_repo_file(".github/workflows/build.yml"),
-        read_repo_file(".github/workflows/ci.yml"),
-        read_repo_file(".github/workflows/python-exe.yml"),
-        read_repo_file(".github/workflows/release.yml"),
-    )
-    assert "- name: Python packageをbuild" in workflows[0]
-    assert "- name: 全testを実行" in workflows[1]
-    assert "- name: 配布アプリのsmoke test" in workflows[2]
-    assert "- name: release候補をbuild・検証" in workflows[3]
-    distribution_workflow = workflows[2]
-    assert distribution_workflow.startswith("name: Python EXE")
-    assert "EXEが見つかりません" in distribution_workflow
-    assert "EXE not found" not in distribution_workflow
-
-
-def test_maven_bootstrap_uses_verified_official_distribution() -> None:
-    resolver = read_repo_file("scripts/build/resolve_maven.ps1")
-
-    assert "repo.maven.apache.org/maven2/org/apache/maven/apache-maven/$version" in resolver
-    assert "Security.Cryptography.SHA512" in resolver
-    assert "SHA512" in resolver
-    assert 'Join-Path $toolsRoot "apache-maven-$version"' in resolver
-    assert 'Join-Path $mavenHome "bin\\mvn.cmd"' in resolver
-
-
-def test_windows_exe_workflow_verifies_the_documented_clean_runner_path() -> None:
-    workflow = read_repo_file(".github/workflows/python-exe.yml")
-
-    assert 'python-version: "3.12"' in workflow
-    assert "call scripts\\build\\setup.bat" in workflow
-    assert "call scripts\\build\\verify.bat" in workflow
-    assert "      - name: 配布アプリのsmoke test\n        shell: pwsh" in workflow
+def test_only_go_distribution_workflow_builds_and_uploads_windows_exe() -> None:
+    ci_workflow = read_repo_file(".github/workflows/ci.yml")
+    assert "- name: 全testを実行" in ci_workflow
+    go_workflow = read_repo_file(".github/workflows/go-exe.yml")
+    assert go_workflow.startswith("name: Go EXE")
+    assert 'go-version: "1.27.x"' in go_workflow
+    assert '"go/**"' in go_workflow
+    assert "go test ./..." in go_workflow
+    assert "call build_exe.bat" in go_workflow
+    assert "--version" in go_workflow
+    assert "--help" in go_workflow
+    assert "tomiya-code-atlas-go-windows-x64" in go_workflow
+    assert "Go版Windows EXEをartifactとして保存" in go_workflow
+    assert not (ROOT / ".github/workflows/python-exe.yml").exists()
+    assert not (ROOT / ".github/workflows/build.yml").exists()
+    assert not (ROOT / ".github/workflows/release.yml").exists()

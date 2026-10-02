@@ -100,28 +100,26 @@ def test_tomiya_ci_workflow_parses_as_regression_fixture() -> None:
     assert test_steps["全testを実行"].command == "python -m pytest"
 
 
-def test_release_workflow_gates_publishing_on_the_verified_tag_candidate() -> None:
-    path = Path(".github/workflows/release.yml")
-    source = path.read_text(encoding="utf-8")
+def test_v1_release_workflow_is_withheld_until_go_migration_finishes() -> None:
+    assert not Path(".github/workflows/release.yml").exists()
+    checklist = Path("docs/jp/リリース確認表.md").read_text(encoding="utf-8")
+    assert "Issue #27" in checklist
+    assert "Go移行完了まで" in checklist
+
+
+def test_go_windows_artifact_is_smoke_tested_before_upload() -> None:
+    source = Path(".github/workflows/go-exe.yml").read_text(encoding="utf-8")
     workflow = parse_github_actions(source)
 
-    assert workflow.name == "Release"
-    assert workflow.trigger == ("push",)
-    assert '"v*"' in source
-    assert "call scripts\\build\\verify.bat" in source
-    assert "gh release create" in source
-    assert "--verify-tag" in source
-
-
-def test_python_artifact_workflows_run_e2e_before_uploading_exact_outputs() -> None:
-    build = parse_github_actions(Path(".github/workflows/build.yml").read_text(encoding="utf-8"))
-    build_source = Path(".github/workflows/build.yml").read_text(encoding="utf-8")
-    exe_source = Path(".github/workflows/python-exe.yml").read_text(encoding="utf-8")
-
-    assert build.name == "Build"
-    assert "tools/verify_wheel.py .build/packages/*.whl" in build_source
-    assert "tools/verify_wheel.py .build/packages/*.tar.gz" in build_source
-    assert "検証済みPython packageをartifactとして保存" in build_source
-    assert "call scripts\\build\\setup.bat" in exe_source
-    assert "call scripts\\build\\verify.bat" in exe_source
-    assert "Windows配布アプリをartifactとして保存" in exe_source
+    assert workflow.name == "Go EXE"
+    assert workflow.trigger == ("pull_request", "push", "workflow_dispatch")
+    steps = {step.name: step for step in workflow.jobs[0].steps}
+    assert "go test ./..." in (steps["Go testを実行"].command or "")
+    assert "call build_exe.bat" in (steps["Windows EXEをbuild"].command or "")
+    assert "配布EXEのhelpとversionをsmoke test" in steps
+    assert "Go版Windows EXEをartifactとして保存" in steps
+    assert '$helpText = $help -join "`n"' in source
+    assert "cache-dependency-path: go/go.mod" in source
+    assert "tomiya-code-atlas-go-windows-x64" in source
+    assert not Path(".github/workflows/build.yml").exists()
+    assert not Path(".github/workflows/python-exe.yml").exists()

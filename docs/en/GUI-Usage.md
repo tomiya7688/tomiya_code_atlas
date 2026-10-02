@@ -2,7 +2,7 @@
 
 Japanese source: [GUI operation guide](../jp/GUI操作ガイド.md).
 
-Start `app.py` or the packaged `tomiya-code-atlas.exe` without arguments to open the desktop GUI. In the distribution folder, you can double-click the executable or run `run_dist.bat` from the repository root.
+The existing Python source implementation opens its desktop GUI when you start `app.py` without arguments. The Go Windows executable currently supports only help and version; it does not yet include the GUI or analysis features.
 
 The current GUI can:
 
@@ -20,9 +20,12 @@ CLI commands remain available alongside the GUI. For example:
 
 ```text
 python app.py comment sample.py
-python app.py ci .github/workflows/build.yml
+python app.py ci .github/workflows/ci.yml
 python app.py --version
 python app.py gui
 ```
 
 See the [CLI reference](CLI-Reference.md) for command options. The Japanese guide is the source of truth for GUI capabilities and limitations.
+# Migration status
+
+This guide describes the existing Python source GUI. The Go Windows executable does not include analysis features or a GUI yet.
