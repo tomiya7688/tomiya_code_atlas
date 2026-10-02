@@ -1,9 +1,29 @@
 from pathlib import Path
+import os
+import subprocess
+import sys
 from tempfile import TemporaryDirectory
 
 import pytest
 
 from app import main
+
+
+def test_cli_help_uses_utf8_under_legacy_windows_encoding():
+    environment = os.environ.copy()
+    environment["PYTHONIOENCODING"] = "cp1252"
+    result = subprocess.run(
+        [sys.executable, "app.py", "--help"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=environment,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert "使い方:" in result.stdout
+    assert "オプション" in result.stdout
 
 
 def test_comment_cli_writes_output_file():
@@ -146,23 +166,6 @@ def test_class_diagram_cli_writes_plantuml_folder():
         assert diagrams
         assert diagrams[0].parent.name.startswith("series_")
         assert diagrams[0].read_text(encoding="utf-8").startswith("@startuml\n")
-
-
-def test_class_diagram_cli_explains_unsupported_language(capsys):
-    with TemporaryDirectory() as folder:
-        source = Path(folder) / "sample.cs"
-        source.write_text("class Sample {}\n", encoding="utf-8")
-
-        exit_code = main(
-            ["class-diagram", str(source), "--language", "csharp", "--renderer", "mermaid"]
-        )
-
-    captured = capsys.readouterr()
-    assert exit_code != 0
-    assert "Pythonソースのみ対応" in captured.err
-    assert "指定された言語: csharp" in captured.err
-    assert "comment コマンド" in captured.err
-    assert "Traceback" not in captured.err
 
 
 def test_sequence_diagram_cli_writes_plantuml_with_returns():

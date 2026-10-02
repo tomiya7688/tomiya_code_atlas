@@ -4,7 +4,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 目的は、コードを読む前に「何があるか」「どこから呼ばれるか」「何に依存するか」「どこが複雑か」を短時間で把握できる状態を作ることです。
 
-## Main capabilities
+## 主な機能
 
 主な対象:
 - コメント生成
@@ -18,7 +18,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 図表の標準出力は Mermaid とし、PlantUML 等は Renderer の差し替えで追加できる構造を目指します。コメント生成は基本的に元ソースへ追記します。
 
-## Analysis targets
+## 主な解析対象
 
 主要な解析対象言語:
 - Python
@@ -34,7 +34,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 リポジトリのルートで `build_exe.bat` を実行してください。`.venv` がない場合は必要なPython環境の準備も試みます。ビルド結果は `.build\dist\tomiya-code-atlas\` に作られ、`run_dist.bat` で起動できます。必要なSDKが見つからない場合は、バッチが不足項目を表示します。
 
-## Core architecture
+## 基本アーキテクチャ
 
 ```text
 Source
@@ -46,33 +46,33 @@ Source
   -> Mermaid / PlantUML / text / table
 ```
 
-アプリケーション全体は UPD Commander Base Design を参考に UI / Process / Data の責務を分けます。Commander は呼び出しの交通整理、Messenger は境界通信のみを担当し、実処理を持ちません。
+アプリケーション全体では UI / Process / Data の責務を分け、処理の振り分けと境界通信を薄く保ちます。解析や入出力などの実処理は、それぞれの専門moduleが担当します。
 
-規定は [`specification/architecture-policy.md`](specification/architecture-policy.md)、日本語での説明は [`docs/jp/構成/UPDコマンダー適用.md`](docs/jp/構成/UPDコマンダー適用.md) を参照してください。
+規定は [`specification/architecture-policy.md`](specification/architecture-policy.md)、moduleごとの責務は [`docs/jp/責務マップ.md`](docs/jp/責務マップ.md) を参照してください。
 
-## Repository structure
+## repository構成
 
 ```text
 Src/
-  analyzers/       # deterministic relationship / graph analysis
-  models/          # shared passive data contracts
-  generators/      # logical output generation
-  renderers/       # Mermaid / text / other formatting
-  evaluators/      # design / code-quality evaluation
-  languages/       # language-specific adapters
-config/            # runtime configuration and examples
-tests/             # automated evidence
-tools/             # Issue / PR / context helpers
-scripts/dev/       # developer-only Issue / context / PR entry points
-docs/jp/           # Japanese source documents
-docs/en/           # English translations of Japanese source documents
-specification/     # normative project rules
-app.py             # application entry point
+  analyzers/       # 関係・graphの決定的な解析
+  models/          # 受動的な共通data契約
+  generators/      # 論理出力の生成
+  renderers/       # Mermaid / textなどの出力形式
+  evaluators/      # 設計・コード品質の評価
+  languages/       # 言語固有のadapter
+config/            # 実行時設定と例
+tests/             # 自動検証
+tools/             # Issue / PR / context補助
+scripts/dev/       # 開発用Issue / context / PR入口
+docs/jp/           # 日本語正本
+docs/en/           # 日本語正本から作成した英語版
+specification/     # 規範となるプロジェクトルール
+app.py             # アプリケーション起動入口
 ```
 
 文書は日本語を正本とし、[`docs/jp/現状.md`](docs/jp/現状.md)で現在の能力と既知制約を、[`docs/jp/責務マップ.md`](docs/jp/責務マップ.md)で責務から探す場所を確認できます。利用者向けの英語版は[`docs/en/README.md`](docs/en/README.md)から、[ビルド手順](docs/en/Building.md)、[GUIガイド](docs/en/GUI-Usage.md)、[CLIリファレンス](docs/en/CLI-Reference.md)を参照できます。
 
-## Runtime layout
+## 配布フォルダーの構成
 
 Windows配布物は PyInstaller `onedir` を使用します。設定や今後の外部リソースをEXE本体へ埋め込まず、配布ディレクトリ内で分離します。
 
@@ -87,7 +87,7 @@ tomiya-code-atlas/
 
 実行時設定は `config/tomiya-code-atlas.json` を読みます。PyInstaller版ではEXEのあるディレクトリを基準にし、ソース実行時もリポジトリの `config/` を基準にします。
 
-## Sequence diagram settings
+## シーケンス図の設定
 
 `config/tomiya-code-atlas.json` を編集すると起動時に読み込みます。設定例は `config/tomiya-code-atlas.example.json` を参照してください。
 
@@ -162,14 +162,14 @@ Linux/macOSでは `./scripts/dev/prepare_work.sh` を使います。これは優
 | `scripts\dev\context.bat profile` | repo規模とcontext使用量を確認 |
 | `scripts\dev\context.bat remote-delta` | ahead/behindとリモート変更を確認 |
 | `scripts\dev\context.bat validation-plan` | 変更ファイルから検証を選ぶ |
-| `scripts\dev\context.bat policy-check` | architecture / UPD boundaryを確認 |
+| `scripts\dev\context.bat policy-check` | architecture boundaryを確認 |
 | `scripts\dev\context.bat context-pack` | 一時Context Packを生成 |
 | `scripts\dev\reducer.bat setup` | 開発専用reducerを準備 |
 | `scripts\dev\pull_request.bat` | 検証、commit、push、PR作成 |
 
 他のcontextコマンドは `scripts\dev\context.bat --help` を参照してください。Linux/macOSでは同じ場所の `context.sh`、`reducer.sh`、`prepare_work.sh` を使います。詳細は [`docs/jp/開発運用.md`](docs/jp/開発運用.md) を参照してください。
 
-## AI context policy
+## AI向け作業方針
 
 - Search first, read second
 - Goal / Required / Acceptance / working set が揃ったら探索を止める
@@ -183,16 +183,16 @@ Linux/macOSでは `./scripts/dev/prepare_work.sh` を使います。これは優
 
 AI向け入口は `AI_CONTEXT.md` と `AGENTS.md` です。
 
-## Specifications
+## 仕様と規範文書
 
 READMEは概要だけを保持します。日本語の個別機能仕様は `docs/jp/機能仕様/`、Issueごとの要件・Acceptance CriteriaはGitHub Issues、横断的な必須規則は `specification/` を正本とします。`docs/en/` は日本語正本から作る英語版です。
 
-`ai-context-reducer` と `upd-commander-base-design` は設計・運用の参考元であり、実行時必須依存ではありません。
+`ai-context-reducer` は開発専用の補助toolで、実行時必須依存ではありません。
 
-## License
+## ライセンス
 
 MIT License
 
-## Status
+## 開発状況
 
 初期実装・アーキテクチャ整備中です。

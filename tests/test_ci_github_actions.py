@@ -94,10 +94,10 @@ def test_tomiya_ci_workflow_parses_as_regression_fixture() -> None:
     jobs = {job.name: job for job in workflow.jobs}
     assert {"test", "oop-design"} <= set(jobs)
     test_steps = {step.name: step for step in jobs["test"].steps}
-    install = test_steps["Install project and test tooling"]
+    install = test_steps["projectとtest用ツールをinstall"]
     assert "python -m pip install --upgrade pip" in (install.command or "")
     assert 'python -m pip install -e ".[test]"' in (install.command or "")
-    assert test_steps["Run full test suite"].command == "python -m pytest"
+    assert test_steps["全testを実行"].command == "python -m pytest"
 
 
 def test_release_workflow_gates_publishing_on_the_verified_tag_candidate() -> None:
@@ -121,7 +121,7 @@ def test_python_artifact_workflows_run_e2e_before_uploading_exact_outputs() -> N
     assert build.name == "Build"
     assert "tools/verify_wheel.py .build/packages/*.whl" in build_source
     assert "tools/verify_wheel.py .build/packages/*.tar.gz" in build_source
-    assert "Upload tested Python package artifacts" in build_source
+    assert "検証済みPython packageをartifactとして保存" in build_source
     assert "call scripts\\build\\setup.bat" in exe_source
     assert "call scripts\\build\\verify.bat" in exe_source
-    assert "Upload Windows app directory" in exe_source
+    assert "Windows配布アプリをartifactとして保存" in exe_source

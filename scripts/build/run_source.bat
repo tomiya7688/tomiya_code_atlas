@@ -1,9 +1,10 @@
 @echo off
+chcp 65001 >nul
 setlocal
 cd /d "%~dp0\..\.."
 
 if not exist ".venv\Scripts\python.exe" (
-    echo Project environment not found. Run scripts\build\setup.bat first.
+    echo [エラー] Python環境が見つかりません。先に scripts\build\setup.bat を実行してください。
     exit /b 1
 )
 

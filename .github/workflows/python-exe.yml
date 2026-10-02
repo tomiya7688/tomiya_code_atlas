@@ -25,33 +25,37 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - name: ソースを取得
+        uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v7
+      - name: Pythonを準備
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
-      - uses: actions/setup-dotnet@v6
+      - name: .NET SDKを準備
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
-      - uses: actions/setup-java@v5
+      - name: JDKを準備
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
 
-      - name: Install project and build tools
+      - name: projectとbuild用ツールをinstall
         shell: cmd
         run: |
           call scripts\build\setup.bat
 
-      - name: Build and verify from the documented entry points
+      - name: build入口から配布物を作成・検証
         shell: cmd
         run: call scripts\build\verify.bat
 
-      - name: Smoke test app
-        shell: powershell
+      - name: 配布アプリのsmoke test
+        shell: pwsh
         run: |
           $exe = ".\.build\dist\tomiya-code-atlas\tomiya-code-atlas.exe"
           $config = ".\.build\dist\tomiya-code-atlas\config\tomiya-code-atlas.json"
@@ -60,64 +64,64 @@ jobs:
           $javaBackend = ".\.build\dist\tomiya-code-atlas\backends\java\tomiya-java-backend.jar"
           $javaRuntime = ".\.build\dist\tomiya-code-atlas\backends\java\runtime\bin\java.exe"
           if (-not (Test-Path $exe)) {
-            Write-Error "EXE not found: $exe"
+            Write-Error "EXEが見つかりません: $exe"
             exit 1
           }
           if (-not (Test-Path $config)) {
-            Write-Error "Runtime config not found: $config"
+            Write-Error "実行時configが見つかりません: $config"
             exit 1
           }
           if (-not (Test-Path $backendManifest)) {
-            Write-Error "Backend manifest not found: $backendManifest"
+            Write-Error "backend manifestが見つかりません: $backendManifest"
             exit 1
           }
           if (-not (Test-Path $csharpBackend)) {
-            Write-Error "C# backend not found: $csharpBackend"
+            Write-Error "C# backendが見つかりません: $csharpBackend"
             exit 1
           }
           if (-not (Test-Path $javaBackend)) {
-            Write-Error "Java backend not found: $javaBackend"
+            Write-Error "Java backendが見つかりません: $javaBackend"
             exit 1
           }
           if (-not (Test-Path $javaRuntime)) {
-            Write-Error "Private Java runtime not found: $javaRuntime"
+            Write-Error "同梱Java runtimeが見つかりません: $javaRuntime"
             exit 1
           }
           $manifest = Get-Content $backendManifest -Raw | ConvertFrom-Json
           if ($manifest.manifest_version -ne "1") {
-            Write-Error "Unexpected backend manifest version: $($manifest.manifest_version)"
+            Write-Error "backend manifestのversionが想定外です: $($manifest.manifest_version)"
             exit 1
           }
           if ($manifest.parser_backend_contract_version -ne "1") {
-            Write-Error "Unexpected parser backend contract version: $($manifest.parser_backend_contract_version)"
+            Write-Error "parser backend contractのversionが想定外です: $($manifest.parser_backend_contract_version)"
             exit 1
           }
           $output = & $exe --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($output -notmatch "Tomiya Code Atlas") {
-            Write-Error "Unexpected EXE output: $output"
+            Write-Error "EXEの出力が想定外です: $output"
             exit 1
           }
           $backendOutput = & $exe backend-smoke gdscript
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($backendOutput -notmatch "gdscript-tree-sitter") {
-            Write-Error "GDScript backend smoke failed: $backendOutput"
+            Write-Error "GDScript backend smoke testに失敗しました: $backendOutput"
             exit 1
           }
           $csharpOutput = & $exe backend-smoke csharp
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($csharpOutput -notmatch "csharp-roslyn-helper") {
-            Write-Error "C# backend smoke failed: $csharpOutput"
+            Write-Error "C# backend smoke testに失敗しました: $csharpOutput"
             exit 1
           }
           $javaOutput = & $exe backend-smoke java
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($javaOutput -notmatch "java-javaparser-symbol-solver-helper") {
-            Write-Error "Java backend smoke failed: $javaOutput"
+            Write-Error "Java backend smoke testに失敗しました: $javaOutput"
             exit 1
           }
 
-      - name: Upload Windows app directory
+      - name: Windows配布アプリをartifactとして保存
         uses: actions/upload-artifact@v7
         with:
           name: tomiya-code-atlas-windows-x64

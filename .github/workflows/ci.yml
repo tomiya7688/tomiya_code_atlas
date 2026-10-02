@@ -13,52 +13,52 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
 
     steps:
-      - name: Checkout
+      - name: ソースを取得
         uses: actions/checkout@v7
 
-      - name: Set up Python
+      - name: Pythonを準備
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install project and test tooling
+      - name: projectとtest用ツールをinstall
         run: |
           mkdir -p .build/metadata
           python -m pip install --upgrade pip
           python -m pip install -e ".[test]"
 
-      - name: Set up Go
+      - name: Goを準備
         uses: actions/setup-go@v7
         with:
           go-version: "1.22.x"
 
-      - name: Build Go parser helper
+      - name: Go parser helperをbuild
         working-directory: backends/go
         run: go build -o tomiya-go-backend .
 
-      - name: Compile Python sources
+      - name: Python sourceをcompile
         run: python -m compileall -q app.py Src tools tests
 
-      - name: Run full test suite
+      - name: 全testを実行
         run: python -m pytest
 
-      - name: Install latest UPD Commander Checker
+      - name: 最新のUPD Commander Checkerをinstall
         run: python -m pip install -r tools/requirements-upd.txt
 
-      - name: Check UPD Commander policy
+      - name: UPD Commander policyを確認
         run: upd-commander-check .
 
-      - name: Check architecture policy
+      - name: architecture policyを確認
         run: python tools/context_tool.py policy-check
 
-      - name: Launch smoke test
+      - name: 起動smoke test
         run: python app.py --version
 
-      - name: Self-analysis smoke summary
+      - name: 自己解析smoke summary
         if: matrix.python-version == '3.12'
         run: python tools/self_analysis.py . > self-analysis-summary.json
 
-      - name: Smoke context indexes and bounded discovery
+      - name: context indexと範囲指定検索のsmoke test
         if: matrix.python-version == '3.12'
         run: |
           python tools/context_tool.py profile > /tmp/kca-profile.json
@@ -75,23 +75,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: ソースを取得
         uses: actions/checkout@v7
 
-      - name: Set up .NET 10
+      - name: .NET 10を準備
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
-      - name: Set up Python
+      - name: Pythonを準備
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
-      - name: Build Roslyn helper
+      - name: Roslyn helperをbuild
         run: dotnet build backend-src/csharp/Tomiya.CSharp.Backend.csproj -c Release
 
-      - name: Run Roslyn conformance smoke
+      - name: Roslyn conformance smoke test
         run: python tools/csharp_backend_smoke.py dotnet backend-src/csharp/bin/Release/net10.0/tomiya-csharp-backend.dll
 
   java-backend:
@@ -99,36 +99,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: ソースを取得
         uses: actions/checkout@v7
 
-      - name: Set up Java 25
+      - name: Java 25を準備
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
 
-      - name: Set up Python
+      - name: Pythonを準備
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
-      - name: Build JavaParser helper
+      - name: JavaParser helperをbuild
         run: mvn -q -f backend-src/java/pom.xml package
 
-      - name: Run JavaParser conformance smoke
+      - name: JavaParser conformance smoke test
         run: python tools/java_backend_smoke.py java -jar backend-src/java/target/tomiya-java-backend.jar
 
   oop-design:
-    name: OOP design policy
+    name: OOP設計policy
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: ソースを取得
         uses: actions/checkout@v7
 
-      - name: Detect C# product sources
+      - name: 製品C# sourceを検出
         id: csharp
         shell: bash
         run: |
@@ -143,23 +143,23 @@ jobs:
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No C# product sources found; OOP Design Checker is installed as a CI gate and will run when C# sources are present."
+            echo "::notice::製品C# sourceがないため、OOP Design CheckerはCI gateとして導入済みです。C# sourceが追加されると実行します。"
           fi
 
-      - name: Set up .NET 10
+      - name: .NET 10を準備
         if: steps.csharp.outputs.present == 'true'
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
-      - name: Fetch latest OOP Design Checker
+      - name: 最新のOOP Design Checkerを取得
         if: steps.csharp.outputs.present == 'true'
         shell: bash
         run: |
           git clone --depth 1 --branch main https://github.com/tomiya7688/oop-design-checker.git "$RUNNER_TEMP/oop-design-checker"
           echo "Using oop-design-checker $(git -C "$RUNNER_TEMP/oop-design-checker" rev-parse HEAD)"
 
-      - name: Check OOP design policy
+      - name: OOP設計policyを確認
         if: steps.csharp.outputs.present == 'true'
         shell: bash
         run: |

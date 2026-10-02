@@ -87,7 +87,7 @@ Go fixtureには次を含めます。
 - closure／nested function
 - context cancel path
 
-## License
+## ライセンス
 
 Goとx/toolsはGo BSD-style licenseです。tree-sitter-goはMITです。
 

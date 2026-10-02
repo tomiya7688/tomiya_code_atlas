@@ -13,47 +13,51 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - name: ソースを取得
+        uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v7
+      - name: Pythonを準備
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
-      - uses: actions/setup-dotnet@v6
+      - name: .NET SDKを準備
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
 
-      - uses: actions/setup-java@v5
+      - name: JDKを準備
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
 
-      - name: Install project and release build tools
+      - name: projectとrelease用buildツールをinstall
         shell: cmd
         run: call scripts\build\setup.bat
 
-      - name: Match tag to package version
+      - name: tagとpackage versionを照合
         shell: pwsh
         run: |
           $tag = $env:GITHUB_REF_NAME
           $version = (& python -c "from Src.version import __version__; print(__version__)").Trim()
           if ($LASTEXITCODE -ne 0) {
-            throw "Could not read the canonical package version."
+            throw "正本のpackage versionを取得できませんでした。"
           }
           if ($tag -ne "v$version") {
-            throw "Release tag $tag does not match package version $version."
+            throw "release tag $tag とpackage version $version が一致しません。"
           }
 
-      - name: Build and verify release candidate
+      - name: release候補をbuild・検証
         shell: cmd
         run: call scripts\build\verify.bat
 
-      - name: Archive verified Windows app directory
+      - name: 検証済みWindows配布物をarchive化
         shell: pwsh
         run: Compress-Archive -Path .build\dist\tomiya-code-atlas -DestinationPath .build\dist\tomiya-code-atlas-windows-x64.zip
 
-      - name: Publish verified release artifacts
+      - name: 検証済みrelease artifactを公開
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -64,6 +68,6 @@ jobs:
             (Get-Item .build\dist\tomiya-code-atlas-windows-x64.zip).FullName
           )
           if ($files.Count -ne 3 -or $files -contains $null) {
-            throw "Expected one wheel, one source archive, and the verified Windows app archive."
+            throw "wheel、source archive、検証済みWindows app archiveがそれぞれ1つ必要です。"
           }
           gh release create $env:GITHUB_REF_NAME @files --verify-tag --generate-notes
