@@ -31,7 +31,7 @@ def test_source_and_distribution_launchers_have_distinct_targets() -> None:
     assert '"%APP%" %*' in distribution_launcher
 
 
-def test_root_build_creates_only_the_go_distribution_executable() -> None:
+def test_root_build_creates_go_cli_and_python_parser_helper_executables() -> None:
     app_build = read_repo_file("build_exe.bat")
     go_build = read_repo_file("scripts/build/build_go.bat")
 
@@ -43,6 +43,7 @@ def test_root_build_creates_only_the_go_distribution_executable() -> None:
     assert "go test ./..." in go_build
     assert "go build -trimpath" in go_build
     assert ".build\\dist\\tomiya-code-atlas.exe" in go_build
+    assert "tomiya-python-backend.exe" in go_build
     assert "pip install" not in go_build
     assert "PyInstaller" not in go_build
 
@@ -141,6 +142,7 @@ def test_only_go_distribution_workflow_builds_and_uploads_windows_exe() -> None:
     assert "--version" in go_workflow
     assert "--help" in go_workflow
     assert "tomiya-code-atlas-go-windows-x64" in go_workflow
+    assert "tomiya-python-backend.exe" in go_workflow
     assert "Go版Windows EXEをartifactとして保存" in go_workflow
     assert not (ROOT / ".github/workflows/python-exe.yml").exists()
     assert not (ROOT / ".github/workflows/build.yml").exists()

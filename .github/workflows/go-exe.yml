@@ -6,6 +6,8 @@ on:
       - "go.mod"
       - "go.sum"
       - "go/**"
+      - "backends/manifest.json"
+      - "tests/fixtures/static_specification/**"
       - "internal/**"
       - "scripts/build/build_go.bat"
       - "build_exe.bat"
@@ -17,6 +19,8 @@ on:
       - "go.mod"
       - "go.sum"
       - "go/**"
+      - "backends/manifest.json"
+      - "tests/fixtures/static_specification/**"
       - "internal/**"
       - "scripts/build/build_go.bat"
       - "build_exe.bat"
@@ -66,10 +70,19 @@ jobs:
             Write-Error "Go版のEXEのhelp smoke testに失敗しました: $help"
             exit 1
           }
+          $helper = ".\.build\dist\tomiya-python-backend.exe"
+          $request = '{"contract_version":"1","request_id":"ci-smoke","operation":"parse","language":"python","source":"def run():\n    pass\n"}'
+          $response = $request | & $helper | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $response.ok -or $response.request_id -ne "ci-smoke" -or $response.ir.language -ne "python" -or $response.ir.entities[0].name -ne "run") {
+            Write-Error "Python parser helper smoke testに失敗しました: $response"
+            exit 1
+          }
 
       - name: Go版Windows EXEをartifactとして保存
         uses: actions/upload-artifact@v7
         with:
           name: tomiya-code-atlas-go-windows-x64
-          path: .build/dist/tomiya-code-atlas.exe
+          path: |
+            .build/dist/tomiya-code-atlas.exe
+            .build/dist/tomiya-python-backend.exe
           if-no-files-found: error

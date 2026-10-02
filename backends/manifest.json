@@ -29,6 +29,17 @@
       ]
     },
     {
+      "backend_id": "python-source-subset-adapter",
+      "language": "python",
+      "kind": "helper",
+      "contract_version": "1",
+      "delivery": "go-native-helper",
+      "path": ".build/dist/tomiya-python-backend.exe",
+      "licenses": [
+        "go/NOTICE.txt"
+      ]
+    },
+    {
       "backend_id": "csharp-roslyn-helper",
       "language": "csharp",
       "kind": "helper",
