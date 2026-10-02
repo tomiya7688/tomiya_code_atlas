@@ -198,7 +198,7 @@ def source_of_truth_candidates(root: Path = ROOT) -> list[dict]:
     for name, role in priority_names.items():
         if (root / name).exists():
             candidates.append({"path": name, "role": role})
-    for directory, role in (("specification", "normative policy"), ("docs/specs", "feature specification"), ("tests", "executable behavior")):
+    for directory, role in (("specification", "normative policy"), ("docs/jp/機能仕様", "feature specification"), ("tests", "executable behavior")):
         if (root / directory).exists():
             candidates.append({"path": directory + "/", "role": role})
     return candidates
@@ -308,7 +308,7 @@ def validation_plan(paths: Iterable[str]) -> list[str]:
         plan.append("python -m pytest -k 'python or csharp or language or comment'")
     if any(path.startswith(("Src/analyzers/", "Src/generators/", "Src/renderers/")) for path in files):
         plan.append("python -m pytest -k 'call_graph or generator or renderer'")
-    if any(path.startswith(("specification/", "docs/architecture/", "Src/")) for path in files):
+    if any(path.startswith(("specification/", "docs/jp/構成/", "Src/")) for path in files):
         plan.append("python tools/context_tool.py policy-check")
     if any(path in {"app.py", "scripts/build/run_source.bat"} for path in files):
         plan.append("python app.py")

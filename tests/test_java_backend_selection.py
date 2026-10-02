@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path("tests/fixtures/backend_conformance")
-EVALUATION = Path("docs/backend-evaluations/java.json")
+EVALUATION = Path("tests/fixtures/backend-evaluations/java.json")
 
 
 def test_java_conformance_fixture_covers_semantic_selection_features() -> None:

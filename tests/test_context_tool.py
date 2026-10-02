@@ -84,7 +84,7 @@ def test_python_structure_index_finds_symbols_and_imports(tmp_path: Path) -> Non
 
 def test_validation_plan_routes_tools_architecture_and_build() -> None:
     plan = context_tool.validation_plan(
-        ["tools/context_tool.py", "docs/architecture/upd_commander.md", "pyproject.toml"]
+        ["tools/context_tool.py", "docs/jp/構成/UPDコマンダー適用.md", "pyproject.toml"]
     )
 
     assert "python -m pytest tests/test_next_issue.py tests/test_context_tool.py" in plan
@@ -143,11 +143,16 @@ def test_role_map_and_truth_candidates_are_compact_indexes(tmp_path: Path) -> No
     (tmp_path / "tests" / "test_module.py").write_text("", encoding="utf-8")
     (tmp_path / "README.md").write_text("", encoding="utf-8")
     (tmp_path / "AI_CONTEXT.md").write_text("", encoding="utf-8")
-    (tmp_path / "docs" / "specs").mkdir(parents=True)
+    (tmp_path / "docs" / "jp" / "機能仕様").mkdir(parents=True)
 
     roles = context_tool.file_role_map(tmp_path)
     truth = context_tool.source_of_truth_candidates(tmp_path)
 
     assert roles["source"]["count"] == 1
     assert roles["tests"]["count"] == 1
-    assert {item["path"] for item in truth} >= {"README.md", "AI_CONTEXT.md", "docs/specs/", "tests/"}
+    assert {item["path"] for item in truth} >= {
+        "README.md",
+        "AI_CONTEXT.md",
+        "docs/jp/機能仕様/",
+        "tests/",
+    }

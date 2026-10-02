@@ -48,7 +48,7 @@ Source
 
 アプリケーション全体は UPD Commander Base Design を参考に UI / Process / Data の責務を分けます。Commander は呼び出しの交通整理、Messenger は境界通信のみを担当し、実処理を持ちません。
 
-規定は [`specification/architecture-policy.md`](specification/architecture-policy.md)、説明は [`docs/architecture/upd_commander.md`](docs/architecture/upd_commander.md) を参照してください。
+規定は [`specification/architecture-policy.md`](specification/architecture-policy.md)、日本語での説明は [`docs/jp/構成/UPDコマンダー適用.md`](docs/jp/構成/UPDコマンダー適用.md) を参照してください。
 
 ## Repository structure
 
@@ -64,12 +64,13 @@ config/            # runtime configuration and examples
 tests/             # automated evidence
 tools/             # Issue / PR / context helpers
 scripts/dev/       # developer-only Issue / context / PR entry points
-docs/              # explanations, current state, routing, feature specs
+docs/jp/           # Japanese source documents
+docs/en/           # English translations (Issue #180)
 specification/     # normative project rules
 app.py             # application entry point
 ```
 
-現在の能力・既知制約は [`docs/current_state.md`](docs/current_state.md)、責務からファイルを探す場合は [`docs/responsibility_map.md`](docs/responsibility_map.md) を参照してください。
+文書は日本語を正本とし、[`docs/jp/現状.md`](docs/jp/現状.md)で現在の能力と既知制約を、[`docs/jp/責務マップ.md`](docs/jp/責務マップ.md)で責務から探す場所を確認できます。英語版はIssue #180で`docs/en/`に整備します。
 
 ## Runtime layout
 
@@ -166,7 +167,7 @@ Linux/macOSでは `./scripts/dev/prepare_work.sh` を使います。これは優
 | `scripts\dev\reducer.bat setup` | 開発専用reducerを準備 |
 | `scripts\dev\pull_request.bat` | 検証、commit、push、PR作成 |
 
-他のcontextコマンドは `scripts\dev\context.bat --help` を参照してください。Linux/macOSでは同じ場所の `context.sh`、`reducer.sh`、`prepare_work.sh` を使います。詳細は [`docs/project_operations.md`](docs/project_operations.md) を参照してください。
+他のcontextコマンドは `scripts\dev\context.bat --help` を参照してください。Linux/macOSでは同じ場所の `context.sh`、`reducer.sh`、`prepare_work.sh` を使います。詳細は [`docs/jp/開発運用.md`](docs/jp/開発運用.md) を参照してください。
 
 ## AI context policy
 
@@ -184,7 +185,7 @@ AI向け入口は `AI_CONTEXT.md` と `AGENTS.md` です。
 
 ## Specifications
 
-README は概要だけを保持します。個別機能の要件・Acceptance Criteria は `docs/specs/` と GitHub Issues、横断的な必須規則は `specification/` を Source of Truth とします。
+READMEは概要だけを保持します。日本語の個別機能仕様は `docs/jp/機能仕様/`、Issueごとの要件・Acceptance CriteriaはGitHub Issues、横断的な必須規則は `specification/` を正本とします。`docs/en/` は日本語正本から作る英語版です。
 
 `ai-context-reducer` と `upd-commander-base-design` は設計・運用の参考元であり、実行時必須依存ではありません。
 

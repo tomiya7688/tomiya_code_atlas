@@ -46,28 +46,28 @@ NON_ACTIONABLE_LABELS = {
 }
 
 SPEC_LABELS = {
-    "spec:comment-generator": "docs/specs/comment_generator.md",
-    "spec:comments": "docs/specs/comment_generator.md",
-    "spec:diagram": "docs/specs/diagrams.md",
-    "spec:diagrams": "docs/specs/diagrams.md",
-    "spec:class-diagram": "docs/specs/diagrams.md",
-    "spec:object-diagram": "docs/specs/diagrams.md",
-    "spec:sequence-diagram": "docs/specs/diagrams.md",
-    "spec:package-diagram": "docs/specs/diagrams.md",
-    "spec:use-case-diagram": "docs/specs/diagrams.md",
-    "spec:communication-diagram": "docs/specs/diagrams.md",
-    "spec:activity-diagram": "docs/specs/diagrams.md",
-    "spec:component-diagram": "docs/specs/diagrams.md",
-    "spec:deployment-diagram": "docs/specs/diagrams.md",
-    "spec:state-machine-diagram": "docs/specs/diagrams.md",
-    "spec:timing-diagram": "docs/specs/diagrams.md",
-    "spec:call-graph": "docs/specs/diagrams.md",
-    "spec:class-responsibility-table": "docs/specs/class_responsibility_table.md",
-    "spec:responsibility-table": "docs/specs/class_responsibility_table.md",
-    "spec:ci-analyzer": "docs/specs/ci_analyzer.md",
-    "spec:ci": "docs/specs/ci_analyzer.md",
-    "spec:design-evaluation": "docs/specs/design_evaluation.md",
-    "spec:evaluation": "docs/specs/design_evaluation.md",
+    "spec:comment-generator": "docs/jp/機能仕様/コメント生成.md",
+    "spec:comments": "docs/jp/機能仕様/コメント生成.md",
+    "spec:diagram": "docs/jp/機能仕様/図表生成.md",
+    "spec:diagrams": "docs/jp/機能仕様/図表生成.md",
+    "spec:class-diagram": "docs/jp/機能仕様/図表生成.md",
+    "spec:object-diagram": "docs/jp/機能仕様/図表生成.md",
+    "spec:sequence-diagram": "docs/jp/機能仕様/図表生成.md",
+    "spec:package-diagram": "docs/jp/機能仕様/図表生成.md",
+    "spec:use-case-diagram": "docs/jp/機能仕様/図表生成.md",
+    "spec:communication-diagram": "docs/jp/機能仕様/図表生成.md",
+    "spec:activity-diagram": "docs/jp/機能仕様/図表生成.md",
+    "spec:component-diagram": "docs/jp/機能仕様/図表生成.md",
+    "spec:deployment-diagram": "docs/jp/機能仕様/図表生成.md",
+    "spec:state-machine-diagram": "docs/jp/機能仕様/図表生成.md",
+    "spec:timing-diagram": "docs/jp/機能仕様/図表生成.md",
+    "spec:call-graph": "docs/jp/機能仕様/図表生成.md",
+    "spec:class-responsibility-table": "docs/jp/機能仕様/クラス責務表.md",
+    "spec:responsibility-table": "docs/jp/機能仕様/クラス責務表.md",
+    "spec:ci-analyzer": "docs/jp/機能仕様/CI解析.md",
+    "spec:ci": "docs/jp/機能仕様/CI解析.md",
+    "spec:design-evaluation": "docs/jp/機能仕様/設計評価.md",
+    "spec:evaluation": "docs/jp/機能仕様/設計評価.md",
 }
 
 # Title/label routing is a fallback for existing Issues that do not yet carry rich labels.
@@ -76,7 +76,7 @@ TASK_ROUTES = [
         re.compile(r"comment|コメント", re.IGNORECASE),
         ["Src/generators/", "Src/languages/", "Src/models/"],
         ["tests/test_comment_generator.py", "tests/test_python_comment_generator.py", "tests/test_csharp_comment_generator.py"],
-        ["docs/specs/comment_generator.md"],
+        ["docs/jp/機能仕様/コメント生成.md"],
     ),
     (
         re.compile(r"common ir|中間表現|\bIR\b", re.IGNORECASE),
@@ -88,25 +88,25 @@ TASK_ROUTES = [
         re.compile(r"call.?graph|class diagram|sequence|communication|package|component|deployment|state|timing|activity|diagram|図", re.IGNORECASE),
         ["Src/analyzers/", "Src/generators/", "Src/renderers/"],
         ["tests/test_call_graph.py", "tests/test_call_graph_generator.py"],
-        ["docs/specs/diagrams.md"],
+        ["docs/jp/機能仕様/図表生成.md"],
     ),
     (
         re.compile(r"gui|ui|画面", re.IGNORECASE),
         ["app.py", "Src/"],
         ["tests/"],
-        ["docs/architecture/upd_commander.md", "specification/architecture-policy.md"],
+        ["docs/jp/構成/UPDコマンダー適用.md", "specification/architecture-policy.md"],
     ),
     (
         re.compile(r"ci|workflow|build|package|ビルド", re.IGNORECASE),
         [".github/workflows/", "pyproject.toml", "tools/"],
         ["tests/"],
-        ["docs/project_operations.md"],
+        ["docs/jp/開発運用.md"],
     ),
     (
         re.compile(r"context|運用|commander|architecture|設計基盤", re.IGNORECASE),
         ["tools/", "AI_CONTEXT.md", "AGENTS.md", "docs/", "specification/"],
         ["tests/test_next_issue.py", "tests/test_context_tool.py"],
-        ["docs/project_operations.md", "docs/architecture/upd_commander.md", "specification/architecture-policy.md"],
+        ["docs/jp/開発運用.md", "docs/jp/構成/UPDコマンダー適用.md", "specification/architecture-policy.md"],
     ),
 ]
 
@@ -295,7 +295,7 @@ def main() -> int:
     if not route["tests"]:
         lines.append("- Identify matching targeted tests before implementation.")
     lines.append("### Routed references")
-    lines.extend(["- AI_CONTEXT.md", "- AGENTS.md", "- docs/responsibility_map.md", "- specification/architecture-policy.md"])
+    lines.extend(["- AI_CONTEXT.md", "- AGENTS.md", "- docs/jp/責務マップ.md", "- specification/architecture-policy.md"])
     lines.extend(f"- {path}" for path in route["docs"])
 
     lines.extend(

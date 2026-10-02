@@ -3,7 +3,7 @@
 ## Start here
 Read `AI_CONTEXT.md` first. It is the compact routing index.
 
-If `.codex/next_issue.md` exists, treat that Issue as the active task. Do not fetch unrelated Issues unless the selected task requires them. Use `docs/responsibility_map.md` to find the initial source/test area and `specification/architecture-policy.md` for normative rules.
+If `.codex/next_issue.md` exists, treat that Issue as the active task. Do not fetch unrelated Issues unless the selected task requires them. Use `docs/jp/責務マップ.md` to find the initial source/test area and `specification/architecture-policy.md` for normative rules.
 
 ## Purpose
 Tomiya Code Atlas is a source-code analysis toolkit that generates diagrams, tables, comments, evaluations, and CI-oriented analysis results while keeping language-specific parsing, shared analysis, and output formats replaceable.
@@ -26,10 +26,11 @@ Python is normally the first implementation target for new analysis features. Do
 - `Src/renderers/` — Mermaid/text/future format serialization
 - `Src/evaluators/` — design/code-quality evaluation
 - `tools/` — local Issue/PR/context helpers
-- `docs/` — explanatory architecture, current state, routing, feature design
+- `docs/jp/` — Japanese source documents: architecture, current state, routing, feature design
+- `docs/en/` — English translations, maintained as derivative documents
 - `specification/` — normative project rules
 
-Detailed ownership is in `docs/responsibility_map.md`.
+Detailed ownership is in `docs/jp/責務マップ.md`.
 
 ## Windows build entry points
 - The repository root keeps the user-facing `build_exe.bat` and `run_dist.bat` commands.

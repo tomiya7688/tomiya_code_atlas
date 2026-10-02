@@ -38,7 +38,7 @@ Equivalent explicit boundaries may be used without literally naming every module
 
 1. `README.md` is a human-facing overview and entry point, not the full specification.
 2. `AI_CONTEXT.md` is the compact AI routing index, not a duplicate specification.
-3. `docs/current_state.md` describes current capabilities / blockers only; it is not a changelog.
+3. `docs/jp/現状.md` describes current capabilities / blockers only; it is not a changelog.
 4. `docs/` explains architecture and feature design.
 5. `specification/` contains normative project rules.
 6. GitHub Issues are the source of truth for requested work, priority, discussion, and incomplete tasks.
