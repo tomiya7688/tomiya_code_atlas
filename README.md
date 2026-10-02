@@ -4,7 +4,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 目的は、コードを読む前に「何があるか」「どこから呼ばれるか」「何に依存するか」「どこが複雑か」を短時間で把握できる状態を作ることです。
 
-製品本体はGoへ移行中です。現在のGo配布版はbuild可能なbootstrapで、解析機能やGUIは未移植です。既存機能の説明は移行中のPython source版を指し、移行完了までは [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで進捗を管理します。
+製品本体はGoへ移行中です。現在のGo CLIはhelp/versionのみのbootstrapで、解析機能やGUIは未移植です。Go配布物には移行途中のPython parser helperも含みますが、CLIからの起動・処理連携は後続Issueで実装します。既存機能の説明は移行中のPython source版を指し、移行完了までは [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで進捗を管理します。
 
 ## 主な機能
 
@@ -36,7 +36,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 ## Windows配布アプリをビルドする
 
-Go版への移行を開始しています。ルートで `build_exe.bat` を実行すると、Go 1.22以降を使って `.build\dist\tomiya-code-atlas.exe` を作成します。現段階のGo版はhelp/versionのみの移行用bootstrapです。GitHub Actionsの `Go EXE` workflowからもWindows EXEを取得できます。
+Go版への移行を開始しています。ルートで `build_exe.bat` を実行すると、Go 1.22以降を使って `.build\dist\tomiya-code-atlas.exe` と `.build\dist\tomiya-python-backend.exe` を作成します。現段階のGo CLIはhelp/versionのみの移行用bootstrapです。GitHub Actionsの `Go EXE` workflowからもWindows EXEを取得できます。
 
 Python版は移行期間中の参照用ソースとして残します。Goの配布EXEはGitHub Actionsから取得でき、Python/PyInstallerのEXE buildは行いません。
 

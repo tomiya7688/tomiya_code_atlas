@@ -28,6 +28,12 @@ if errorlevel 1 (
 
 go build -trimpath -ldflags "-s -w -X main.version=0.1.0-dev" -o "..\.build\dist\tomiya-code-atlas.exe" "./cmd/tomiya-code-atlas"
 set "BUILD_RESULT=%errorlevel%"
+if not "%BUILD_RESULT%"=="0" (
+    popd
+    exit /b %BUILD_RESULT%
+)
+go build -trimpath -o "..\.build\dist\tomiya-python-backend.exe" "./cmd/python-parser-helper"
+set "BUILD_RESULT=%errorlevel%"
 popd
 if not "%BUILD_RESULT%"=="0" exit /b %BUILD_RESULT%
 
@@ -35,8 +41,7 @@ if not exist ".build\dist\tomiya-code-atlas.exe" (
     echo [エラー] Go版の配布EXEが生成されませんでした。
     exit /b 1
 )
-
 echo.
-echo Go版のWindowsアプリをbuildしました: .build\dist\tomiya-code-atlas.exe
+echo Windows Go distribution build complete.
 endlocal
 exit /b 0
