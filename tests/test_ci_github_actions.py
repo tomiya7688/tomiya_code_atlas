@@ -118,6 +118,8 @@ def test_go_windows_artifact_is_smoke_tested_before_upload() -> None:
     assert "call build_exe.bat" in (steps["Windows EXEをbuild"].command or "")
     assert "配布EXEのhelpとversionをsmoke test" in steps
     assert "Go版Windows EXEをartifactとして保存" in steps
+    assert '$helpText = $help -join "`n"' in source
+    assert "cache-dependency-path: go/go.mod" in source
     assert "tomiya-code-atlas-go-windows-x64" in source
     assert not Path(".github/workflows/build.yml").exists()
     assert not Path(".github/workflows/python-exe.yml").exists()

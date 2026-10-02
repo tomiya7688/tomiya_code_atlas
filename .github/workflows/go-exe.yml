@@ -37,6 +37,7 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version: "1.27.x"
+          cache-dependency-path: go/go.mod
 
       - name: Go testを実行
         working-directory: go
@@ -60,7 +61,8 @@ jobs:
             exit 1
           }
           $help = & $exe --help
-          if ($LASTEXITCODE -ne 0 -or $help -notmatch "使用方法:") {
+          $helpText = $help -join "`n"
+          if ($LASTEXITCODE -ne 0 -or $helpText -notmatch "使用方法:") {
             Write-Error "Go版のEXEのhelp smoke testに失敗しました: $help"
             exit 1
           }
