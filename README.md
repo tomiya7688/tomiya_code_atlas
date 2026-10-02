@@ -65,12 +65,12 @@ tests/             # automated evidence
 tools/             # Issue / PR / context helpers
 scripts/dev/       # developer-only Issue / context / PR entry points
 docs/jp/           # Japanese source documents
-docs/en/           # English translations (Issue #180)
+docs/en/           # English translations of Japanese source documents
 specification/     # normative project rules
 app.py             # application entry point
 ```
 
-文書は日本語を正本とし、[`docs/jp/現状.md`](docs/jp/現状.md)で現在の能力と既知制約を、[`docs/jp/責務マップ.md`](docs/jp/責務マップ.md)で責務から探す場所を確認できます。英語版はIssue #180で`docs/en/`に整備します。
+文書は日本語を正本とし、[`docs/jp/現状.md`](docs/jp/現状.md)で現在の能力と既知制約を、[`docs/jp/責務マップ.md`](docs/jp/責務マップ.md)で責務から探す場所を確認できます。利用者向けの英語版は[`docs/en/README.md`](docs/en/README.md)から、[ビルド手順](docs/en/Building.md)、[GUIガイド](docs/en/GUI-Usage.md)、[CLIリファレンス](docs/en/CLI-Reference.md)を参照できます。
 
 ## Runtime layout
 
@@ -111,11 +111,11 @@ tomiya-code-atlas/
 
 開発元からクローンした場合は、次のツールをインストールします。
 
-- Python 3.12 x64を推奨。Python 3.11以降も利用できます: [Windows向けPython配布](https://www.python.org/downloads/windows/)。`py -3.12` または `python` コマンドで起動できるようにします。
+- Python 3.12 x64を推奨。Python 3.11以降も利用できます: [Windows向けPython配布](https://www.python.org/downloads/windows/)。`py -3.12` を優先して使い、利用できない場合は `python` コマンドから3.11以降を起動します。
 - .NET SDK 10 x64: [.NET 10ダウンロード](https://dotnet.microsoft.com/download/dotnet/10.0)。
-- JDK 25 x64: [Eclipse Temurin 25](https://adoptium.net/temurin/releases/?version=25&os=windows&arch=x64&package=jdk)。`JAVA_HOME`を設定するか、JDKの`bin`をPATHへ追加します。
+- JDK 25 x64: [Eclipse Temurin 25](https://adoptium.net/temurin/releases/?version=25&os=windows&arch=x64&package=jdk)。JDKの`bin`をPATHに追加すれば利用できます。`JAVA_HOME`を設定した場合はその値を使います。
 
-Python Launcher (`py`) にPython 3.12がない場合は、`python` コマンドでPython 3.11以降が起動するようPATHを設定してください。リポジトリのルートで配布EXEを作るときは `build_exe.bat` を実行します。このバッチは `.venv` がなければ `scripts\build\setup.bat` を呼び出して準備します。Apache MavenはPATHに見つからない場合、公式配布物を取得して `.build\tools\` 内に準備します（初回のみネットワーク接続が必要です）。
+Python Launcher (`py`) にPython 3.12がない場合は、`python` コマンドでPython 3.11以降が起動するようPATHを設定してください。リポジトリのルートで配布EXEを作るときは `build_exe.bat` を実行します。このバッチは `.venv` がなければ `scripts\build\setup.bat` を呼び出して準備します。JDKは `JAVA_HOME`、またはPATH上の `javac` から検出します。Apache MavenはPATHに見つからない場合、公式配布物を取得して`.build\tools\`内に配置し、SHA-512 checksumを検証します（初回のみネットワーク接続が必要です）。
 
 ```bat
 build_exe.bat
@@ -128,7 +128,7 @@ run_dist.bat
 
 `scripts\build\package.bat` はPython wheelとsource archiveを `.build\packages\` に作ります。これはPython packageであり、WindowsアプリのEXEではありません。
 
-配布用Windowsアプリのbuildには、Python 3.11以降、.NET SDK 10、JDK 25が必要です。`JAVA_HOME`を設定するかJDKの`bin`をPATHに追加してください。Mavenは`build_exe.bat`が自動で準備します。次のコマンドで前提を確認できます。
+配布用Windowsアプリのbuildには、Python 3.11以降、.NET SDK 10、JDK 25が必要です。JDKの`bin`をPATHに追加するか、`JAVA_HOME`を設定してください。Apache Mavenは`build_exe.bat`が自動で準備します。次のコマンドで前提を確認できます。
 
 ```powershell
 py -3.12 --version       # 3.12がない場合は python --version（3.11以降）
