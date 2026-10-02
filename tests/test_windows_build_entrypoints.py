@@ -23,7 +23,8 @@ def test_source_and_distribution_launchers_have_distinct_targets() -> None:
     source_launcher = read_repo_file("scripts/build/run_source.bat")
     distribution_launcher = read_repo_file("run_dist.bat")
 
-    assert "Project environment not found. Run scripts\\build\\setup.bat first." in source_launcher
+    assert "Python環境が見つかりません" in source_launcher
+    assert "scripts\\build\\setup.bat" in source_launcher
     assert '".venv\\Scripts\\python.exe" app.py %*' in source_launcher
     assert ".build\\dist\\tomiya-code-atlas\\tomiya-code-atlas.exe" in distribution_launcher
     assert '"%APP%" %*' in distribution_launcher
@@ -93,6 +94,37 @@ def test_readme_explains_user_build_and_launch_commands() -> None:
         assert required_text in readme
 
 
+def test_windows_user_entrypoint_errors_are_japanese() -> None:
+    launcher = read_repo_file("run_dist.bat")
+    verifier = read_repo_file("scripts/build/verify.bat")
+    source_launcher = read_repo_file("scripts/build/run_source.bat")
+
+    assert "[エラー] ビルド済みアプリが見つかりません" in launcher
+    assert "先に build_exe.bat を実行" in launcher
+    assert "[エラー]" in verifier
+    assert "did not launch" not in verifier
+    assert "verification failed" not in verifier
+    assert "[エラー] Python環境が見つかりません" in source_launcher
+    assert "Project environment not found" not in source_launcher
+
+
+def test_github_workflow_names_and_visible_diagnostics_are_japanese() -> None:
+    workflows = (
+        read_repo_file(".github/workflows/build.yml"),
+        read_repo_file(".github/workflows/ci.yml"),
+        read_repo_file(".github/workflows/python-exe.yml"),
+        read_repo_file(".github/workflows/release.yml"),
+    )
+    assert "- name: Python packageをbuild" in workflows[0]
+    assert "- name: 全testを実行" in workflows[1]
+    assert "- name: 配布アプリのsmoke test" in workflows[2]
+    assert "- name: release候補をbuild・検証" in workflows[3]
+    distribution_workflow = workflows[2]
+    assert distribution_workflow.startswith("name: Python EXE")
+    assert "EXEが見つかりません" in distribution_workflow
+    assert "EXE not found" not in distribution_workflow
+
+
 def test_maven_bootstrap_uses_verified_official_distribution() -> None:
     resolver = read_repo_file("scripts/build/resolve_maven.ps1")
 
@@ -109,3 +141,4 @@ def test_windows_exe_workflow_verifies_the_documented_clean_runner_path() -> Non
     assert 'python-version: "3.12"' in workflow
     assert "call scripts\\build\\setup.bat" in workflow
     assert "call scripts\\build\\verify.bat" in workflow
+    assert "      - name: 配布アプリのsmoke test\n        shell: pwsh" in workflow

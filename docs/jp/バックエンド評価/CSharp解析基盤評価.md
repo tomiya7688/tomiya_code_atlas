@@ -101,7 +101,7 @@ dotnet publish -c Release -r win-x64 --self-contained true
 | tree-sitter-c-sharp | 強力なincremental grammar | 単独ではsemantic bindingなし | 強い | native parser assets | fallback候補 |
 | 現行regex adapter | コメント向けheuristic | なし | 該当なし | 依存が軽い | 解析backendではない |
 
-## License
+## ライセンス
 
 - Roslyn: MIT。
 - tree-sitter-c-sharp: MIT。

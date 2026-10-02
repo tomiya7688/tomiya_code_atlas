@@ -246,6 +246,9 @@ def _verify_cli_contract(exe: Path, workspace: Path) -> None:
     for command in ("comment", "ci", "deployment", "timing", "use-cases", "call-graph", "class-diagram", "sequence-diagram"):
         if command not in help_result.stdout:
             raise DistributionCheckError(f"CLI help omitted subcommand {command!r}")
+    for marker in ("使い方:", "オプション"):
+        if marker not in help_result.stdout:
+            raise DistributionCheckError(f"CLI help omitted Japanese text {marker!r}")
     _run(exe, workspace, "invalid-command", expected=2)
     _run(exe, workspace, "comment", expected=2)
     _run(exe, workspace, "comment", str(workspace / "missing.py"), expected=1)

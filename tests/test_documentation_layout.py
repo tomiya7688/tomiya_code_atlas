@@ -87,3 +87,19 @@ def test_english_cli_guide_keeps_real_entrypoint_and_command_names() -> None:
         "--in-place",
     ):
         assert command in guide
+
+
+def test_repository_agent_and_normative_guidance_are_japanese() -> None:
+    for name in (
+        "AGENTS.md",
+        "AI_CONTEXT.md",
+        "README.md",
+        "specification/architecture-policy.md",
+        "specification/parser-backend-contract.md",
+    ):
+        content = (ROOT / name).read_text(encoding="utf-8")
+        assert JAPANESE_CHARACTERS.search(content), name
+    policy = (ROOT / "specification/architecture-policy.md").read_text(encoding="utf-8")
+    assert "Required（必須）" in policy
+    assert "Recommended（推奨）" in policy
+    assert "Advisory（助言）" in policy

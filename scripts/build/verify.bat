@@ -20,17 +20,17 @@ call scripts\build\package.bat
 if errorlevel 1 exit /b 1
 for /f %%V in ('%PYTHON% -c "from Src.version import __version__; print(__version__)"') do set "PACKAGE_VERSION=%%V"
 if not defined PACKAGE_VERSION (
-  echo [ERROR] Could not read package version.
+  echo [エラー] Python packageのバージョンを取得できませんでした。
   exit /b 1
 )
 set "WHEEL=.build\packages\tomiya_code_atlas-%PACKAGE_VERSION%-py3-none-any.whl"
 set "SDIST=.build\packages\tomiya_code_atlas-%PACKAGE_VERSION%.tar.gz"
 if not exist "%WHEEL%" (
-  echo [ERROR] Python wheel was not generated.
+  echo [エラー] Python wheelが生成されませんでした。
   exit /b 1
 )
 if not exist "%SDIST%" (
-  echo [ERROR] Python source archive was not generated.
+  echo [エラー] Python source archiveが生成されませんでした。
   exit /b 1
 )
 "%PYTHON%" tools\verify_wheel.py "%WHEEL%"
@@ -41,7 +41,7 @@ if errorlevel 1 exit /b 1
 call build_exe.bat
 if errorlevel 1 exit /b 1
 if not exist ".build\dist\tomiya-code-atlas\tomiya-code-atlas.exe" (
-  echo [ERROR] EXE was not generated.
+  echo [エラー] EXEが生成されませんでした。
   exit /b 1
 )
 
@@ -59,7 +59,7 @@ call run_dist.bat --version >"%VERIFY_DIR%\version.out"
 if errorlevel 1 exit /b 1
 findstr /c:"Tomiya Code Atlas" "%VERIFY_DIR%\version.out" >nul
 if errorlevel 1 (
-  echo [ERROR] run_dist.bat did not launch the packaged app.
+  echo [エラー] run_dist.bat で配布アプリを起動できませんでした。
   exit /b 1
 )
 
@@ -67,7 +67,7 @@ call run_dist.bat comment "%VERIFY_DIR%\sample.py" >"%VERIFY_DIR%\comment.out"
 if errorlevel 1 exit /b 1
 findstr /c:"# Retrieves config." "%VERIFY_DIR%\comment.out" >nul
 if errorlevel 1 (
-  echo [ERROR] Comment output verification failed.
+  echo [エラー] コメント生成結果の確認に失敗しました。
   exit /b 1
 )
 
@@ -75,7 +75,7 @@ call run_dist.bat ci "%VERIFY_DIR%\workflow.yml" --output "%VERIFY_DIR%\ci.mmd"
 if errorlevel 1 exit /b 1
 findstr /c:"flowchart LR" "%VERIFY_DIR%\ci.mmd" >nul
 if errorlevel 1 (
-  echo [ERROR] CI Mermaid output verification failed.
+  echo [エラー] CI Mermaid出力の確認に失敗しました。
   exit /b 1
 )
 
@@ -83,7 +83,7 @@ call scripts\build\run_source.bat --version >"%VERIFY_DIR%\source-version.out"
 if errorlevel 1 exit /b 1
 findstr /c:"Tomiya Code Atlas" "%VERIFY_DIR%\source-version.out" >nul
 if errorlevel 1 (
-  echo [ERROR] scripts\build\run_source.bat did not launch the source application.
+  echo [エラー] scripts\build\run_source.bat でソース版アプリを起動できませんでした。
   exit /b 1
 )
 
