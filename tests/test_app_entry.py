@@ -27,6 +27,7 @@ def test_cli_help_is_japanese_and_keeps_command_identifiers(capsys):
     assert "CI向けのbackend動作確認（開発用）" in output
     assert "==SUPPRESS==" not in output
     assert "class-diagram" in output
+    assert "static-spec" in output
     assert "options:" not in output
 
 

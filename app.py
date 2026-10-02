@@ -15,6 +15,10 @@ from Src.process.config_service import load_config
 from Src.process.deployment_service import DeploymentAnalysisRequest, DeploymentService
 from Src.process.timing_service import TimingAnalysisRequest, TimingService
 from Src.process.use_case_service import UseCaseAnalysisRequest, UseCaseService
+from Src.process.static_specification_service import (
+    StaticSpecificationRequest,
+    StaticSpecificationService,
+)
 from Src.data.files import write_text
 from Src.version import __version__
 PROJECT_NAME = "Tomiya Code Atlas"
@@ -137,6 +141,9 @@ def main(argv: list[str] | None = None) -> int:
     call_graph.add_argument("--fan-in-threshold", type=int, default=3, help="参照数による分割しきい値")
     call_graph.add_argument("--root", help="探索の起点")
     call_graph.add_argument("--max-depth", type=int, help="呼び出しをたどる最大階層")
+    static_spec = sub.add_parser("static-spec", help="ソースコードの静的仕様書を生成")
+    static_spec.add_argument("source", help="解析するPythonファイルまたはプロジェクトフォルダー")
+    static_spec.add_argument("--output", help="Markdownの保存先（省略時は画面に表示）")
     class_diagram = sub.add_parser("class-diagram", help="クラス図を生成")
     class_diagram.add_argument("source", help="解析するソースファイル")
     class_diagram.add_argument("--language", help="解析言語（省略時は拡張子から判定）")
@@ -169,6 +176,7 @@ def main(argv: list[str] | None = None) -> int:
         "timing",
         "use-cases",
         "call-graph",
+        "static-spec",
         "class-diagram",
         "sequence-diagram",
         "backend-smoke",
@@ -294,6 +302,26 @@ def main(argv: list[str] | None = None) -> int:
                 print(output_path)
         else:
             _print_outputs(result)
+        return 0
+
+    if args.command == "static-spec":
+        path = Path(args.source)
+        try:
+            result = StaticSpecificationService().generate(
+                StaticSpecificationRequest(path, "python")
+            )
+        except FileNotFoundError:
+            parser.error(f"Pythonファイルまたはフォルダーが見つかりません: {path}")
+        except PermissionError:
+            parser.error(f"ソースファイルを読み込めません: {path}")
+        except SyntaxError as error:
+            parser.error(f"Pythonの構文エラーです: {error.lineno or '?'}行目")
+        except ValueError as error:
+            parser.error(str(error))
+        if args.output:
+            write_text(Path(args.output), result.content)
+        else:
+            print(result.content, end="")
         return 0
 
     if args.command in {"class-diagram", "sequence-diagram"}:
