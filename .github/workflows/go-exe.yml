@@ -1,0 +1,73 @@
+name: Go EXE
+
+on:
+  pull_request:
+    paths:
+      - "go.mod"
+      - "go.sum"
+      - "go/**"
+      - "internal/**"
+      - "scripts/build/build_go.bat"
+      - "build_exe.bat"
+      - "run_dist.bat"
+      - ".github/workflows/go-exe.yml"
+      - "tests/test_windows_build_entrypoints.py"
+  push:
+    paths:
+      - "go.mod"
+      - "go.sum"
+      - "go/**"
+      - "internal/**"
+      - "scripts/build/build_go.bat"
+      - "build_exe.bat"
+      - "run_dist.bat"
+      - ".github/workflows/go-exe.yml"
+      - "tests/test_windows_build_entrypoints.py"
+  workflow_dispatch:
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+
+    steps:
+      - name: ソースを取得
+        uses: actions/checkout@v7
+
+      - name: Goを準備
+        uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.x"
+
+      - name: Go testを実行
+        working-directory: go
+        run: go test ./...
+
+      - name: Windows EXEをbuild
+        shell: cmd
+        run: call build_exe.bat
+
+      - name: 配布EXEのhelpとversionをsmoke test
+        shell: pwsh
+        run: |
+          $exe = ".\.build\dist\tomiya-code-atlas.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "Go版のEXEが見つかりません: $exe"
+            exit 1
+          }
+          $version = & $exe --version
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch "Tomiya Code Atlas \(Go\)") {
+            Write-Error "Go版のEXEのversion smoke testに失敗しました: $version"
+            exit 1
+          }
+          $help = & $exe --help
+          if ($LASTEXITCODE -ne 0 -or $help -notmatch "使用方法:") {
+            Write-Error "Go版のEXEのhelp smoke testに失敗しました: $help"
+            exit 1
+          }
+
+      - name: Go版Windows EXEをartifactとして保存
+        uses: actions/upload-artifact@v7
+        with:
+          name: tomiya-code-atlas-go-windows-x64
+          path: .build/dist/tomiya-code-atlas.exe
+          if-no-files-found: error

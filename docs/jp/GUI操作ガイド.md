@@ -2,7 +2,7 @@
 
 英語版: [GUI Usage](../en/GUI-Usage.md)
 
-Tomiya Code AtlasのPython + PyInstaller版は、`app.py` または生成済みの `tomiya-code-atlas.exe` を引数なしで起動するとデスクトップGUIを開きます。
+既存Python source版は、`app.py` を引数なしで起動するとデスクトップGUIを開きます。
 
 初期GUIで利用できる機能:
 
@@ -18,7 +18,7 @@ CLIも引き続き利用できます。
 
 ```text
 python app.py comment sample.py
-python app.py ci .github/workflows/build.yml
+python app.py ci .github/workflows/ci.yml
 python app.py --version
 python app.py gui
 ```
@@ -26,3 +26,6 @@ python app.py gui
 現段階のMermaidプレビューはMermaidソースの表示です。画像やHTMLとしての埋め込みレンダリングは今後の拡張です。
 
 GUI層は `Src/ui/` に限定し、解析処理は `Src/process/application.py` を経由して呼び出します。
+# 移行中の注意
+
+このガイドは既存Python source版のGUIを対象にしています。Go版配布EXEには、まだ解析機能とGUIが移植されていません。Go版EXEで現在使えるのはhelp/versionのみです。
