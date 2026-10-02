@@ -44,6 +44,8 @@ class CodeEntity:
     resolved_calls: tuple[str, ...] = ()
     symbol_id: str | None = None
     is_async: bool = False
+    parameter_types: tuple[tuple[str, str], ...] = ()
+    return_type: str | None = None
 
 
 @dataclass(slots=True)
@@ -147,3 +149,4 @@ class ModuleIR:
     signals: list[SignalIR] = field(default_factory=list)
     diagnostics: list[DiagnosticIR] = field(default_factory=list)
     imports: tuple[str, ...] = ()
+    module_docstring: str | None = None

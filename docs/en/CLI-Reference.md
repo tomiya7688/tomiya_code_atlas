@@ -64,6 +64,15 @@ Command-specific options include:
 
 Run a command's help for its exact syntax and defaults, for example `python app.py call-graph --help`.
 
+### Generate a static specification
+
+```text
+python app.py static-spec sample.py
+python app.py static-spec sample.py --output sample-spec.md
+```
+
+This documents one Python file or recursively scans a Python project (excluding generated and development-only folders), including declarations, available annotations, docstrings, source lines, and same-file statically resolved calls.
+
 ## Japanese source
 
 The Japanese README is authoritative: [../../README.md](../../README.md). English guides are translations and must not define different behavior.

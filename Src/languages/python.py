@@ -32,6 +32,7 @@ class PythonLanguageAdapter:
             entities=entities,
             objects=objects,
             state_machines=state_machines,
+            module_docstring=ast.get_docstring(tree, clean=False),
         )
 
     def _collect(
@@ -100,6 +101,18 @@ class PythonLanguageAdapter:
         if node.args.kwarg:
             parameters.append(f"**{node.args.kwarg.arg}")
 
+        arguments = [*node.args.posonlyargs, *node.args.args]
+        if node.args.vararg:
+            arguments.append(node.args.vararg)
+        arguments.extend(node.args.kwonlyargs)
+        if node.args.kwarg:
+            arguments.append(node.args.kwarg)
+        parameter_types = tuple(
+            (argument.arg, self._expr_text(argument.annotation, source))
+            for argument in arguments
+            if argument.annotation is not None
+        )
+
         call_sequence = self._function_call_sequence(node)
         return CodeEntity(
             kind=kind,
@@ -114,6 +127,8 @@ class PythonLanguageAdapter:
             calls=tuple(dict.fromkeys(call_sequence)),
             call_sequence=call_sequence,
             visibility=self._visibility(node.name),
+            parameter_types=parameter_types,
+            return_type=(self._expr_text(node.returns, source) if node.returns else None),
         )
 
     @classmethod
