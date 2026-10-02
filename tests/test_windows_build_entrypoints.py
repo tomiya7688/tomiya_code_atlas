@@ -53,7 +53,10 @@ def test_verification_tests_sources_and_go_exe_without_building_python_artifacts
     assert "call build_exe.bat" in verification
     assert "call run_dist.bat --version" in verification
     assert "call run_dist.bat --help" in verification
+    assert 'findstr /c:"--help, -h"' in verification
     assert '".venv\\Scripts\\python.exe" -m pytest' in verification
+    assert "-p no:cacheprovider" in verification
+    assert '--ignore-glob="pytest-cache-files-*"' in verification
     assert "policy-check" in verification
     assert "build_python" not in verification
     assert "PyInstaller" not in verification
@@ -87,6 +90,13 @@ def test_development_helpers_are_grouped_and_run_from_repository_root() -> None:
     assert 'cd /d "%~dp0\\..\\.."' in read_repo_file("scripts/dev/context.bat")
     assert 'cd "$(dirname "$0")/../.."' in read_repo_file("scripts/dev/context.sh")
     assert "scripts\\dev\\reducer.bat setup" in read_repo_file("scripts/dev/prepare_work.bat")
+
+
+def test_pull_request_runner_skips_local_pytest_cache_artifacts() -> None:
+    create_pr = read_repo_file("tools/create_pr.py")
+
+    assert '"no:cacheprovider"' in create_pr
+    assert '"--ignore-glob=pytest-cache-files-*"' in create_pr
 
 
 def test_readme_explains_go_build_and_python_test_only_usage() -> None:

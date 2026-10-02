@@ -1,0 +1,80 @@
+{
+  "schema_version": "1",
+  "source": "def run():\n    helper()\n\ndef helper():\n    pass\n",
+  "common_ir": {
+    "language": "python",
+    "entities": [
+      {
+        "kind": "function",
+        "name": "run",
+        "line": 1,
+        "end_line": 2,
+        "indent": 0,
+        "parent": null,
+        "docstring": null,
+        "parameters": [],
+        "decorators": [],
+        "calls": ["helper"],
+        "call_sequence": ["helper"],
+        "visibility": "public",
+        "bases": [],
+        "declaration_kind": null,
+        "type_parameters": [],
+        "type_constraints": [],
+        "resolved_calls": [],
+        "symbol_id": null,
+        "is_async": false,
+        "parameter_types": [],
+        "return_type": null
+      },
+      {
+        "kind": "function",
+        "name": "helper",
+        "line": 4,
+        "end_line": 5,
+        "indent": 0,
+        "parent": null,
+        "docstring": null,
+        "parameters": [],
+        "decorators": [],
+        "calls": [],
+        "call_sequence": [],
+        "visibility": "public",
+        "bases": [],
+        "declaration_kind": null,
+        "type_parameters": [],
+        "type_constraints": [],
+        "resolved_calls": [],
+        "symbol_id": null,
+        "is_async": false,
+        "parameter_types": [],
+        "return_type": null
+      }
+    ],
+    "objects": [],
+    "state_machines": [],
+    "timing_flows": [],
+    "input_events": [],
+    "signals": [],
+    "diagnostics": [],
+    "imports": [],
+    "module_docstring": null
+  },
+  "diagnostic_example": {
+    "kind": "parse_warning",
+    "message": "Example normalized diagnostic",
+    "line": 3
+  },
+  "logical_output": {
+    "call_graph": {
+      "nodes": ["helper", "run"],
+      "edges": [
+        {
+          "caller": "run",
+          "callee": "helper",
+          "call_type": "direct"
+        }
+      ]
+    }
+  }
+}

@@ -60,6 +60,9 @@ internal sealed class ErrorDto
 
 internal sealed class ModuleDto
 {
+    [JsonPropertyName("schema_version")]
+    public string SchemaVersion { get; init; } = "1";
+
     [JsonPropertyName("language")]
     public string Language { get; init; } = "csharp";
 
