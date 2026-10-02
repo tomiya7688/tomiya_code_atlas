@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 
@@ -41,6 +42,13 @@ from Src.process.operation_requirements import (
 )
 
 PROJECT_NAME = "Tomiya Code Atlas"
+
+def _application_icon_root() -> Path:
+    """Find packaged icons or the source character assets."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent / "assets"
+    return Path(__file__).resolve().parents[2] / "assets" / "characters" / "atlas-kun"
+
 
 _OPERATION_LABELS = {
     _OPERATION_COMMENTS: "コードに説明コメントを追加",
@@ -123,6 +131,16 @@ class AtlasTkApp:
         self.operation_vars: dict[str, tk.BooleanVar] = {}
         self.last_run_succeeded = False
         self.last_error = ""
+        self._window_icon_images: list[tk.PhotoImage] = []
+        icon_root = _application_icon_root()
+        for icon_name in ("atlas-kun-256.png", "atlas-kun-64.png"):
+            icon_path = icon_root / icon_name
+            if icon_path.is_file():
+                self._window_icon_images.append(
+                    tk.PhotoImage(master=self.root, file=str(icon_path))
+                )
+        if self._window_icon_images:
+            self.root.iconphoto(True, *self._window_icon_images)
 
         self._build_window()
 
