@@ -250,6 +250,16 @@ def main(argv: list[str] | None = None) -> int:
         language = args.language or service.detect_language(path)
         if language == "unknown":
             parser.error(f"unsupported source file type: {path.suffix or path.name}")
+        if args.command == "class-diagram" and language.lower().lstrip(".") not in {
+            "python",
+            "py",
+        }:
+            print(
+                "クラス図の生成は現在Pythonソースのみ対応しています。"
+                f"指定された言語: {language}。ソースへのコメント生成には comment コマンドを使用できます。",
+                file=sys.stderr,
+            )
+            return 2
         request = SourceAnalysisRequest(path, language)
         if args.command == "class-diagram":
             result = service.generate_class_diagrams(request, renderer=args.renderer)
