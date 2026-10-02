@@ -10,6 +10,8 @@ import (
 	"go/types"
 	"io"
 	"os"
+
+	"github.com/tomiya7688/tomiya_code_atlas/internal/commonir"
 )
 
 type request struct {
@@ -20,27 +22,12 @@ type request struct {
 	Source          string `json:"source"`
 	Path            string `json:"path,omitempty"`
 }
-type entity struct {
-	Kind    string   `json:"kind"`
-	Name    string   `json:"name"`
-	Line    int      `json:"line"`
-	EndLine int      `json:"end_line"`
-	Parent  string   `json:"parent,omitempty"`
-	Bases   []string `json:"bases,omitempty"`
-}
-type ir struct {
-	SchemaVersion string           `json:"schema_version"`
-	Language      string           `json:"language"`
-	Entities      []entity         `json:"entities"`
-	Imports       []string         `json:"imports"`
-	Diagnostics   []map[string]any `json:"diagnostics"`
-}
 type response struct {
-	ContractVersion string         `json:"contract_version"`
-	RequestID       string         `json:"request_id"`
-	OK              bool           `json:"ok"`
-	IR              *ir            `json:"ir,omitempty"`
-	Error           map[string]any `json:"error,omitempty"`
+	ContractVersion string            `json:"contract_version"`
+	RequestID       string            `json:"request_id"`
+	OK              bool              `json:"ok"`
+	IR              *commonir.Payload `json:"ir,omitempty"`
+	Error           map[string]any    `json:"error,omitempty"`
 }
 
 func line(fset *token.FileSet, pos token.Pos) int { return fset.Position(pos).Line }
@@ -59,9 +46,9 @@ func parse(req request) response {
 	if err != nil {
 		return response{"1", req.RequestID, false, nil, map[string]any{"kind": "failure", "message": err.Error(), "backend_id": "go-stdlib-types-helper", "retryable": false}}
 	}
-	result := &ir{SchemaVersion: "1", Language: "go", Entities: []entity{}, Imports: []string{}, Diagnostics: []map[string]any{}}
+	result := &commonir.Payload{SchemaVersion: commonir.SchemaVersion, Module: commonir.Module{Language: "go", Entities: []commonir.Entity{}, Imports: []string{}, Diagnostics: []commonir.Diagnostic{}}}
 	if file.Name != nil {
-		result.Entities = append(result.Entities, entity{Kind: "module", Name: file.Name.Name, Line: line(fset, file.Name.Pos()), EndLine: line(fset, file.End())})
+		result.Entities = append(result.Entities, commonir.Entity{Kind: "module", Name: file.Name.Name, SourceLocation: commonir.SourceLocation{Line: line(fset, file.Name.Pos()), EndLine: line(fset, file.End())}})
 	}
 	for _, spec := range file.Imports {
 		result.Imports = append(result.Imports, spec.Path.Value)
@@ -75,7 +62,7 @@ func parse(req request) response {
 					if _, ok := ts.Type.(*ast.InterfaceType); ok {
 						kind = "interface"
 					}
-					result.Entities = append(result.Entities, entity{Kind: kind, Name: ts.Name.Name, Line: line(fset, ts.Pos()), EndLine: line(fset, ts.End())})
+					result.Entities = append(result.Entities, commonir.Entity{Kind: kind, Name: ts.Name.Name, SourceLocation: commonir.SourceLocation{Line: line(fset, ts.Pos()), EndLine: line(fset, ts.End())}})
 				}
 			}
 		case *ast.FuncDecl:
@@ -84,11 +71,15 @@ func parse(req request) response {
 				kind = "method"
 				parent = typeName(d.Recv.List[0].Type)
 			}
-			result.Entities = append(result.Entities, entity{Kind: kind, Name: d.Name.Name, Line: line(fset, d.Pos()), EndLine: line(fset, d.End()), Parent: parent})
+			var parentName *string
+			if parent != "" {
+				parentName = &parent
+			}
+			result.Entities = append(result.Entities, commonir.Entity{Kind: kind, Name: d.Name.Name, SourceLocation: commonir.SourceLocation{Line: line(fset, d.Pos()), EndLine: line(fset, d.End())}, Parent: parentName})
 		}
 	}
 	conf := types.Config{Importer: importer.Default(), Error: func(err error) {
-		result.Diagnostics = append(result.Diagnostics, map[string]any{"kind": "type_error", "message": err.Error()})
+		result.Diagnostics = append(result.Diagnostics, commonir.Diagnostic{Kind: "type_error", Message: err.Error()})
 	}}
 	_, _ = conf.Check(req.Path, fset, []*ast.File{file}, nil)
 	return response{"1", req.RequestID, true, result, nil}
