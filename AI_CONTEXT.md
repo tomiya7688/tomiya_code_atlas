@@ -11,7 +11,7 @@ Tomiya Code Atlas で AI が最初に読む小さい索引です。詳細仕様�
 - Architecture explanation: `docs/jp/構成/UPDコマンダー適用.md`
 - Feature specs: `docs/jp/機能仕様/`
 - Project operations: `docs/jp/開発運用.md`
-- English translations: `docs/en/` (derived from Japanese source documents)
+- English translations and user guides: [`docs/en/README.md`](docs/en/README.md) (derived from Japanese source documents)
 - Human overview: `README.md`
 
 Generated `.codex/` packets, indexes, diagrams, reports, and summaries are derived indexes, not source of truth.
