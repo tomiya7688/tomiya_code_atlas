@@ -25,3 +25,7 @@ Source
 ```
 
 Language-specific parser details stay behind adapters. Shared analysis, generation, and rendering remain replaceable. The normative architecture rules are maintained in [`specification/architecture-policy.md`](../../specification/architecture-policy.md).
+
+## License
+
+The source code is licensed under the [MIT License](../../LICENSE). The Atlas-kun images and derived application icons are separately licensed under the [Tomiya Character License v1.0.1](../../assets/characters/atlas-kun/LICENSE.md). See the [asset notice](../../assets/characters/atlas-kun/README.md) for source and distribution details.

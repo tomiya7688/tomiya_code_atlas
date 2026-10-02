@@ -191,7 +191,7 @@ READMEは概要だけを保持します。日本語の個別機能仕様は `doc
 
 ## ライセンス
 
-MIT License
+ソースコードは [MIT License](LICENSE) です。アプリに含まれるアトラス君の画像素材と派生アイコンには、別途 [Tomiya Character License v1.0.1](assets/characters/atlas-kun/LICENSE.md) が適用されます。素材の出典と配布内容は [素材ライセンス案内](assets/characters/atlas-kun/README.md) を参照してください。
 
 ## 開発状況
 
