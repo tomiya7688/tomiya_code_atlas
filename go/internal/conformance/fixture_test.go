@@ -33,9 +33,10 @@ func TestSerializedCommonIRFixtureRejectsContractErrors(t *testing.T) {
 		{"unsupported version", `"schema_version": "1"`, `"schema_version": "2"`, "unsupported Common IR schema_version"},
 		{"invalid diagnostic position", `"diagnostic_example": {` + "\n    " + `"kind": "parse_warning",` + "\n    " + `"message": "Example normalized diagnostic",` + "\n    " + `"line": 3`, `"diagnostic_example": {` + "\n    " + `"kind": "parse_warning",` + "\n    " + `"message": "Example normalized diagnostic",` + "\n    " + `"line": 0`, "diagnostic_example.line must be a positive integer"},
 	}
+	fixture := strings.ReplaceAll(string(data), "\r\n", "\n")
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			mutated := string(data)
+			mutated := fixture
 			if tc.from != "" {
 				mutated = strings.Replace(mutated, tc.from, tc.to, 1)
 			}
