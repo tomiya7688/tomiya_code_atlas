@@ -5,7 +5,7 @@ cd /d "%~dp0\..\.."
 
 where go >nul 2>nul
 if errorlevel 1 (
-    echo [エラー] Go toolchainが見つかりません。Go 1.22以降をインストールしてください。
+    echo [エラー] Go toolchainが見つかりません。Go 1.27.xをインストールしてください。
     echo 入手先: https://go.dev/dl/
     exit /b 1
 )
@@ -37,6 +37,8 @@ if not "%BUILD_RESULT%"=="0" (
     exit /b %BUILD_RESULT%
 )
 popd
+call scripts\build\build_go_parser_backend.bat
+if errorlevel 1 exit /b 1
 call scripts\build\build_python_backend.bat
 if errorlevel 1 exit /b 1
 call scripts\build\build_csharp_backend.bat
@@ -52,6 +54,10 @@ if not exist ".build\dist\backends\java\tomiya-java-backend.jar" (
 )
 if not exist ".build\dist\backends\java\runtime\bin\java.exe" (
     echo [エラー] Java private runtimeが配布先にありません。
+    exit /b 1
+)
+if not exist ".build\dist\backends\go\tomiya-go-backend.exe" (
+    echo [エラー] Go parser helperが配布先にありません。
     exit /b 1
 )
 

@@ -6,6 +6,7 @@ on:
       - "go.mod"
       - "go.sum"
       - "go/**"
+      - "backends/go/**"
       - "backends/python/**"
       - "backends/cpp/**"
       - "backend-src/java/**"
@@ -23,6 +24,7 @@ on:
       - "tests/fixtures/static_specification/**"
       - "internal/**"
       - "scripts/build/build_go.bat"
+      - "scripts/build/build_go_parser_backend.bat"
       - "scripts/build/build_python_backend.bat"
       - "scripts/build/build_csharp_backend.bat"
       - "scripts/build/build_cpp_backend.bat"
@@ -30,6 +32,7 @@ on:
       - "scripts/build/smoke_python_backend.py"
       - "tools/cpp_backend_smoke.py"
       - "tools/java_backend_smoke.py"
+      - "tools/go_backend_smoke.py"
       - "scripts/build/copy_python_runtime_license.py"
       - "scripts/build/setup.bat"
       - "build_exe.bat"
@@ -58,6 +61,7 @@ on:
       - "go.mod"
       - "go.sum"
       - "go/**"
+      - "backends/go/**"
       - "backends/python/**"
       - "backends/cpp/**"
       - "backend-src/java/**"
@@ -75,6 +79,7 @@ on:
       - "tests/fixtures/static_specification/**"
       - "internal/**"
       - "scripts/build/build_go.bat"
+      - "scripts/build/build_go_parser_backend.bat"
       - "scripts/build/build_python_backend.bat"
       - "scripts/build/build_csharp_backend.bat"
       - "scripts/build/build_cpp_backend.bat"
@@ -82,6 +87,7 @@ on:
       - "scripts/build/smoke_python_backend.py"
       - "tools/cpp_backend_smoke.py"
       - "tools/java_backend_smoke.py"
+      - "tools/go_backend_smoke.py"
       - "scripts/build/copy_python_runtime_license.py"
       - "scripts/build/setup.bat"
       - "build_exe.bat"
@@ -160,6 +166,7 @@ jobs:
             .build/dist/backends/csharp/
             .build/dist/backends/cpp/
             .build/dist/backends/java/
+            .build/dist/backends/go/
           if-no-files-found: error
 
       - name: 配布EXEのhelpとversionをsmoke test
@@ -196,5 +203,7 @@ jobs:
           & .\.venv\Scripts\python.exe tools\cpp_backend_smoke.py ".build\dist\backends\cpp\tomiya-cpp-backend\tomiya-cpp-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & .\.venv\Scripts\python.exe tools\java_backend_smoke.py $java -jar ".build\dist\backends\java\tomiya-java-backend.jar"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\.venv\Scripts\python.exe tools\go_backend_smoke.py ".build\dist\backends\go\tomiya-go-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

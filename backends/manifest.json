@@ -50,8 +50,8 @@
       "delivery": "native-helper",
       "path": "go/tomiya-go-backend.exe",
       "parser_engine": "go/parser",
-      "parser_version": "Go toolchain used to build the helper",
-      "grammar_version": "Go language version recognized by that toolchain",
+      "parser_version": "Go 1.27.x standard library",
+      "grammar_version": "Go 1.27 language grammar implemented by go/parser",
       "licenses": [
         "go/NOTICE.txt"
       ]
