@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from Src.languages.backend import ParserBackendKind
@@ -41,7 +42,9 @@ def test_go_backend_selection_is_self_contained() -> None:
     assert distribution["protocol"] == "Parser Backend Contract v1 JSON"
     assert GoStandardLibraryBackend.descriptor.backend_id == selected["backend_id"]
     assert GoStandardLibraryBackend.descriptor.kind is ParserBackendKind.HELPER
-    assert GoStandardLibraryBackend.helper_relative_path == "go/" + distribution["entrypoint"]
+    helper_name = "tomiya-go-backend.exe" if os.name == "nt" else "tomiya-go-backend"
+    assert GoStandardLibraryBackend.helper_relative_path == "go/" + helper_name
+    assert distribution["entrypoint"] == "tomiya-go-backend.exe"
     manifest = json.loads(Path("backends/manifest.json").read_text(encoding="utf-8"))
     entry = next(item for item in manifest["backends"] if item["backend_id"] == selected["backend_id"])
     assert entry["parser_version"] == "Go 1.27.x standard library"
