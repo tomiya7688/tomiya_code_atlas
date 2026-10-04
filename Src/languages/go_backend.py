@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from Src.languages.backend import ParserBackendDescriptor, ParserBackendKind
 from Src.languages.helper_backend import JsonHelperBackend
 
@@ -14,5 +16,5 @@ class GoStandardLibraryBackend(JsonHelperBackend):
         language="go",
         kind=ParserBackendKind.HELPER,
     )
-    helper_relative_path = "go/tomiya-go-backend.exe"
+    helper_relative_path = "go/tomiya-go-backend.exe" if os.name == "nt" else "go/tomiya-go-backend"
 
