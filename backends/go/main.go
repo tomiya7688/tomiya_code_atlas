@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"go/ast"
 	"go/format"
-	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
@@ -148,7 +147,7 @@ func parse(req request) response {
 		Selections: map[*ast.SelectorExpr]*types.Selection{},
 		Scopes:     map[ast.Node]*types.Scope{},
 	}
-	config := types.Config{Importer: importer.Default(), Error: func(typeErr error) {
+	config := types.Config{Error: func(typeErr error) {
 		diagnostic := commonir.Diagnostic{Kind: "type_error", Message: typeErr.Error()}
 		if positioned, ok := typeErr.(types.Error); ok {
 			lineNumber := line(fset, positioned.Pos)
@@ -166,7 +165,7 @@ func parse(req request) response {
 				case *ast.TypeSpec:
 					appendType(result, fset, item, d.Doc, info)
 				case *ast.ValueSpec:
-					appendValues(result, fset, item, d.Tok, d.Doc)
+					appendValues(result, fset, item, d.Tok, d.Doc, info)
 				}
 			}
 		case *ast.FuncDecl:
@@ -190,6 +189,7 @@ func packagePath(path, packageName string) string {
 func appendType(result *commonir.Payload, fset *token.FileSet, spec *ast.TypeSpec, groupDoc *ast.CommentGroup, info *types.Info) {
 	kind, declarationKind := "class", "defined_type"
 	var bases []string
+	var members []commonir.Entity
 	switch typeNode := spec.Type.(type) {
 	case *ast.StructType:
 		declarationKind = "struct"
@@ -206,7 +206,7 @@ func appendType(result *commonir.Payload, fset *token.FileSet, spec *ast.TypeSpe
 					member.Parent = stringPointer(spec.Name.Name)
 					member.TypeName = stringPointer(expression(fset, field.Type))
 					member.Docstring = commentText(firstComment(field.Doc, field.Comment))
-					result.Entities = append(result.Entities, member)
+					members = append(members, member)
 				}
 			}
 		}
@@ -227,7 +227,7 @@ func appendType(result *commonir.Payload, fset *token.FileSet, spec *ast.TypeSpe
 					if signature, ok := field.Type.(*ast.FuncType); ok {
 						setSignature(&member, fset, signature)
 					}
-					result.Entities = append(result.Entities, member)
+					members = append(members, member)
 				}
 			}
 		}
@@ -237,6 +237,9 @@ func appendType(result *commonir.Payload, fset *token.FileSet, spec *ast.TypeSpe
 		} else {
 			declarationKind = "defined_type"
 		}
+	}
+	if spec.Assign.IsValid() {
+		declarationKind = "type_alias"
 	}
 	typeEntity := entity(kind, spec.Name.Name, fset, spec)
 	typeEntity.DeclarationKind = stringPointer(declarationKind)
@@ -256,13 +259,20 @@ func appendType(result *commonir.Payload, fset *token.FileSet, spec *ast.TypeSpe
 		typeEntity.SymbolID = stringPointer(types.ObjectString(object, packageQualifier))
 	}
 	result.Entities = append(result.Entities, typeEntity)
+	result.Entities = append(result.Entities, members...)
 }
 
-func appendValues(result *commonir.Payload, fset *token.FileSet, spec *ast.ValueSpec, tokenKind token.Token, groupDoc *ast.CommentGroup) {
+func appendValues(result *commonir.Payload, fset *token.FileSet, spec *ast.ValueSpec, tokenKind token.Token, groupDoc *ast.CommentGroup, info *types.Info) {
 	for _, name := range spec.Names {
 		value := entity("field", name.Name, fset, spec)
 		value.DeclarationKind = stringPointer(strings.ToLower(tokenKind.String()))
-		value.TypeName = stringPointer(expression(fset, spec.Type))
+		typeName := expression(fset, spec.Type)
+		if typeName == "" {
+			if object := info.Defs[name]; object != nil && object.Type() != nil {
+				typeName = types.TypeString(object.Type(), packageQualifier)
+			}
+		}
+		value.TypeName = stringPointer(typeName)
 		value.Docstring = commentText(firstComment(spec.Doc, groupDoc))
 		result.Entities = append(result.Entities, value)
 	}
@@ -341,6 +351,7 @@ func setSignature(target *commonir.Entity, fset *token.FileSet, signature *ast.F
 
 func callsInBody(body *ast.BlockStmt, info *types.Info) ([]string, []string, []string) {
 	var calls, sequence, resolved []string
+	seenCalls := map[string]struct{}{}
 	if body == nil {
 		return calls, sequence, resolved
 	}
@@ -354,7 +365,10 @@ func callsInBody(body *ast.BlockStmt, info *types.Info) ([]string, []string, []s
 		}
 		name := callName(call.Fun)
 		if name != "" {
-			calls = append(calls, name)
+			if _, exists := seenCalls[name]; !exists {
+				calls = append(calls, name)
+				seenCalls[name] = struct{}{}
+			}
 			sequence = append(sequence, name)
 		}
 		object := calledObject(call.Fun, info)
