@@ -5,7 +5,7 @@ The Japanese source for this guide is the [Windows build section in the README](
 ## Requirements
 
 - Windows x64
-- Go 1.22 or later to build the Go Windows executable
+- Go 1.27.x to build the Go Windows executable and parser helper
 - .NET 10 SDK to publish the self-contained Roslyn C# helper
 - JDK 25 and Apache Maven to build the JavaParser helper and its private runtime
 - Python 3.11 or later for Python source tests, reference runs, and the CPython parser helper build
