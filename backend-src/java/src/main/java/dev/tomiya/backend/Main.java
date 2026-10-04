@@ -9,8 +9,8 @@ import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.AnnotationMemberDeclaration;
+import com.github.javaparser.ast.body.CompactConstructorDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
-import com.github.javaparser.ast.body.EnumConstantDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
@@ -108,9 +108,14 @@ public final class Main {
         CompilationUnit unit = result.getResult().get();
         unit.getPackageDeclaration().ifPresent(pkg ->
                 module.entities.add(EntityDto.module(pkg.getNameAsString(), line(pkg), endLine(pkg))));
-        unit.getImports().forEach(importDeclaration -> module.imports.add(
-                (importDeclaration.isStatic() ? "static " : "") + importDeclaration.getNameAsString()
-                        + (importDeclaration.isAsterisk() ? ".*" : "")));
+        unit.getImports().forEach(importDeclaration -> {
+            String importedName = importDeclaration.getNameAsString();
+            if (importDeclaration.isStatic() && !importDeclaration.isAsterisk()) {
+                int memberSeparator = importedName.lastIndexOf('.');
+                if (memberSeparator > 0) importedName = importedName.substring(0, memberSeparator);
+            }
+            module.imports.add(importedName + (importDeclaration.isAsterisk() ? ".*" : ""));
+        });
         unit.getTypes().forEach(declaration -> addType(declaration, null, module));
         return module;
     }
@@ -125,9 +130,17 @@ public final class Main {
         if (declaration instanceof RecordDeclaration record) {
             record.getParameters().forEach(parameter -> {
                 EntityDto component = EntityDto.field(parameter.getNameAsString(), parameter.getType().asString(),
-                        parameter, record, "record_component");
+                        parameter, parameter, "record_component");
                 component.parent = qualifiedParent;
                 module.entities.add(component);
+            });
+        }
+        if (declaration instanceof EnumDeclaration enumDeclaration) {
+            enumDeclaration.getEntries().forEach(constant -> {
+                EntityDto entity = EntityDto.field(constant.getNameAsString(), declaration.getNameAsString(),
+                        constant, declaration, "enum_constant");
+                entity.parent = qualifiedParent;
+                module.entities.add(entity);
             });
         }
 
@@ -141,11 +154,6 @@ public final class Main {
                     entity.parent = qualifiedParent;
                     module.entities.add(entity);
                 }
-            } else if (member instanceof EnumConstantDeclaration constant) {
-                EntityDto entity = EntityDto.field(constant.getNameAsString(), declaration.getNameAsString(),
-                        constant, declaration, "enum_constant");
-                entity.parent = qualifiedParent;
-                module.entities.add(entity);
             } else if (member instanceof MethodDeclaration method) {
                 EntityDto entity = EntityDto.method(method);
                 entity.parent = qualifiedParent;
@@ -154,7 +162,13 @@ public final class Main {
             } else if (member instanceof ConstructorDeclaration constructor) {
                 EntityDto entity = EntityDto.constructor(constructor);
                 entity.parent = qualifiedParent;
-                addCalls(constructor, null, entity, module);
+                addCalls(constructor, constructor, entity, module);
+                module.entities.add(entity);
+            } else if (member instanceof CompactConstructorDeclaration constructor
+                    && declaration instanceof RecordDeclaration record) {
+                EntityDto entity = EntityDto.compactConstructor(constructor, record);
+                entity.parent = qualifiedParent;
+                addCalls(constructor, constructor, entity, module);
                 module.entities.add(entity);
             } else if (member instanceof AnnotationMemberDeclaration annotationMember) {
                 EntityDto entity = EntityDto.annotationMember(annotationMember);
@@ -164,9 +178,9 @@ public final class Main {
         }
     }
 
-    private static void addCalls(Node owner, MethodDeclaration method, EntityDto entity, ModuleDto module) {
+    private static void addCalls(Node owner, Node callable, EntityDto entity, ModuleDto module) {
         for (MethodCallExpr call : owner.findAll(MethodCallExpr.class)) {
-            if (method != null && call.findAncestor(MethodDeclaration.class).orElse(null) != method) continue;
+            if (!belongsToCallable(call, callable)) continue;
             entity.calls.add(call.getNameAsString());
             entity.callSequence.add(call.getNameAsString());
             try {
@@ -176,6 +190,16 @@ public final class Main {
                         "unresolved_symbol", call + ": " + compact(error), line(call)));
             }
         }
+    }
+
+    private static boolean belongsToCallable(MethodCallExpr call, Node expected) {
+        for (Node current = call; current != null; current = current.getParentNode().orElse(null)) {
+            if (current instanceof MethodDeclaration || current instanceof ConstructorDeclaration
+                    || current instanceof CompactConstructorDeclaration) {
+                return current == expected;
+            }
+        }
+        return false;
     }
 
     private static final class UnsupportedSyntaxException extends RuntimeException {
@@ -378,10 +402,19 @@ public final class Main {
             dto.line = line(method);
             dto.endLine = endLine(method);
             dto.visibility = visibility(method);
-            dto.declarationKind = method.getBody().isPresent() ? "method" : "abstract_method";
+            boolean explicitlyAbstract = method.getModifiers().stream()
+                    .anyMatch(modifier -> modifier.getKeyword() == Modifier.Keyword.ABSTRACT);
+            boolean implicitInterfaceAbstract = method.getBody().isEmpty()
+                    && method.findAncestor(ClassOrInterfaceDeclaration.class)
+                    .map(ClassOrInterfaceDeclaration::isInterface).orElse(false)
+                    && method.getModifiers().stream().noneMatch(modifier ->
+                            modifier.getKeyword() == Modifier.Keyword.STATIC
+                                    || modifier.getKeyword() == Modifier.Keyword.PRIVATE);
+            dto.declarationKind = explicitlyAbstract || implicitInterfaceAbstract
+                    ? "abstract_method" : "method";
             dto.returnType = method.getType().asString();
             method.getParameters().forEach(parameter ->
-                    addParameter(dto, parameter.getNameAsString(), parameter.getType().asString()));
+                    addParameter(dto, parameter.getNameAsString(), parameterType(parameter)));
             method.getTypeParameters().forEach(type -> {
                 addTypeParameter(dto, type.getNameAsString(), type.toString());
             });
@@ -405,8 +438,31 @@ public final class Main {
             dto.visibility = visibility(constructor);
             dto.declarationKind = "constructor";
             constructor.getParameters().forEach(parameter ->
-                    addParameter(dto, parameter.getNameAsString(), parameter.getType().asString()));
+                    addParameter(dto, parameter.getNameAsString(), parameterType(parameter)));
+            constructor.getTypeParameters().forEach(type ->
+                    addTypeParameter(dto, type.getNameAsString(), type.toString()));
             constructor.getAnnotations().forEach(annotation -> dto.decorators.add(annotation.getNameAsString()));
+            dto.docstring = constructor.getJavadocComment().map(comment -> comment.parse().toText()).orElse(null);
+            try {
+                dto.symbolId = constructor.resolve().getQualifiedSignature();
+            } catch (RuntimeException ignored) {
+                dto.symbolId = null;
+            }
+            return dto;
+        }
+
+        static EntityDto compactConstructor(CompactConstructorDeclaration constructor, RecordDeclaration record) {
+            EntityDto dto = new EntityDto();
+            dto.kind = "method";
+            dto.name = constructor.getNameAsString();
+            dto.line = line(constructor);
+            dto.endLine = endLine(constructor);
+            dto.visibility = visibility(constructor);
+            dto.declarationKind = "constructor";
+            record.getParameters().forEach(parameter ->
+                    addParameter(dto, parameter.getNameAsString(), parameterType(parameter)));
+            constructor.getTypeParameters().forEach(type ->
+                    addTypeParameter(dto, type.getNameAsString(), type.toString()));
             dto.docstring = constructor.getJavadocComment().map(comment -> comment.parse().toText()).orElse(null);
             try {
                 dto.symbolId = constructor.resolve().getQualifiedSignature();
@@ -422,7 +478,7 @@ public final class Main {
             dto.name = member.getNameAsString();
             dto.line = line(member);
             dto.endLine = endLine(member);
-            dto.visibility = visibility(member);
+            dto.visibility = "public";
             dto.declarationKind = "annotation_member";
             dto.returnType = member.getType().asString();
             dto.docstring = member.getJavadocComment().map(comment -> comment.parse().toText()).orElse(null);
@@ -434,5 +490,10 @@ public final class Main {
             dto.parameters.add(name);
             dto.parameterTypes.add(List.of(name, type));
         }
+
+        private static String parameterType(com.github.javaparser.ast.body.Parameter parameter) {
+            return parameter.getType().asString() + (parameter.isVarArgs() ? "[]" : "");
+        }
     }
 }
+
