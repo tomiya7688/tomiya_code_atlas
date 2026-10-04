@@ -100,10 +100,11 @@ Goとx/toolsはGo BSD-style licenseです。tree-sitter-goはMITです。
 
 ## 今後の作業
 
-#137は選定のみです。Go helper、独自project importer、Common IR変換、backend manifest entry、Windows onedir配布を実装するには別Issueが必要です。
+Go標準parser/type checker helper、Common IR変換、backend manifest entry、Windows配布とContract v1 adapterはIssue #193で実装しました。project全体の複数file/packageをまとめたimporterは、project scanを扱うIssue #198の範囲で整備します。
 
 2026-09-18時点で確認した情報源:
 
 - https://github.com/golang/go
 - https://github.com/golang/tools/tree/master/go/packages
 - https://github.com/tree-sitter/tree-sitter-go
+
