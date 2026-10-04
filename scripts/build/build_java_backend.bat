@@ -28,7 +28,7 @@ if errorlevel 1 (
 
 if not exist ".build\dist\backends\java" mkdir ".build\dist\backends\java"
 if not exist ".build\metadata" mkdir ".build\metadata"
-mvn -q -f "backend-src\java\pom.xml" -DskipTests package
+call mvn -q -f "backend-src\java\pom.xml" -DskipTests package
 if errorlevel 1 exit /b 1
 if not exist "backend-src\java\target\tomiya-java-backend.jar" (
     echo [エラー] JavaParser helper JARが生成されませんでした。
@@ -57,3 +57,4 @@ copy /y "backends\licenses\javaparser-NOTICE.txt" ".build\dist\backends\java\jav
 if errorlevel 1 exit /b 1
 echo JavaParser helperとprivate Java runtimeのone-dir buildが完了しました。
 endlocal & exit /b 0
+
