@@ -7,6 +7,7 @@ on:
       - "go.sum"
       - "go/**"
       - "backends/python/**"
+      - "backend-src/csharp/**"
       - "backends/licenses/**"
       - "pyproject.toml"
       - "backends/manifest.json"
@@ -14,6 +15,7 @@ on:
       - "internal/**"
       - "scripts/build/build_go.bat"
       - "scripts/build/build_python_backend.bat"
+      - "scripts/build/build_csharp_backend.bat"
       - "scripts/build/smoke_python_backend.py"
       - "scripts/build/copy_python_runtime_license.py"
       - "scripts/build/setup.bat"
@@ -22,6 +24,9 @@ on:
       - ".github/workflows/go-exe.yml"
       - "tests/test_windows_build_entrypoints.py"
       - "tests/test_python_parser_helper.py"
+      - "tests/test_csharp_roslyn_backend.py"
+      - "tools/csharp_backend_smoke.py"
+      - "tests/fixtures/backend_conformance/csharp*"
       - "Src/languages/python.py"
       - "Src/languages/python_backend.py"
       - "Src/languages/python_project.py"
@@ -33,6 +38,7 @@ on:
       - "go.sum"
       - "go/**"
       - "backends/python/**"
+      - "backend-src/csharp/**"
       - "backends/licenses/**"
       - "pyproject.toml"
       - "backends/manifest.json"
@@ -40,6 +46,7 @@ on:
       - "internal/**"
       - "scripts/build/build_go.bat"
       - "scripts/build/build_python_backend.bat"
+      - "scripts/build/build_csharp_backend.bat"
       - "scripts/build/smoke_python_backend.py"
       - "scripts/build/copy_python_runtime_license.py"
       - "scripts/build/setup.bat"
@@ -48,6 +55,9 @@ on:
       - ".github/workflows/go-exe.yml"
       - "tests/test_windows_build_entrypoints.py"
       - "tests/test_python_parser_helper.py"
+      - "tests/test_csharp_roslyn_backend.py"
+      - "tools/csharp_backend_smoke.py"
+      - "tests/fixtures/backend_conformance/csharp*"
       - "Src/languages/python.py"
       - "Src/languages/python_backend.py"
       - "Src/languages/python_project.py"
@@ -69,6 +79,11 @@ jobs:
         with:
           go-version: "1.27.x"
           cache-dependency-path: go/go.mod
+
+      - name: .NET 10 SDKを準備
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
 
       - name: PythonとPyInstallerを準備
         uses: actions/setup-python@v7
@@ -108,6 +123,8 @@ jobs:
           }
           & .\.venv\Scripts\python.exe scripts\build\smoke_python_backend.py ".build\dist\backends\tomiya-python-backend\tomiya-python-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\.venv\Scripts\python.exe tools\csharp_backend_smoke.py ".build\dist\backends\csharp\tomiya-csharp-backend.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Go版Windows EXEをartifactとして保存
         uses: actions/upload-artifact@v7
@@ -116,4 +133,5 @@ jobs:
           path: |
             .build/dist/tomiya-code-atlas.exe
             .build/dist/backends/tomiya-python-backend/
+            .build/dist/backends/csharp/
           if-no-files-found: error

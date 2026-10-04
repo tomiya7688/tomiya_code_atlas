@@ -8,6 +8,7 @@ JsonSerializerOptions jsonOptions = new()
 {
     PropertyNameCaseInsensitive = true,
 };
+string requestId = "";
 
 try
 {
@@ -21,6 +22,19 @@ try
     }
 
     if (
+        request.ContractVersion is null
+        || string.IsNullOrWhiteSpace(request.RequestId)
+        || request.Operation is null
+        || request.Language is null
+        || request.Source is null
+    )
+    {
+        await WriteError(request.RequestId ?? "", "protocol_error", "A required request field is missing.");
+        return;
+    }
+    requestId = request.RequestId!;
+
+    if (
         request.ContractVersion != ContractVersion
         || request.Operation != "parse"
         || request.Language != "csharp"
@@ -31,13 +45,20 @@ try
     }
 
     RoslynAnalyzer analyzer = new();
-    ModuleDto module = analyzer.Analyze(request.Source, request.Path ?? "<source.cs>");
+    ModuleDto module = analyzer.Analyze(request.Source!, request.Path ?? "<source.cs>");
     await WriteResponse(new BackendResponse
     {
-        RequestId = request.RequestId,
+        RequestId = request.RequestId!,
         Ok = true,
         Ir = module,
     });
+}
+catch (UnsupportedSyntaxException error)
+{
+    string message = error.Line is null
+        ? error.Message
+        : $"Line {error.Line}: {error.Message}";
+    await WriteError(requestId, "unsupported_syntax", message);
 }
 catch (JsonException error)
 {

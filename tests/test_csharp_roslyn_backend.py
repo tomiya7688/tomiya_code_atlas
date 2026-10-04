@@ -28,7 +28,11 @@ def test_csharp_backend_descriptor_and_manifest_match_contract() -> None:
     assert entry["language"] == "csharp"
     assert entry["kind"] == "helper"
     assert entry["path"] == "csharp/tomiya-csharp-backend.exe"
+    assert entry["delivery"] == "self-contained-dotnet-helper-folder"
+    assert entry["runtime"] == ".NET 10 self-contained win-x64"
     assert "licenses/roslyn-LICENSE.txt" in entry["licenses"]
+    assert "licenses/dotnet-LICENSE.txt" in entry["licenses"]
+    assert "licenses/dotnet-ThirdPartyNotices.txt" in entry["licenses"]
 
 
 def test_wire_ir_preserves_roslyn_semantic_facts_without_roslyn_types() -> None:
@@ -48,6 +52,7 @@ def test_wire_ir_preserves_roslyn_semantic_facts_without_roslyn_types() -> None:
                     "type_parameters": ["T"],
                     "type_constraints": ["where T : class"],
                     "symbol_id": "global::Fixture.Worker<T>",
+                    "type_name": "Worker<T>",
                 },
                 {
                     "kind": "method",
@@ -65,6 +70,18 @@ def test_wire_ir_preserves_roslyn_semantic_facts_without_roslyn_types() -> None:
                     "visibility": "public",
                     "declaration_kind": "method",
                     "is_async": False,
+                    "parameter_types": [["item", "T"]],
+                    "return_type": "T",
+                },
+                {
+                    "kind": "property",
+                    "name": "Current",
+                    "line": 12,
+                    "end_line": 12,
+                    "parent": "Worker",
+                    "visibility": "public",
+                    "declaration_kind": "property",
+                    "type_name": "T",
                 },
             ],
             "diagnostics": [
@@ -82,12 +99,17 @@ def test_wire_ir_preserves_roslyn_semantic_facts_without_roslyn_types() -> None:
     assert worker.type_parameters == ("T",)
     assert worker.type_constraints == ("where T : class",)
     assert worker.symbol_id == "global::Fixture.Worker<T>"
+    assert worker.type_name == "Worker<T>"
     assert run.call_sequence == ("helper", "helper")
+    assert run.parameter_types == (("item", "T"),)
+    assert run.return_type == "T"
     assert run.resolved_calls == (
         "Fixture.Worker<T>.helper(T)",
         "Fixture.Worker<T>.helper(T)",
     )
     assert module.diagnostics[0].kind == "warning"
+    assert module.entities[2].kind.value == "property"
+    assert module.entities[2].type_name == "T"
 
 
 def test_csharp_backend_does_not_fabricate_missing_helper(tmp_path: Path) -> None:

@@ -73,13 +73,32 @@ func TestHelperIRPayloadDecodesIntoCommonModel(t *testing.T) {
 	}
 }
 
+func TestCommonIRPreservesTypedPropertyFacts(t *testing.T) {
+	data := []byte(`{"schema_version":"1","language":"csharp","entities":[{"kind":"property","name":"Target","line":3,"end_line":3,"visibility":"public","type_name":"Transform"}],"imports":[],"diagnostics":[]}`)
+	payload, err := Decode(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Entities) != 1 || payload.Entities[0].Kind != "property" || payload.Entities[0].TypeName == nil || *payload.Entities[0].TypeName != "Transform" {
+		t.Fatalf("property type was not preserved: %#v", payload.Entities)
+	}
+	wire, err := Encode(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	roundTrip, err := Decode(wire)
+	if err != nil || roundTrip.Entities[0].TypeName == nil || *roundTrip.Entities[0].TypeName != "Transform" {
+		t.Fatalf("property type round-trip failed: err=%v payload=%s", err, wire)
+	}
+}
+
 func sameEntities(left, right []Entity) bool {
 	if len(left) != len(right) {
 		return false
 	}
 	for index := range left {
 		a, b := left[index], right[index]
-		if a.Kind != b.Kind || a.Name != b.Name || a.SourceLocation != b.SourceLocation || a.Indent != b.Indent || a.Visibility != b.Visibility || a.IsAsync != b.IsAsync || !sameString(a.Parent, b.Parent) || !sameString(a.Docstring, b.Docstring) || !sameString(a.DeclarationKind, b.DeclarationKind) || !sameString(a.SymbolID, b.SymbolID) || !sameString(a.ReturnType, b.ReturnType) || !slices.Equal(a.Parameters, b.Parameters) || !slices.Equal(a.Decorators, b.Decorators) || !slices.Equal(a.Calls, b.Calls) || !slices.Equal(a.CallSequence, b.CallSequence) || !slices.Equal(a.Bases, b.Bases) || !slices.Equal(a.TypeParameters, b.TypeParameters) || !slices.Equal(a.TypeConstraints, b.TypeConstraints) || !slices.Equal(a.ResolvedCalls, b.ResolvedCalls) || !slices.EqualFunc(a.ParameterTypes, b.ParameterTypes, func(left, right []string) bool { return slices.Equal(left, right) }) {
+		if a.Kind != b.Kind || a.Name != b.Name || a.SourceLocation != b.SourceLocation || a.Indent != b.Indent || a.Visibility != b.Visibility || a.IsAsync != b.IsAsync || !sameString(a.Parent, b.Parent) || !sameString(a.Docstring, b.Docstring) || !sameString(a.DeclarationKind, b.DeclarationKind) || !sameString(a.SymbolID, b.SymbolID) || !sameString(a.ReturnType, b.ReturnType) || !sameString(a.TypeName, b.TypeName) || !slices.Equal(a.Parameters, b.Parameters) || !slices.Equal(a.Decorators, b.Decorators) || !slices.Equal(a.Calls, b.Calls) || !slices.Equal(a.CallSequence, b.CallSequence) || !slices.Equal(a.Bases, b.Bases) || !slices.Equal(a.TypeParameters, b.TypeParameters) || !slices.Equal(a.TypeConstraints, b.TypeConstraints) || !slices.Equal(a.ResolvedCalls, b.ResolvedCalls) || !slices.EqualFunc(a.ParameterTypes, b.ParameterTypes, func(left, right []string) bool { return slices.Equal(left, right) }) {
 			return false
 		}
 	}

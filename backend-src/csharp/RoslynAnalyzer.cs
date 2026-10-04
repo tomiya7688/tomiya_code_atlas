@@ -14,6 +14,17 @@ internal sealed class RoslynAnalyzer
             kind: SourceCodeKind.Regular
         );
         SyntaxTree tree = CSharpSyntaxTree.ParseText(source, parseOptions, path);
+        Diagnostic? syntaxError = tree.GetDiagnostics()
+            .FirstOrDefault(item => item.Severity == DiagnosticSeverity.Error);
+        if (syntaxError is not null)
+        {
+            FileLinePositionSpan span = syntaxError.Location.GetLineSpan();
+            throw new UnsupportedSyntaxException(
+                syntaxError.GetMessage(),
+                syntaxError.Location.IsInSource ? span.StartLinePosition.Line + 1 : null
+            );
+        }
+
         CompilationUnitSyntax root = tree.GetCompilationUnitRoot();
 
         CSharpCompilation compilation = CSharpCompilation.Create(
@@ -45,6 +56,24 @@ internal sealed class RoslynAnalyzer
         foreach (MethodDeclarationSyntax method in root.DescendantNodes().OfType<MethodDeclarationSyntax>())
         {
             result.Entities.Add(MethodEntity(method, tree, model));
+        }
+
+        foreach (PropertyDeclarationSyntax property in root.DescendantNodes().OfType<PropertyDeclarationSyntax>())
+        {
+            result.Entities.Add(PropertyEntity(property, tree, model));
+        }
+
+        foreach (FieldDeclarationSyntax field in root.DescendantNodes().OfType<FieldDeclarationSyntax>())
+        {
+            foreach (VariableDeclaratorSyntax variable in field.Declaration.Variables)
+            {
+                result.Entities.Add(FieldEntity(field, variable, tree, model));
+            }
+        }
+
+        foreach (EnumDeclarationSyntax enumeration in root.DescendantNodes().OfType<EnumDeclarationSyntax>())
+        {
+            result.Entities.Add(EnumEntity(enumeration, tree, model));
         }
 
         foreach (ConstructorDeclarationSyntax constructor in root.DescendantNodes().OfType<ConstructorDeclarationSyntax>())
@@ -101,6 +130,8 @@ internal sealed class RoslynAnalyzer
                 ?? [],
             TypeConstraints = type.ConstraintClauses.Select(item => item.ToString()).ToList(),
             SymbolId = SymbolId(symbol),
+            TypeName = symbol?.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
+                ?? type.Identifier.Text,
         };
     }
 
@@ -133,6 +164,79 @@ internal sealed class RoslynAnalyzer
             ResolvedCalls = resolved,
             SymbolId = SymbolId(symbol),
             IsAsync = method.Modifiers.Any(SyntaxKind.AsyncKeyword),
+            ParameterTypes = method.ParameterList.Parameters
+                .Select(item => new List<string> { item.Identifier.Text, item.Type?.ToString() ?? "" })
+                .ToList(),
+            ReturnType = method.ReturnType.ToString(),
+        };
+    }
+
+    private static EntityDto PropertyEntity(
+        PropertyDeclarationSyntax property,
+        SyntaxTree tree,
+        SemanticModel model
+    )
+    {
+        IPropertySymbol? symbol = model.GetDeclaredSymbol(property);
+        string? parent = property.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault()?.Identifier.Text;
+
+        return new EntityDto
+        {
+            Kind = "property",
+            Name = property.Identifier.Text,
+            Line = StartLine(tree, property),
+            EndLine = EndLine(tree, property),
+            Parent = parent,
+            Visibility = Visibility(symbol?.DeclaredAccessibility),
+            DeclarationKind = "property",
+            SymbolId = SymbolId(symbol),
+            TypeName = symbol?.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
+                ?? property.Type.ToString(),
+        };
+    }
+
+    private static EntityDto FieldEntity(
+        FieldDeclarationSyntax field,
+        VariableDeclaratorSyntax variable,
+        SyntaxTree tree,
+        SemanticModel model
+    )
+    {
+        IFieldSymbol? symbol = model.GetDeclaredSymbol(variable) as IFieldSymbol;
+        string? parent = field.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault()?.Identifier.Text;
+
+        return new EntityDto
+        {
+            Kind = "field",
+            Name = variable.Identifier.Text,
+            Line = StartLine(tree, variable),
+            EndLine = EndLine(tree, variable),
+            Parent = parent,
+            Visibility = Visibility(symbol?.DeclaredAccessibility),
+            DeclarationKind = "field",
+            SymbolId = SymbolId(symbol),
+            TypeName = symbol?.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
+                ?? field.Declaration.Type.ToString(),
+        };
+    }
+
+    private static EntityDto EnumEntity(EnumDeclarationSyntax enumeration, SyntaxTree tree, SemanticModel model)
+    {
+        INamedTypeSymbol? symbol = model.GetDeclaredSymbol(enumeration);
+        string? parent = enumeration.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault()?.Identifier.Text;
+
+        return new EntityDto
+        {
+            Kind = "class",
+            Name = enumeration.Identifier.Text,
+            Line = StartLine(tree, enumeration),
+            EndLine = EndLine(tree, enumeration),
+            Parent = parent,
+            Visibility = Visibility(symbol?.DeclaredAccessibility),
+            DeclarationKind = "enum",
+            SymbolId = SymbolId(symbol),
+            TypeName = symbol?.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
+                ?? enumeration.Identifier.Text,
         };
     }
 
@@ -160,6 +264,9 @@ internal sealed class RoslynAnalyzer
             DeclarationKind = "constructor",
             ResolvedCalls = resolved,
             SymbolId = SymbolId(symbol),
+            ParameterTypes = constructor.ParameterList.Parameters
+                .Select(item => new List<string> { item.Identifier.Text, item.Type?.ToString() ?? "" })
+                .ToList(),
         };
     }
 
@@ -194,6 +301,10 @@ internal sealed class RoslynAnalyzer
             ResolvedCalls = resolved,
             SymbolId = SymbolId(symbol),
             IsAsync = local.Modifiers.Any(SyntaxKind.AsyncKeyword),
+            ParameterTypes = local.ParameterList.Parameters
+                .Select(item => new List<string> { item.Identifier.Text, item.Type?.ToString() ?? "" })
+                .ToList(),
+            ReturnType = local.ReturnType.ToString(),
         };
     }
 

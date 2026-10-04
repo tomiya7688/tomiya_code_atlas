@@ -34,6 +34,7 @@ type Entity struct {
 	IsAsync         bool       `json:"is_async,omitempty"`
 	ParameterTypes  [][]string `json:"parameter_types,omitempty"`
 	ReturnType      *string    `json:"return_type,omitempty"`
+	TypeName        *string    `json:"type_name,omitempty"`
 }
 
 // ObjectInstance is a passive object construction/reference fact.

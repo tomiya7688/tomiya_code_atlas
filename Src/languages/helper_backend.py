@@ -50,6 +50,12 @@ def module_from_wire_ir(payload: dict[str, Any]) -> ModuleIR:
                 resolved_calls=tuple(str(value) for value in item.get("resolved_calls", ())),
                 symbol_id=item.get("symbol_id"),
                 is_async=bool(item.get("is_async", False)),
+                parameter_types=tuple(
+                    tuple(str(value) for value in values)
+                    for values in item.get("parameter_types", ())
+                ),
+                return_type=item.get("return_type"),
+                type_name=item.get("type_name"),
             )
         )
 
