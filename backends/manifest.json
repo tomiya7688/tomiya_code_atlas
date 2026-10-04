@@ -8,6 +8,9 @@
       "kind": "native",
       "contract_version": "1",
       "delivery": "python-package",
+      "parser_engine": "tree-sitter-gdscript",
+      "parser_version": "tree-sitter-gdscript package version",
+      "grammar_version": "bundled tree-sitter-gdscript grammar",
       "packages": [
         "tree-sitter",
         "tree-sitter-gdscript"
@@ -24,19 +27,29 @@
       "contract_version": "1",
       "delivery": "native-helper",
       "path": "go/tomiya-go-backend.exe",
+      "parser_engine": "go/parser",
+      "parser_version": "Go toolchain used to build the helper",
+      "grammar_version": "Go language version recognized by that toolchain",
       "licenses": [
         "go/NOTICE.txt"
       ]
     },
     {
-      "backend_id": "python-source-subset-adapter",
+      "backend_id": "python-stdlib-ast",
       "language": "python",
       "kind": "helper",
       "contract_version": "1",
-      "delivery": "go-native-helper",
-      "path": ".build/dist/tomiya-python-backend.exe",
+      "delivery": "pyinstaller-onedir-helper",
+      "path": ".build/dist/backends/tomiya-python-backend/tomiya-python-backend.exe",
+      "parser_engine": "CPython standard-library ast",
+      "parser_version": "bundled CPython runtime",
+      "grammar_version": "bundled CPython grammar",
+      "runtime": "bundled-cpython",
       "licenses": [
-        "go/NOTICE.txt"
+        ".build/dist/backends/tomiya-python-backend/licenses/Python-LICENSE.txt",
+        "backends/licenses/PyInstaller-COPYING.txt",
+        "backends/licenses/tree-sitter-LICENSE.txt",
+        "backends/licenses/tree-sitter-gdscript-LICENSE.txt"
       ]
     },
     {
@@ -46,6 +59,9 @@
       "contract_version": "1",
       "delivery": "self-contained-dotnet-helper",
       "path": "csharp/tomiya-csharp-backend.exe",
+      "parser_engine": "Microsoft.CodeAnalysis.CSharp",
+      "parser_version": "5.9.0",
+      "grammar_version": "LanguageVersion.Preview",
       "licenses": [
         "licenses/roslyn-LICENSE.txt"
       ]
@@ -57,6 +73,9 @@
       "contract_version": "1",
       "delivery": "jar-plus-private-openjdk-runtime",
       "path": "java/tomiya-java-backend.jar",
+      "parser_engine": "JavaParser",
+      "parser_version": "3.28.2",
+      "grammar_version": "JavaParser default language level",
       "runtime": "java/runtime/bin/java.exe",
       "licenses": [
         "licenses/javaparser-NOTICE.txt",

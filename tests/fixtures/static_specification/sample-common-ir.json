@@ -1,0 +1,82 @@
+{
+  "schema_version": "1",
+  "language": "python",
+  "entities": [
+    {
+      "kind": "function",
+      "name": "render",
+      "line": 4,
+      "end_line": 5,
+      "indent": 0,
+      "parent": null,
+      "docstring": null,
+      "parameters": [
+        "value"
+      ],
+      "decorators": [],
+      "calls": [
+        "normalize"
+      ],
+      "call_sequence": [
+        "normalize"
+      ],
+      "visibility": "public",
+      "bases": [],
+      "declaration_kind": null,
+      "type_parameters": [],
+      "type_constraints": [],
+      "resolved_calls": [],
+      "symbol_id": null,
+      "is_async": false,
+      "parameter_types": [
+        [
+          "value",
+          "str"
+        ]
+      ],
+      "return_type": "str"
+    },
+    {
+      "kind": "function",
+      "name": "normalize",
+      "line": 8,
+      "end_line": 9,
+      "indent": 0,
+      "parent": null,
+      "docstring": null,
+      "parameters": [
+        "value"
+      ],
+      "decorators": [],
+      "calls": [
+        "value.strip"
+      ],
+      "call_sequence": [
+        "value.strip"
+      ],
+      "visibility": "public",
+      "bases": [],
+      "declaration_kind": null,
+      "type_parameters": [],
+      "type_constraints": [],
+      "resolved_calls": [],
+      "symbol_id": null,
+      "is_async": false,
+      "parameter_types": [
+        [
+          "value",
+          "str"
+        ]
+      ],
+      "return_type": "str"
+    }
+  ],
+  "objects": [],
+  "state_machines": [],
+  "timing_flows": [],
+  "input_events": [],
+  "signals": [],
+  "diagnostics": [],
+  "imports": [],
+  "module_docstring": "Small source used to check generated symbol references."
+}

@@ -34,6 +34,9 @@ if errorlevel 1 (
   exit /b 1
 )
 
+.venv\Scripts\python.exe scripts\build\smoke_python_backend.py ".build\dist\backends\tomiya-python-backend\tomiya-python-backend.exe"
+if errorlevel 1 exit /b 1
+
 ".venv\Scripts\python.exe" -m compileall -q Src tests tools
 if errorlevel 1 exit /b 1
 ".venv\Scripts\python.exe" -m pytest -p no:cacheprovider --ignore-glob="pytest-cache-files-*" --basetemp "%VERIFY_DIR%\pytest-temp"
@@ -45,5 +48,5 @@ if errorlevel 1 exit /b 1
 
 rmdir /s /q "%VERIFY_DIR%" >nul 2>nul
 echo.
-echo Go配布EXEとPython source testsの検証が完了しました。
+echo Go配布EXE、CPython AST helper、Python source testsの検証が完了しました。
 exit /b 0

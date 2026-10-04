@@ -4,7 +4,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 目的は、コードを読む前に「何があるか」「どこから呼ばれるか」「何に依存するか」「どこが複雑か」を短時間で把握できる状態を作ることです。
 
-製品本体はGoへ移行中です。現在のGo CLIはhelp/versionのみのbootstrapで、解析機能やGUIは未移植です。Go配布物には移行途中のPython parser helperも含みますが、CLIからの起動・処理連携は後続Issueで実装します。既存機能の説明は移行中のPython source版を指し、移行完了までは [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで進捗を管理します。
+製品本体はGoへ移行中です。現在のGo CLIはhelp/versionのみのbootstrapで、解析機能やGUIは未移植です。Go配布物にはCPython AST parser helperも含みますが、CLIからの起動・処理連携は後続Issueで実装します。既存機能の説明は移行中のPython source版を指し、移行完了までは [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで進捗を管理します。
 
 ## 主な機能
 
@@ -36,9 +36,9 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 ## Windows配布アプリをビルドする
 
-Go版への移行を開始しています。ルートで `build_exe.bat` を実行すると、Go 1.22以降を使って `.build\dist\tomiya-code-atlas.exe` と `.build\dist\tomiya-python-backend.exe` を作成します。現段階のGo CLIはhelp/versionのみの移行用bootstrapです。GitHub Actionsの `Go EXE` workflowからもWindows EXEを取得できます。
+Go版への移行を開始しています。ルートで `build_exe.bat` を実行すると、Go CLIとCPython AST parser helperのone-dir配布物を作成します。現段階のGo CLIはhelp/versionのみの移行用bootstrapです。GitHub Actionsの `Go EXE` workflowからWindows配布artifactを取得できます。
 
-Python版は移行期間中の参照用ソースとして残します。Goの配布EXEはGitHub Actionsから取得でき、Python/PyInstallerのEXE buildは行いません。
+Python版は移行期間中の参照用ソースとして残します。Python parser helperはCPython標準ASTで文法を解析し、配布時はPyInstaller one-dir内へ対応するCPython runtimeを同梱します。アーキテクチャ規則として、全言語の構造解析backendで対象言語の実文法parserまたはcompiler ASTを使います。
 
 ## 基本アーキテクチャ
 
@@ -84,20 +84,20 @@ app.py             # 移行中のPython版アプリケーション入口
 開発元からクローンした場合は、次のツールをインストールします。
 
 - Go 1.22以降: [GoのWindows配布](https://go.dev/dl/)。Go版EXEをローカルbuildするときに使います。
-- Python 3.11以降: [Windows向けPython配布](https://www.python.org/downloads/windows/)。Python版のsource実行とtestにのみ使います。配布EXEのbuildや実行には不要です。
+- Python 3.11以降: [Windows向けPython配布](https://www.python.org/downloads/windows/)。source実行、test、parser helperのbuildに使います。配布物はCPython runtimeを同梱します。
 
-Go版EXEのbuildにはGo 1.22以降が必要です。Python版のsource実行やtestを行う場合は、Python 3.11以降と `scripts\build\setup.bat` を使ってください。
+Go版EXEとPython parser helperのbuildにはGo 1.22以降、Python 3.11以降と `scripts\build\setup.bat` が必要です。配布物の利用者はGoやPythonを別途用意する必要がありません。
 
-`scripts\build\setup.bat` はリポジトリ内の `.venv` を作り、Pythonのsource実行とtestに必要なpackageをインストールします。ソース版を起動する場合は `scripts\build\run_source.bat` を使います。Pythonや依存packageをglobal環境へインストールしません。Go版EXEのbuildと実行にはPython環境は不要です。
+`scripts\build\setup.bat` はリポジトリ内の `.venv` を作り、source testとPyInstaller helper buildに必要なpackageをインストールします。ソース版を起動する場合は `scripts\build\run_source.bat` を使います。Pythonや依存packageをglobal環境へインストールしません。
 
 ```bat
 build_exe.bat
 run_dist.bat
 ```
 
-`build_exe.bat` はGo版の `.build\dist\tomiya-code-atlas.exe` を作り、`run_dist.bat` はそのEXEを起動します。現時点のGo版は移行用bootstrapで、解析機能は後続Issueで順次移植します。GitHub Actionsの `Go EXE` workflowはWindows EXEを作成・起動確認し、artifactとして公開します。
+`build_exe.bat` はGo CLIとCPython AST helperのone-dir配布物を作り、`run_dist.bat` はGo CLIを起動します。現時点のGo版CLIは移行用bootstrapで、解析機能は後続Issueで順次移植します。GitHub Actionsの `Go EXE` workflowは両方を作成・起動確認し、artifactとして公開します。
 
-`scripts\build\verify.bat` はGo EXEのbuild/smokeとPython source test、policy checkを実行します。Python配布物をbuildしません。v1.0.0のrelease workflowはGo移行が完了するまで用意しません。
+`scripts\build\verify.bat` はGo EXEとPython parser helperのbuild・起動smoke、Python source test、policy checkを実行します。v1.0.0のrelease workflowはGo移行が完了するまで用意しません。
 
 ## 開発用コマンド
 

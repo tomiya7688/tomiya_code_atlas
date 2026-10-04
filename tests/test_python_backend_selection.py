@@ -47,6 +47,7 @@ def test_selected_python_backend_matches_conformance_fixture() -> None:
             assert set(bases) <= set(entities[key].bases)
 
     assert module.imports
+    assert entities[("method", "async_probe", "Worker")].is_async is True
 
     for expected in golden["required_call_counts"]:
         parent, name = expected["owner"].rsplit(".", 1)

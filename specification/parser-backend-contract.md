@@ -24,6 +24,8 @@ Analyzer / Generator / Evaluator
 
 backend内部では任意のparser実装言語・libraryを利用できます。backend固有の表現からCommon IRへの変換は、この境界の内側で行います。
 
+各language backendは対象言語の実文法を実装するparserまたはcompiler ASTを使用しなければなりません。手書きscanner、正規表現、token／行の文字列走査だけで構文解析の成功を報告してはいけません。backendは対象language versionとparser／compiler versionをmanifestまたはbackend metadataで明示します。parserが理解するversion内の有効な構文を受理し、IRへ写像しない情報は省略またはdiagnosticとして表します。不正構文を成功した完全解析として返しません。
+
 ## 正規化されたfailure種別
 
 version 1では、次の安定した種別だけを定義します。
