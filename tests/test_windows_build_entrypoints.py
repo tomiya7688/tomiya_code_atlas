@@ -17,8 +17,12 @@ def test_python_environment_installs_the_parser_helper_build_dependency() -> Non
     assert "-m ensurepip --upgrade --default-pip" in setup
     assert 'pip install -e ".[test,parser-build,cpp-parser]"' in setup
     assert "PyInstaller" in read_repo_file("pyproject.toml")
-    assert "JDK 25" in setup
-    assert "where mvn" in setup
+    assert "JDK 25" not in setup
+    assert "where mvn" not in setup
+    java_build = read_repo_file("scripts/build/build_java_backend.bat")
+    assert 'call mvn -q -f "backend-src\\java\\pom.xml" -DskipTests package' in java_build
+    assert "ALL-MODULE-PATH" in java_build
+    assert '%%~$PATH:I' in java_build
 
 
 def test_source_and_distribution_launchers_have_distinct_targets() -> None:
