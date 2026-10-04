@@ -47,6 +47,7 @@ def test_wire_ir_preserves_java_semantic_facts() -> None:
                     "line": 5,
                     "end_line": 9,
                     "parent": "Worker",
+                    "docstring": "Runs one item.",
                     "parameters": ["item"],
                     "parameter_types": [["item", "T"]],
                     "return_type": "T",
@@ -64,6 +65,7 @@ def test_wire_ir_preserves_java_semantic_facts() -> None:
     assert module.entities[1].call_sequence == ("helper", "helper")
     assert module.entities[1].parameter_types == (("item", "T"),)
     assert module.entities[1].return_type == "T"
+    assert module.entities[1].docstring == "Runs one item."
     assert module.entities[1].resolved_calls == ("fixture.Worker.helper(T)", "fixture.Worker.helper(T)")
     assert module.diagnostics[0].kind == "unresolved_symbol"
 
@@ -72,3 +74,4 @@ def test_java_backend_does_not_fabricate_missing_assets(tmp_path: Path) -> None:
     backend = JavaParserSymbolSolverBackend(app_root=tmp_path)
     with pytest.raises(ParserBackendError, match="helper not found"):
         backend.parse("class Demo {}", "Demo.java")
+
