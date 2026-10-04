@@ -1,0 +1,18 @@
+{
+  "modules": [
+    {"name": "pkg", "imports": [], "is_package": true},
+    {"name": "pkg.a", "imports": [".b", ".b"], "is_package": false},
+    {"name": "pkg.b", "imports": [".a"], "is_package": false},
+    {"name": "pkg.lone", "imports": [], "is_package": false}
+  ],
+  "expected": {
+    "nodes": ["pkg", "pkg.a", "pkg.b", "pkg.lone"],
+    "edges": [
+      {"caller": "pkg.a", "callee": "pkg.b"},
+      {"caller": "pkg.b", "callee": "pkg.a"}
+    ],
+    "isolated_nodes": ["pkg", "pkg.lone"],
+    "cycles": [["pkg.a", "pkg.b", "pkg.a"]]
+  }
+}
+
