@@ -5,19 +5,22 @@
     {
       "backend_id": "gdscript-tree-sitter",
       "language": "gdscript",
-      "kind": "native",
+      "kind": "helper",
       "contract_version": "1",
-      "delivery": "python-package",
+      "delivery": "pyinstaller-onedir-helper",
       "parser_engine": "tree-sitter-gdscript",
-      "parser_version": "tree-sitter-gdscript package version",
-      "grammar_version": "bundled tree-sitter-gdscript grammar",
+      "parser_version": "6.1.0",
+      "grammar_version": "Godot GDScript 4.x grammar supported by tree-sitter-gdscript 6.1.0",
+      "runtime": "bundled-cpython",
+      "path": "tomiya-python-backend/tomiya-python-backend.exe",
       "packages": [
         "tree-sitter",
         "tree-sitter-gdscript"
       ],
       "licenses": [
-        "licenses/tree-sitter-LICENSE.txt",
-        "licenses/tree-sitter-gdscript-LICENSE.txt"
+        "tomiya-python-backend/licenses/PyInstaller-COPYING.txt",
+        "tomiya-python-backend/licenses/tree-sitter-LICENSE.txt",
+        "tomiya-python-backend/licenses/tree-sitter-gdscript-LICENSE.txt"
       ]
     },
     {
@@ -40,16 +43,16 @@
       "kind": "helper",
       "contract_version": "1",
       "delivery": "pyinstaller-onedir-helper",
-      "path": ".build/dist/backends/tomiya-python-backend/tomiya-python-backend.exe",
+      "path": "tomiya-python-backend/tomiya-python-backend.exe",
       "parser_engine": "CPython standard-library ast",
       "parser_version": "bundled CPython runtime",
       "grammar_version": "bundled CPython grammar",
       "runtime": "bundled-cpython",
       "licenses": [
-        ".build/dist/backends/tomiya-python-backend/licenses/Python-LICENSE.txt",
-        "backends/licenses/PyInstaller-COPYING.txt",
-        "backends/licenses/tree-sitter-LICENSE.txt",
-        "backends/licenses/tree-sitter-gdscript-LICENSE.txt"
+        "tomiya-python-backend/licenses/Python-LICENSE.txt",
+        "tomiya-python-backend/licenses/PyInstaller-COPYING.txt",
+        "tomiya-python-backend/licenses/tree-sitter-LICENSE.txt",
+        "tomiya-python-backend/licenses/tree-sitter-gdscript-LICENSE.txt"
       ]
     },
     {

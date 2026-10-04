@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
+
 from tree_sitter import Language, Node, Parser
 import tree_sitter_gdscript
 
@@ -16,8 +18,12 @@ from Src.analyzers.ir import (
 from Src.languages.backend import (
     ParserBackendDescriptor,
     ParserBackendKind,
+    ParserBackendError,
+    ParserBackendFailure,
+    ParserBackendFailureKind,
     normalize_backend_exception,
 )
+from Src.languages.helper_backend import JsonHelperBackend
 
 
 class GDScriptTreeSitterBackend:
@@ -75,6 +81,8 @@ class _GDScriptIRBuilder:
                 self._collect_class(child, parent=None)
             elif child.type == "function_definition":
                 self._collect_function(child, parent=script_name)
+            elif child.type == "variable_statement":
+                self._collect_variable(child, parent=script_name)
             elif child.type == "signal_statement":
                 self.signals.append(self._signal(child, owner=script_name))
 
@@ -116,8 +124,34 @@ class _GDScriptIRBuilder:
                 self._collect_class(child, parent=qname)
             elif child.type == "function_definition":
                 self._collect_function(child, parent=qname)
+            elif child.type == "variable_statement":
+                self._collect_variable(child, parent=qname)
             elif child.type == "signal_statement":
                 self.signals.append(self._signal(child, owner=qname))
+
+    def _collect_variable(self, node: Node, parent: str | None) -> None:
+        name_node = node.child_by_field_name("name")
+        if name_node is None:
+            return
+        type_node = node.child_by_field_name("type")
+        setget = node.child_by_field_name("setget")
+        self.entities.append(
+            CodeEntity(
+                kind=EntityKind.PROPERTY if setget is not None else EntityKind.FIELD,
+                name=self._text(name_node),
+                line=self._line(node),
+                end_line=self._end_line(node),
+                indent=self._column(node),
+                parent=parent,
+                decorators=self._annotations(node),
+                visibility=self._visibility(self._text(name_node)),
+                type_name=(
+                    self._text(type_node)
+                    if type_node is not None and type_node.type == "type"
+                    else None
+                ),
+            )
+        )
 
     def _collect_function(self, node: Node, parent: str | None) -> None:
         name_node = node.child_by_field_name("name")
@@ -320,3 +354,28 @@ class _GDScriptIRBuilder:
         point = node.start_point
         column = point.column if hasattr(point, "column") else point[1]
         return int(column)
+
+
+class GDScriptHelperBackend(JsonHelperBackend):
+    """Use the bundled Tree-sitter GDScript parser through Contract v1."""
+
+    descriptor = ParserBackendDescriptor(
+        backend_id="gdscript-tree-sitter",
+        language="gdscript",
+        kind=ParserBackendKind.HELPER,
+    )
+    helper_relative_path = "tomiya-python-backend/tomiya-python-backend.exe"
+
+
+def parse_gdscript_request(source: str, path: str | None = None) -> dict[str, object]:
+    """Parse one complete GDScript source file into its language-neutral wire IR."""
+    module = GDScriptTreeSitterBackend().parse(source, path)
+    if module.diagnostics:
+        raise ParserBackendError(
+            ParserBackendFailure(
+                ParserBackendFailureKind.UNSUPPORTED_SYNTAX,
+                "GDScript source contains syntax the bundled grammar could not parse completely.",
+                GDScriptTreeSitterBackend.descriptor.backend_id,
+            )
+        )
+    return asdict(module)

@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from Src.languages import ParserBackendError, PythonStdlibBackend  # noqa: E402
+from Src.languages.gdscript_backend import parse_gdscript_request  # noqa: E402
 
 
 BACKEND_ID = PythonStdlibBackend.descriptor.backend_id
@@ -32,18 +33,23 @@ def handle_request(request: Any) -> dict[str, Any]:
         or not isinstance(request_id, str)
         or not request_id
         or request.get("operation") != "parse"
-        or request.get("language") != "python"
+        or request.get("language") not in ("python", "gdscript")
         or not isinstance(request.get("source"), str)
         or ("path" in request and not isinstance(request["path"], str))
     ):
         return _failure(
             envelope,
             "protocol_error",
-            "contract_version 1, request_id, operation=parse, language=python, and source string are required",
+            "contract_version 1, request_id, operation=parse, supported language, and source string are required",
         )
 
     try:
-        module = PythonStdlibBackend().parse(request["source"], request.get("path"))
+        if request["language"] == "gdscript":
+            module_ir = parse_gdscript_request(request["source"], request.get("path"))
+            ir = {"schema_version": "1", **module_ir}
+        else:
+            module = PythonStdlibBackend().parse(request["source"], request.get("path"))
+            ir = {"schema_version": "1", **asdict(module)}
     except ParserBackendError as error:
         return _failure(
             envelope,
@@ -55,7 +61,7 @@ def handle_request(request: Any) -> dict[str, Any]:
 
     envelope.update(
         ok=True,
-        ir={"schema_version": "1", **asdict(module)},
+        ir=ir,
     )
     return envelope
 

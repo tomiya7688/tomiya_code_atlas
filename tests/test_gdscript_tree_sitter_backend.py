@@ -6,6 +6,7 @@ from pathlib import Path
 from app import main
 from Src.languages import (
     FilesystemGDScriptProjectResolver,
+    GDScriptHelperBackend,
     GDScriptTreeSitterBackend,
     ParserBackendKind,
 )
@@ -43,6 +44,16 @@ def test_gdscript_fixture_normalizes_to_common_ir() -> None:
     assert ("method", "helper", "Worker") in entities
     assert ("method", "async_probe", "Worker") in entities
     assert ("method", "nested_probe", "Worker") in entities
+
+    dependency = entities[("field", "dependency", "FixtureWorker")]
+    health = entities[("field", "health", "FixtureWorker")]
+    display_name = entities[("property", "display_name", "FixtureWorker")]
+    assert dependency.type_name == "Resource"
+    assert "@export" in dependency.decorators
+    assert health.type_name == "int"
+    assert display_name.type_name == "String"
+    assert display_name.line == 12
+    assert display_name.end_line == 16
 
     assert "res://support.gd" in module.imports
     assert "res://other_resource.tres" in module.imports
@@ -93,9 +104,25 @@ def test_backend_manifest_registers_gdscript_tree_sitter() -> None:
     )
 
     assert backend["language"] == "gdscript"
-    assert backend["kind"] == "native"
+    assert backend["kind"] == "helper"
     assert backend["contract_version"] == "1"
     assert "tree-sitter-gdscript" in backend["packages"]
+    assert backend["delivery"] == "pyinstaller-onedir-helper"
+    assert backend["parser_version"] == "6.1.0"
+    python_backend = next(
+        item
+        for item in manifest["backends"]
+        if item["backend_id"] == "python-stdlib-ast"
+    )
+    assert backend["path"] == python_backend["path"]
+    assert backend["path"] == GDScriptHelperBackend.helper_relative_path
+
+
+def test_gdscript_helper_backend_uses_contract_v1_bundle() -> None:
+    descriptor = GDScriptHelperBackend.descriptor
+    assert descriptor.backend_id == "gdscript-tree-sitter"
+    assert descriptor.language == "gdscript"
+    assert descriptor.kind is ParserBackendKind.HELPER
 
 
 def test_backend_smoke_cli_loads_gdscript_native_parser(capsys) -> None:

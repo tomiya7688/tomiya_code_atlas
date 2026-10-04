@@ -8,6 +8,12 @@ const OtherResource = load("res://other_resource.tres")
 
 @export var dependency: Resource
 var owner_node: Node
+var health: int = 100
+var display_name: String:
+	get:
+		return "FixtureWorker"
+	set(value):
+		print(value)
 
 
 class BaseWorker:

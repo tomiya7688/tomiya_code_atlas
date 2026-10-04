@@ -15,7 +15,7 @@ authors = [
 dependencies = [
     "PyYAML>=6.0",
     "tree-sitter>=0.26,<0.27",
-    "tree-sitter-gdscript>=6.1,<7",
+    "tree-sitter-gdscript==6.1.0",
 ]
 
 [project.optional-dependencies]
