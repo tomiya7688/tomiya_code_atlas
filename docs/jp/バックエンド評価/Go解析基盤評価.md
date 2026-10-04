@@ -24,7 +24,7 @@ runtime: native helper executable
 
 Tomiyaの配布方針は、利用者へcompiler／SDK／toolchainの導入を暗黙に要求しないことです。そのため `go/packages` はtoolchain対応の任意modeとし、必須runtime backendにはしません。
 
-self-contained経路では発見済みproject source packageをTomiya自身がまとめ、Tomiya管理のimporter／resolverと `go/types` を使います。
+self-contained parser helperはGo toolchainを実行時に要求しません。Goの構文木、import path、呼び出し名などソース上で確認できる情報を保持し、現時点でsourceを読み込めないimport先は`type_error` diagnosticとして示します。project内packageのまとめとresolverはIssue #198で扱います。
 
 ## go/typesの意味解析価値
 
@@ -94,7 +94,7 @@ Goとx/toolsはGo BSD-style licenseです。tree-sitter-goはMITです。
 ## 既知の制約
 
 - build tag、GOOS／GOARCH、正確なmodule選択は意味解析結果に影響します。
-- self-contained modeでは、source／export dataを取得できない外部moduleを解決できない場合があります。
+- self-contained parser helperは外部Go toolchainなしで動きます。import先の型・symbol解決はsource／export dataを利用できない場合、diagnosticを出して未解決のまま残します。
 - 構文対応範囲はhelperのbuild時に使ったGo versionに従います。
 - toolchain-awareなmodule意味解析は任意の `go/packages` modeとして追加できます。
 
