@@ -94,7 +94,7 @@ def test_verification_smokes_the_frozen_python_parser_helper() -> None:
 def test_only_direct_windows_build_and_distribution_entrypoints_remain_in_root() -> None:
     assert (ROOT / "build_exe.bat").is_file()
     assert (ROOT / "run_dist.bat").is_file()
-    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_python_backend.bat", "build_csharp_backend.bat", "build_cpp_backend.bat", "build_java_backend.bat", "build_go_parser_backend.bat"):
+    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_go_parser_backend.bat", "build_python_backend.bat", "build_csharp_backend.bat", "build_cpp_backend.bat", "build_java_backend.bat"):
         assert (ROOT / "scripts" / "build" / helper).is_file()
     for removed_helper in ("package.bat", "build_python_legacy.bat"):
         assert not (ROOT / "scripts" / "build" / removed_helper).exists()
@@ -103,7 +103,7 @@ def test_only_direct_windows_build_and_distribution_entrypoints_remain_in_root()
 
 
 def test_windows_build_helpers_resolve_paths_from_the_repository_root() -> None:
-    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_python_backend.bat", "build_csharp_backend.bat", "build_cpp_backend.bat", "build_java_backend.bat", "build_go_parser_backend.bat"):
+    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_go_parser_backend.bat", "build_python_backend.bat", "build_csharp_backend.bat", "build_cpp_backend.bat", "build_java_backend.bat"):
         source = read_repo_file(f"scripts/build/{helper}")
         assert 'cd /d "%~dp0\\..\\.."' in source
     for entrypoint in ("build_exe.bat", "run_dist.bat"):
@@ -170,6 +170,9 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert '"go/**"' in go_workflow
     assert '"backends/go/**"' in go_workflow
     assert "go test ./..." in go_workflow
+    go_builder = read_repo_file("scripts/build/build_go_parser_backend.bat")
+    assert 'copy /y "backends\\go\\NOTICE.txt" ".build\\dist\\backends\\go\\NOTICE.txt"' in go_builder
+    assert 'if not exist ".build\\dist\\backends\\go\\NOTICE.txt"' in go_builder
     assert "call build_exe.bat" in go_workflow
     assert "--version" in go_workflow
     assert "--help" in go_workflow
