@@ -44,12 +44,14 @@ def test_go_stdlib_helper_emits_contract_v1_response() -> None:
     run = next(item for item in module["entities"] if item["name"] == "Run")
     assert run["calls"] == ["Println"]
     assert run["call_sequence"] == ["Println"]
-    assert any("fmt.Println" in value for value in run["resolved_calls"])
+    assert run.get("resolved_calls", []) == []
+    assert any(item["kind"] == "type_error" for item in module["diagnostics"])
 
     fixture_source = Path("tests/fixtures/backend_conformance/go.go").read_text(encoding="utf-8")
     adapted = GoStandardLibraryBackend(app_root=output_dir.resolve()).parse(fixture_source, "fixture.go")
     assert adapted.language == "go"
     assert "context" in adapted.imports
+    assert adapted.module_docstring == "Package fixture exercises Go declaration and call normalization."
     assert any(item.name == "Worker" and item.declaration_kind == "struct" for item in adapted.entities)
     fixture_request = {**request, "request_id": "go-conformance", "source": fixture_source, "path": "fixture.go"}
     fixture_result = subprocess.run(
@@ -68,9 +70,33 @@ def test_go_stdlib_helper_emits_contract_v1_response() -> None:
     assert run["parameters"] == ["item"]
     assert run["parameter_types"] == [["item", "T"]]
     assert run["return_type"] == "T"
+    assert run["calls"] == ["helper"]
     assert run["call_sequence"] == ["helper", "helper"]
     assert len(run["resolved_calls"]) == 2
+    type_index = next(index for index, item in enumerate(entities) if item["name"] == "Worker")
+    field_index = next(index for index, item in enumerate(entities) if item["name"] == "current")
+    assert type_index < field_index
     assert next(item for item in entities if item["name"] == "New")["type_parameters"] == ["T"]
+
+    edge_request = {
+        **request,
+        "request_id": "go-edge-cases",
+        "path": "edge_cases.go",
+        "source": "package edgecases\n"
+        "type Shape = struct{ Width int }\n"
+        "type Operations = interface{ Run() }\n"
+        "const DefaultCapacity = 4\n",
+    }
+    edge_result = subprocess.run(
+        [str(binary)], input=json.dumps(edge_request), text=True, capture_output=True, check=True
+    )
+    edge_module = json.loads(edge_result.stdout)["ir"]
+    shape = next(item for item in edge_module["entities"] if item["name"] == "Shape")
+    operations = next(item for item in edge_module["entities"] if item["name"] == "Operations")
+    capacity = next(item for item in edge_module["entities"] if item["name"] == "DefaultCapacity")
+    assert shape["declaration_kind"] == "type_alias"
+    assert operations["declaration_kind"] == "type_alias"
+    assert capacity["type_name"] == "untyped int"
 
     project_root = Path("tests/fixtures/backend_conformance/go_project")
     for source_path in (project_root / "shared/shared.go", project_root / "app/app.go"):
