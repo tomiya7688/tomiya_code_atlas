@@ -37,7 +37,7 @@ copy /y "backend-src\java\target\tomiya-java-backend.jar" ".build\dist\backends\
 if errorlevel 1 exit /b 1
 
 if exist ".build\dist\backends\java\runtime" rmdir /s /q ".build\dist\backends\java\runtime"
-"%JAVA_HOME%\bin\jlink.exe" --module-path "%JAVA_HOME%\jmods" --add-modules ALL-MODULE-PATH --strip-debug --no-header-files --no-man-pages --compress=2 --output ".build\dist\backends\java\runtime"
+"%JAVA_HOME%\bin\jlink.exe" --add-modules java.se,jdk.unsupported,jdk.zipfs,jdk.localedata --strip-debug --no-header-files --no-man-pages --output ".build\dist\backends\java\runtime"
 if errorlevel 1 exit /b 1
 if not exist ".build\dist\backends\java\runtime\bin\java.exe" (
     echo [エラー] private Java runtimeが生成されませんでした。
