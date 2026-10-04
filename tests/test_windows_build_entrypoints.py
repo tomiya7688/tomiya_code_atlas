@@ -43,12 +43,21 @@ def test_root_build_creates_go_cli_and_cpython_ast_onedir_helper() -> None:
     assert "go build -trimpath" in go_build
     assert ".build\\dist\\tomiya-code-atlas.exe" in go_build
     assert "build_python_backend.bat" in go_build
+    assert "build_csharp_backend.bat" in go_build
     python_build = read_repo_file("scripts/build/build_python_backend.bat")
     assert "--onedir" in python_build
     assert "--onefile" not in python_build
     assert ".build\\dist\\backends\\tomiya-python-backend\\tomiya-python-backend.exe" in python_build
     assert "PyInstaller" in python_build
     assert "copy_python_runtime_license.py" in python_build
+    csharp_build = read_repo_file("scripts/build/build_csharp_backend.bat")
+    assert "dotnet publish" in csharp_build
+    assert "--self-contained true" in csharp_build
+    assert "-r win-x64" in csharp_build
+    assert "PublishSingleFile=false" in csharp_build
+    assert "PublishTrimmed=false" in csharp_build
+    assert "dotnet --list-sdks" in csharp_build
+    assert "dotnet-ThirdPartyNotices.txt" in csharp_build
 
 
 def test_verification_smokes_the_frozen_python_parser_helper() -> None:
@@ -63,13 +72,14 @@ def test_verification_smokes_the_frozen_python_parser_helper() -> None:
     assert '--ignore-glob="pytest-cache-files-*"' in verification
     assert "policy-check" in verification
     assert "smoke_python_backend.py" in verification
+    assert "csharp_backend_smoke.py" in verification
     assert "package.bat" not in verification
 
 
 def test_only_direct_windows_build_and_distribution_entrypoints_remain_in_root() -> None:
     assert (ROOT / "build_exe.bat").is_file()
     assert (ROOT / "run_dist.bat").is_file()
-    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_python_backend.bat"):
+    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_python_backend.bat", "build_csharp_backend.bat"):
         assert (ROOT / "scripts" / "build" / helper).is_file()
     for removed_helper in ("package.bat", "build_python_legacy.bat"):
         assert not (ROOT / "scripts" / "build" / removed_helper).exists()
@@ -78,7 +88,7 @@ def test_only_direct_windows_build_and_distribution_entrypoints_remain_in_root()
 
 
 def test_windows_build_helpers_resolve_paths_from_the_repository_root() -> None:
-    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_python_backend.bat"):
+    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_python_backend.bat", "build_csharp_backend.bat"):
         source = read_repo_file(f"scripts/build/{helper}")
         assert 'cd /d "%~dp0\\..\\.."' in source
     for entrypoint in ("build_exe.bat", "run_dist.bat"):
@@ -114,6 +124,7 @@ def test_readme_explains_go_and_python_parser_build_requirements() -> None:
         "scripts\\build\\verify.bat",
         "CPython AST",
         "PyInstaller",
+        ".NET 10 SDK",
         "Go EXE",
     ):
         assert required_text in readme
@@ -148,6 +159,9 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert "tomiya-python-backend\\tomiya-python-backend.exe" in go_workflow
     assert "copy_python_runtime_license.py" in go_workflow or "build_python_backend.bat" in go_workflow
     assert "smoke_python_backend.py" in go_workflow
+    assert "build_csharp_backend.bat" in go_workflow
+    assert "csharp_backend_smoke.py" in go_workflow
+    assert ".build/dist/backends/csharp/" in go_workflow
     assert "Go版Windows EXEをartifactとして保存" in go_workflow
     assert not (ROOT / ".github/workflows/python-exe.yml").exists()
     assert not (ROOT / ".github/workflows/build.yml").exists()

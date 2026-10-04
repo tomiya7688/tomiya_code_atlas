@@ -57,13 +57,17 @@
       "language": "csharp",
       "kind": "helper",
       "contract_version": "1",
-      "delivery": "self-contained-dotnet-helper",
+      "delivery": "self-contained-dotnet-helper-folder",
       "path": "csharp/tomiya-csharp-backend.exe",
       "parser_engine": "Microsoft.CodeAnalysis.CSharp",
       "parser_version": "5.9.0",
-      "grammar_version": "LanguageVersion.Preview",
+      "grammar_version": "Roslyn LanguageVersion.Preview",
+      "runtime": ".NET 10 self-contained win-x64",
+      "publish_mode": "one-dir",
       "licenses": [
-        "licenses/roslyn-LICENSE.txt"
+        "licenses/roslyn-LICENSE.txt",
+        "licenses/dotnet-LICENSE.txt",
+        "licenses/dotnet-ThirdPartyNotices.txt"
       ]
     },
     {

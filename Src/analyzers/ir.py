@@ -11,6 +11,8 @@ class EntityKind(str, Enum):
     CLASS = "class"
     FUNCTION = "function"
     METHOD = "method"
+    PROPERTY = "property"
+    FIELD = "field"
 
 
 class Visibility(str, Enum):
@@ -46,6 +48,7 @@ class CodeEntity:
     is_async: bool = False
     parameter_types: tuple[tuple[str, str], ...] = ()
     return_type: str | None = None
+    type_name: str | None = None
 
 
 @dataclass(slots=True)

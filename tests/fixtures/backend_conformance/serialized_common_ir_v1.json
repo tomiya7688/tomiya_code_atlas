@@ -25,7 +25,8 @@
         "symbol_id": null,
         "is_async": false,
         "parameter_types": [],
-        "return_type": null
+        "return_type": null,
+        "type_name": null
       },
       {
         "kind": "function",
@@ -48,7 +49,8 @@
         "symbol_id": null,
         "is_async": false,
         "parameter_types": [],
-        "return_type": null
+        "return_type": null,
+        "type_name": null
       }
     ],
     "objects": [],

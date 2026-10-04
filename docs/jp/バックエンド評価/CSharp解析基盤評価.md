@@ -108,15 +108,17 @@ dotnet publish -c Release -r win-x64 --self-contained true
 
 ## 実装状況
 
-選定backendは#150で統合済みです。
+Roslyn helperは旧Python host向けに#150で実装され、#189でGo配布物向けに拡張しました。
 
 - helper source: `backend-src/csharp/`
 - Python host: `Src/languages/csharp_backend.py`
 - 共通subprocess protocol host: `Src/languages/helper_backend.py`
 - runtime path: `backends/csharp/tomiya-csharp-backend.exe`
-- build: self-contained `win-x64`、single-file／trimmingなし
-- Linux CI: Roslyn helper build + #131 fixture semantic smoke
-- Windows CI: publish + PyInstaller onedir + frozen EXE C# backend smoke
+- build: self-contained .NET 10 `win-x64` folder、single-file／trimmingなし。Roslyn/.NET licenseとthird-party noticesを同梱
+- 構文情報: class/interface/struct/record/enum、method/constructor/local function、property/field、型・visibility・location
+- 不正なC#構文: Parser Backend Contract v1の`unsupported_syntax`で返す。Unity SDK等を参照できないsemantic情報はdiagnosticに残す。
+- Linux CI: Roslyn helper build + .NET/Unity fixtureとprotocol smoke
+- Windows Go EXE workflow: helperをself-contained publishし、CPython helperとともにartifactへ含める
 
 利用者向け配布物には.NET SDKやruntimeの別途導入は不要です。
 

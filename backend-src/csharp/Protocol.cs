@@ -5,19 +5,19 @@ namespace Tomiya.CodeAtlas.CSharpBackend;
 internal sealed class BackendRequest
 {
     [JsonPropertyName("contract_version")]
-    public string ContractVersion { get; init; } = "";
+    public string? ContractVersion { get; init; }
 
     [JsonPropertyName("request_id")]
-    public string RequestId { get; init; } = "";
+    public string? RequestId { get; init; }
 
     [JsonPropertyName("operation")]
-    public string Operation { get; init; } = "";
+    public string? Operation { get; init; }
 
     [JsonPropertyName("language")]
-    public string Language { get; init; } = "";
+    public string? Language { get; init; }
 
     [JsonPropertyName("source")]
-    public string Source { get; init; } = "";
+    public string? Source { get; init; }
 
     [JsonPropertyName("path")]
     public string? Path { get; init; }
@@ -128,6 +128,17 @@ internal sealed class EntityDto
 
     [JsonPropertyName("is_async")]
     public bool IsAsync { get; init; }
+
+    [JsonPropertyName("parameter_types")]
+    public List<List<string>> ParameterTypes { get; init; } = [];
+
+    [JsonPropertyName("return_type")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ReturnType { get; init; }
+
+    [JsonPropertyName("type_name")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TypeName { get; init; }
 }
 
 internal sealed class DiagnosticDto
