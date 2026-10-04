@@ -5,7 +5,7 @@ cd /d "%~dp0\..\.."
 
 where go >nul 2>nul
 if errorlevel 1 (
-    echo [エラー] Go toolchainが見つかりません。Go 1.22以降をインストールしてください。
+    echo [エラー] Go toolchainが見つかりません。Go 1.27.xをインストールしてください。
     echo 入手先: https://go.dev/dl/
     exit /b 1
 )
