@@ -50,5 +50,5 @@ if errorlevel 1 exit /b 1
 
 rmdir /s /q "%VERIFY_DIR%" >nul 2>nul
 echo.
-echo Go配布EXE、Python AST helper、C# Roslyn helper、Python source testsの検証が完了しました。
+echo Go配布EXE、Python/GDScript parser helper、C# Roslyn helper、Python source testsの検証が完了しました。
 exit /b 0

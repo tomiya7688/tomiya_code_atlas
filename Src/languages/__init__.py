@@ -15,7 +15,7 @@ from .csharp import CSharpAdapter
 from .csharp_backend import CSharpRoslynBackend
 from .cpp import CppAdapter
 from .gdscript import GDScriptAdapter
-from .gdscript_backend import GDScriptTreeSitterBackend
+from .gdscript_backend import GDScriptHelperBackend, GDScriptTreeSitterBackend
 from .gdscript_project import FilesystemGDScriptProjectResolver, GDScriptProjectResolver
 from .go import GoAdapter
 from .java import JavaAdapter
@@ -32,6 +32,7 @@ __all__ = [
     "GDScriptAdapter",
     "GDScriptProjectResolver",
     "GDScriptTreeSitterBackend",
+    "GDScriptHelperBackend",
     "GoAdapter",
     "JavaAdapter",
     "JavaParserSymbolSolverBackend",

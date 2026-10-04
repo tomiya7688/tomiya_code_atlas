@@ -66,6 +66,61 @@ def test_contract_helper_reports_syntax_error_without_partial_ir() -> None:
     assert "ir" not in response
 
 
+def test_contract_helper_dispatches_gdscript_to_tree_sitter_and_normalizes_ir() -> None:
+    response = handle_request(
+        {
+            "contract_version": "1",
+            "request_id": "gdscript-grammar-test",
+            "operation": "parse",
+            "language": "gdscript",
+            "source": (
+                "class_name Worker extends Node\n"
+                "signal completed(value: int)\n"
+                "@export var speed: float = 1.0\n"
+                "var label_text: String:\n"
+                "    get:\n"
+                "        return \"Worker\"\n"
+                "func run(delta: float) -> void:\n"
+                "    move_and_slide()\n"
+            ),
+            "path": "worker.gd",
+        }
+    )
+
+    assert response["ok"] is True
+    assert response["request_id"] == "gdscript-grammar-test"
+    ir = response["ir"]
+    assert ir["language"] == "gdscript"
+    entities = {(item["kind"], item["name"], item["parent"]): item for item in ir["entities"]}
+    assert entities[("class", "Worker", None)]["bases"] == ("Node",)
+    speed = entities[("field", "speed", "Worker")]
+    assert speed["type_name"] == "float"
+    assert speed["decorators"] == ("@export",)
+    assert entities[("property", "label_text", "Worker")]["type_name"] == "String"
+    run = entities[("method", "run", "Worker")]
+    assert run["line"] == 7
+    assert run["end_line"] == 8
+    assert len(ir["signals"]) == 1
+    assert ir["signals"][0]["name"] == "completed"
+
+
+def test_contract_helper_rejects_recovered_gdscript_syntax_errors() -> None:
+    response = handle_request(
+        {
+            "contract_version": "1",
+            "request_id": "invalid-gdscript-syntax",
+            "operation": "parse",
+            "language": "gdscript",
+            "source": "class_name Broken\nfunc broken(:\n    pass\n",
+        }
+    )
+
+    assert response["ok"] is False
+    assert response["error"]["kind"] == "unsupported_syntax"
+    assert response["error"]["backend_id"] == "gdscript-tree-sitter"
+    assert "ir" not in response
+
+
 def test_contract_helper_rejects_invalid_protocol_without_parsing() -> None:
     response = handle_request({"contract_version": "99", "source": "class Valid: pass"})
 

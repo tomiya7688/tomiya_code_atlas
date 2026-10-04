@@ -27,6 +27,16 @@ class Worker:
                 return "empty"
 '''
 
+GDSCRIPT_GRAMMAR_SOURCE = '''class_name SmokeWorker extends Node
+signal completed(value: int)
+@export var speed: float = 1.0
+var title: String:
+    get:
+        return "SmokeWorker"
+func run(delta: float) -> void:
+    move_and_slide()
+'''
+
 
 def call_helper(executable: Path, request: dict[str, object]) -> dict[str, object]:
     system_root = Path(os.environ["SystemRoot"])
@@ -66,6 +76,10 @@ def main() -> int:
     runtime_license = executable.parent / "licenses" / "Python-LICENSE.txt"
     if not runtime_license.is_file() or runtime_license.stat().st_size == 0:
         raise RuntimeError(f"bundled CPython license is missing: {runtime_license}")
+    for name in ("tree-sitter-LICENSE.txt", "tree-sitter-gdscript-LICENSE.txt"):
+        license_file = executable.parent / "licenses" / name
+        if not license_file.is_file() or license_file.stat().st_size == 0:
+            raise RuntimeError(f"bundled GDScript parser license is missing: {license_file}")
     success = call_helper(
         executable,
         {
@@ -112,7 +126,64 @@ def main() -> int:
         or "ir" in failure
     ):
         raise RuntimeError(f"invalid syntax was not normalized: {failure!r}")
-    print("CPython AST one-dir helper grammar and syntax-error smoke passed.")
+
+    gdscript = call_helper(
+        executable,
+        {
+            "contract_version": "1",
+            "request_id": "onedir-gdscript-grammar",
+            "operation": "parse",
+            "language": "gdscript",
+            "source": GDSCRIPT_GRAMMAR_SOURCE,
+            "path": "smoke.gd",
+        },
+    )
+    if not gdscript.get("ok") or gdscript.get("request_id") != "onedir-gdscript-grammar":
+        raise RuntimeError(f"helper did not parse valid GDScript grammar: {gdscript!r}")
+    gd_ir = gdscript.get("ir")
+    gd_entities = gd_ir.get("entities") if isinstance(gd_ir, dict) else None
+    worker = next(
+        (entity for entity in gd_entities or [] if entity.get("name") == "SmokeWorker"),
+        None,
+    )
+    speed = next(
+        (entity for entity in gd_entities or [] if entity.get("name") == "speed"),
+        None,
+    )
+    run = next(
+        (entity for entity in gd_entities or [] if entity.get("name") == "run"),
+        None,
+    )
+    if (
+        worker is None
+        or worker.get("bases") != ["Node"]
+        or speed is None
+        or speed.get("type_name") != "float"
+        or run is None
+        or run.get("line") != 7
+        or not isinstance(gd_ir.get("signals"), list)
+        or gd_ir["signals"][0].get("name") != "completed"
+    ):
+        raise RuntimeError(f"helper omitted expected Tree-sitter GDScript facts: {gdscript!r}")
+
+    gd_failure = call_helper(
+        executable,
+        {
+            "contract_version": "1",
+            "request_id": "invalid-gdscript-syntax",
+            "operation": "parse",
+            "language": "gdscript",
+            "source": "class_name Broken\nfunc broken(:\n    pass\n",
+        },
+    )
+    if (
+        gd_failure.get("ok") is not False
+        or not isinstance(gd_failure.get("error"), dict)
+        or gd_failure["error"].get("kind") != "unsupported_syntax"
+        or "ir" in gd_failure
+    ):
+        raise RuntimeError(f"invalid GDScript syntax was not normalized: {gd_failure!r}")
+    print("CPython and Tree-sitter one-dir parser helper grammar and error smoke passed.")
     return 0
 
 

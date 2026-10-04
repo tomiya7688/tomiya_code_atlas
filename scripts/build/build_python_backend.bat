@@ -29,6 +29,6 @@ copy /y "backends\licenses\tree-sitter-LICENSE.txt" ".build\dist\backends\tomiya
 if errorlevel 1 exit /b 1
 copy /y "backends\licenses\tree-sitter-gdscript-LICENSE.txt" ".build\dist\backends\tomiya-python-backend\licenses\tree-sitter-gdscript-LICENSE.txt" >nul
 if errorlevel 1 exit /b 1
-echo CPython AST helper one-dir build complete.
+echo Python AST and GDScript Tree-sitter parser helper one-dir build complete.
 endlocal
 exit /b 0
