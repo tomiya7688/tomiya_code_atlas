@@ -18,6 +18,7 @@
 4. Rendererはソース言語を解析したり、言語adapterへ依存したりしてはいけません。
 5. 外部parserライブラリはadapter内で利用できます。ただし、ライブラリの置き換えに無関係なgenerator/evaluator/rendererの書き直しが必要になってはいけません。
 6. 機械的に取得できる構造情報は、実用上可能な場合、LLMによる推論より決定的な解析で取得します。
+7. 言語backendは対象言語の文法を実装したparserまたはcompiler ASTを使わなければなりません。手書きscanner、正規表現、行／token文字列走査を、言語文法の解析器として扱ってはいけません。backendは配布parserが認識する言語仕様versionを明記し、そのversion内の構文全体を受理または正規化errorにしなければなりません。Common IRへまだ写像しない構文要素があっても、解析自体を黙って成功した完全解析として装ってはいけません。
 
 ## Required（必須）: UPDアプリケーション境界
 

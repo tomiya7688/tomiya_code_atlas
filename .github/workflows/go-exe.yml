@@ -6,27 +6,54 @@ on:
       - "go.mod"
       - "go.sum"
       - "go/**"
+      - "backends/python/**"
+      - "backends/licenses/**"
+      - "pyproject.toml"
       - "backends/manifest.json"
       - "tests/fixtures/static_specification/**"
       - "internal/**"
       - "scripts/build/build_go.bat"
+      - "scripts/build/build_python_backend.bat"
+      - "scripts/build/smoke_python_backend.py"
+      - "scripts/build/copy_python_runtime_license.py"
+      - "scripts/build/setup.bat"
       - "build_exe.bat"
       - "run_dist.bat"
       - ".github/workflows/go-exe.yml"
       - "tests/test_windows_build_entrypoints.py"
+      - "tests/test_python_parser_helper.py"
+      - "Src/languages/python.py"
+      - "Src/languages/python_backend.py"
+      - "Src/languages/python_project.py"
+      - "specification/architecture-policy.md"
+      - "specification/parser-backend-contract.md"
   push:
     paths:
       - "go.mod"
       - "go.sum"
       - "go/**"
+      - "backends/python/**"
+      - "backends/licenses/**"
+      - "pyproject.toml"
       - "backends/manifest.json"
       - "tests/fixtures/static_specification/**"
       - "internal/**"
       - "scripts/build/build_go.bat"
+      - "scripts/build/build_python_backend.bat"
+      - "scripts/build/smoke_python_backend.py"
+      - "scripts/build/copy_python_runtime_license.py"
+      - "scripts/build/setup.bat"
       - "build_exe.bat"
       - "run_dist.bat"
       - ".github/workflows/go-exe.yml"
       - "tests/test_windows_build_entrypoints.py"
+      - "tests/test_python_parser_helper.py"
+      - "Src/languages/python.py"
+      - "Src/languages/python_backend.py"
+      - "Src/languages/python_project.py"
+      - "specification/architecture-policy.md"
+      - "specification/parser-backend-contract.md"
+      - "tests/fixtures/static_specification/**"
   workflow_dispatch:
 
 jobs:
@@ -42,6 +69,15 @@ jobs:
         with:
           go-version: "1.27.x"
           cache-dependency-path: go/go.mod
+
+      - name: PythonとPyInstallerを準備
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Python parser helperのbuild依存を準備
+        shell: cmd
+        run: call scripts\build\setup.bat
 
       - name: Go testを実行
         working-directory: go
@@ -70,13 +106,8 @@ jobs:
             Write-Error "Go版のEXEのhelp smoke testに失敗しました: $help"
             exit 1
           }
-          $helper = ".\.build\dist\tomiya-python-backend.exe"
-          $request = '{"contract_version":"1","request_id":"ci-smoke","operation":"parse","language":"python","source":"def run():\n    pass\n"}'
-          $response = $request | & $helper | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or -not $response.ok -or $response.request_id -ne "ci-smoke" -or $response.ir.language -ne "python" -or $response.ir.entities[0].name -ne "run") {
-            Write-Error "Python parser helper smoke testに失敗しました: $response"
-            exit 1
-          }
+          & .\.venv\Scripts\python.exe scripts\build\smoke_python_backend.py ".build\dist\backends\tomiya-python-backend\tomiya-python-backend.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Go版Windows EXEをartifactとして保存
         uses: actions/upload-artifact@v7
@@ -84,5 +115,5 @@ jobs:
           name: tomiya-code-atlas-go-windows-x64
           path: |
             .build/dist/tomiya-code-atlas.exe
-            .build/dist/tomiya-python-backend.exe
+            .build/dist/backends/tomiya-python-backend/
           if-no-files-found: error

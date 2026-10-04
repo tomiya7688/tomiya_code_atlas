@@ -84,6 +84,7 @@ class PythonLanguageAdapter:
             decorators=tuple(self._expr_text(item, source) for item in node.decorator_list),
             visibility=self._visibility(node.name),
             bases=tuple(self._expr_text(item, source) for item in node.bases),
+            type_parameters=tuple(self._expr_text(item, source) for item in getattr(node, "type_params", ())),
         )
 
     def _function_entity(
@@ -129,6 +130,8 @@ class PythonLanguageAdapter:
             visibility=self._visibility(node.name),
             parameter_types=parameter_types,
             return_type=(self._expr_text(node.returns, source) if node.returns else None),
+            is_async=isinstance(node, ast.AsyncFunctionDef),
+            type_parameters=tuple(self._expr_text(item, source) for item in getattr(node, "type_params", ())),
         )
 
     @classmethod

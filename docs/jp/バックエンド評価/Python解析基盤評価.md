@@ -43,7 +43,7 @@ Pythonの `symtable` はcompilerが作るscope tableとidentifier binding情報�
 - LibCST: 全体はMITですが、repositoryにはPSF由来fileの記載があります。現在のreleaseにはnative／binary部品があるため、採用前にfrozen buildでの明示的な検証が必要です。
 - tree-sitter-python: MITです。採用するとparser／bindingのnative依存が増えます。
 
-parser packageを新たに加えないため、既存のWindows PyInstaller onedir配布方式を変更しません。
+Windows配布ではPyInstaller onedir helperへCPython runtimeを含め、helperが起動したinterpreter versionの文法を完全に解析します。parser versionを固定したい配布pipelineでは、ビルド用Python versionも固定します。
 
 ## 検証
 

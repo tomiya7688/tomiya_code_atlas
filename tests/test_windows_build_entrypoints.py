@@ -8,16 +8,15 @@ def read_repo_file(relative_path: str) -> str:
     return (ROOT / relative_path).read_text(encoding="utf-8")
 
 
-def test_python_environment_is_only_for_source_tests_and_does_not_install_pyinstaller() -> None:
+def test_python_environment_installs_the_parser_helper_build_dependency() -> None:
     setup = read_repo_file("scripts/build/setup.bat")
 
     assert "py -3.12" in setup
     assert "sys.version_info >= (3, 11)" in setup
     assert ".venv\\Scripts\\python.exe" in setup
     assert "-m ensurepip --upgrade --default-pip" in setup
-    assert 'pip install -e ".[test]"' in setup
-    assert ".[test,exe]" not in setup
-    assert "pyinstaller" not in setup.lower()
+    assert 'pip install -e ".[test,parser-build]"' in setup
+    assert "PyInstaller" in read_repo_file("pyproject.toml")
 
 
 def test_source_and_distribution_launchers_have_distinct_targets() -> None:
@@ -31,7 +30,7 @@ def test_source_and_distribution_launchers_have_distinct_targets() -> None:
     assert '"%APP%" %*' in distribution_launcher
 
 
-def test_root_build_creates_go_cli_and_python_parser_helper_executables() -> None:
+def test_root_build_creates_go_cli_and_cpython_ast_onedir_helper() -> None:
     app_build = read_repo_file("build_exe.bat")
     go_build = read_repo_file("scripts/build/build_go.bat")
 
@@ -43,12 +42,16 @@ def test_root_build_creates_go_cli_and_python_parser_helper_executables() -> Non
     assert "go test ./..." in go_build
     assert "go build -trimpath" in go_build
     assert ".build\\dist\\tomiya-code-atlas.exe" in go_build
-    assert "tomiya-python-backend.exe" in go_build
-    assert "pip install" not in go_build
-    assert "PyInstaller" not in go_build
+    assert "build_python_backend.bat" in go_build
+    python_build = read_repo_file("scripts/build/build_python_backend.bat")
+    assert "--onedir" in python_build
+    assert "--onefile" not in python_build
+    assert ".build\\dist\\backends\\tomiya-python-backend\\tomiya-python-backend.exe" in python_build
+    assert "PyInstaller" in python_build
+    assert "copy_python_runtime_license.py" in python_build
 
 
-def test_verification_tests_sources_and_go_exe_without_building_python_artifacts() -> None:
+def test_verification_smokes_the_frozen_python_parser_helper() -> None:
     verification = read_repo_file("scripts/build/verify.bat")
 
     assert "call build_exe.bat" in verification
@@ -59,15 +62,14 @@ def test_verification_tests_sources_and_go_exe_without_building_python_artifacts
     assert "-p no:cacheprovider" in verification
     assert '--ignore-glob="pytest-cache-files-*"' in verification
     assert "policy-check" in verification
-    assert "build_python" not in verification
-    assert "PyInstaller" not in verification
+    assert "smoke_python_backend.py" in verification
     assert "package.bat" not in verification
 
 
 def test_only_direct_windows_build_and_distribution_entrypoints_remain_in_root() -> None:
     assert (ROOT / "build_exe.bat").is_file()
     assert (ROOT / "run_dist.bat").is_file()
-    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat"):
+    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_python_backend.bat"):
         assert (ROOT / "scripts" / "build" / helper).is_file()
     for removed_helper in ("package.bat", "build_python_legacy.bat"):
         assert not (ROOT / "scripts" / "build" / removed_helper).exists()
@@ -76,7 +78,7 @@ def test_only_direct_windows_build_and_distribution_entrypoints_remain_in_root()
 
 
 def test_windows_build_helpers_resolve_paths_from_the_repository_root() -> None:
-    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat"):
+    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_python_backend.bat"):
         source = read_repo_file(f"scripts/build/{helper}")
         assert 'cd /d "%~dp0\\..\\.."' in source
     for entrypoint in ("build_exe.bat", "run_dist.bat"):
@@ -100,7 +102,7 @@ def test_pull_request_runner_skips_local_pytest_cache_artifacts() -> None:
     assert '"--ignore-glob=pytest-cache-files-*"' in create_pr
 
 
-def test_readme_explains_go_build_and_python_test_only_usage() -> None:
+def test_readme_explains_go_and_python_parser_build_requirements() -> None:
     readme = read_repo_file("README.md")
 
     for required_text in (
@@ -110,7 +112,8 @@ def test_readme_explains_go_build_and_python_test_only_usage() -> None:
         "scripts\\build\\setup.bat",
         "scripts\\build\\run_source.bat",
         "scripts\\build\\verify.bat",
-        "Python/PyInstallerのEXE buildは行いません",
+        "CPython AST",
+        "PyInstaller",
         "Go EXE",
     ):
         assert required_text in readme
@@ -130,7 +133,7 @@ def test_windows_user_entrypoint_errors_are_japanese() -> None:
     assert "Project environment not found" not in source_launcher
 
 
-def test_only_go_distribution_workflow_builds_and_uploads_windows_exe() -> None:
+def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None:
     ci_workflow = read_repo_file(".github/workflows/ci.yml")
     assert "- name: 全testを実行" in ci_workflow
     go_workflow = read_repo_file(".github/workflows/go-exe.yml")
@@ -142,7 +145,9 @@ def test_only_go_distribution_workflow_builds_and_uploads_windows_exe() -> None:
     assert "--version" in go_workflow
     assert "--help" in go_workflow
     assert "tomiya-code-atlas-go-windows-x64" in go_workflow
-    assert "tomiya-python-backend.exe" in go_workflow
+    assert "tomiya-python-backend\\tomiya-python-backend.exe" in go_workflow
+    assert "copy_python_runtime_license.py" in go_workflow or "build_python_backend.bat" in go_workflow
+    assert "smoke_python_backend.py" in go_workflow
     assert "Go版Windows EXEをartifactとして保存" in go_workflow
     assert not (ROOT / ".github/workflows/python-exe.yml").exists()
     assert not (ROOT / ".github/workflows/build.yml").exists()

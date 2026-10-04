@@ -19,6 +19,10 @@ def test_repository_backend_manifest_matches_parser_contract() -> None:
     assert manifest["manifest_version"] == BACKEND_MANIFEST_VERSION == "1"
     assert manifest["parser_backend_contract_version"] == PARSER_BACKEND_CONTRACT_VERSION
     assert isinstance(manifest["backends"], list)
+    for backend in manifest["backends"]:
+        assert backend["parser_engine"]
+        assert backend["parser_version"]
+        assert backend["grammar_version"]
 
 
 def test_backend_manifest_requires_supported_version(tmp_path: Path) -> None:

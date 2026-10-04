@@ -15,6 +15,10 @@ if not exist ".build\go-cache" mkdir ".build\go-cache"
 if not exist ".build\go-temp" mkdir ".build\go-temp"
 set "GOCACHE=%CD%\.build\go-cache"
 set "GOTMPDIR=%CD%\.build\go-temp"
+if not exist ".venv\Scripts\python.exe" (
+    call scripts\build\setup.bat
+    if errorlevel 1 exit /b 1
+)
 pushd go
 if errorlevel 1 (
     echo [エラー] Goソースのディレクトリが見つかりません: go
@@ -32,10 +36,9 @@ if not "%BUILD_RESULT%"=="0" (
     popd
     exit /b %BUILD_RESULT%
 )
-go build -trimpath -o "..\.build\dist\tomiya-python-backend.exe" "./cmd/python-parser-helper"
-set "BUILD_RESULT=%errorlevel%"
 popd
-if not "%BUILD_RESULT%"=="0" exit /b %BUILD_RESULT%
+call scripts\build\build_python_backend.bat
+if errorlevel 1 exit /b 1
 
 if not exist ".build\dist\tomiya-code-atlas.exe" (
     echo [エラー] Go版の配布EXEが生成されませんでした。

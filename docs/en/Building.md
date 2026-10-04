@@ -6,7 +6,8 @@ The Japanese source for this guide is the [Windows build section in the README](
 
 - Windows x64
 - Go 1.22 or later to build the Go Windows executable
-- Python 3.11 or later only for Python source tests and reference runs
+- Python 3.11 or later for Python source tests, reference runs, and the CPython parser helper build
+- PyInstaller (installed by the repository setup script)
 
 ## Build and run
 
@@ -17,10 +18,11 @@ build_exe.bat
 run_dist.bat
 ```
 
-`build_exe.bat` builds the Go Windows executable. The current Go bootstrap supports help/version while product features are being migrated. The output is:
+`build_exe.bat` builds the Go CLI and a PyInstaller one-dir helper containing the CPython runtime. The current Go bootstrap supports help/version while product features are being migrated. The outputs are:
 
 ```text
 .build\dist\tomiya-code-atlas.exe
+.build\dist\backends\tomiya-python-backend\
 ```
 
 To run the packaged command-line application, pass arguments through the launcher:
@@ -30,12 +32,12 @@ run_dist.bat --help
 run_dist.bat --version
 ```
 
-The Python source remains temporarily for reference and tests; no Python executable or package is built. To run the local verification sequence, including source tests and the Go executable smoke checks, use:
+The Python source remains temporarily for reference and tests. The Python parser helper uses CPython's AST and ships in a one-dir folder with its runtime included. Its supported grammar follows the bundled interpreter version. To run the local verification sequence, including source tests and frozen helper smoke checks, use:
 
 ```bat
 scripts\build\verify.bat
 ```
 
-For Python source execution after setting up the environment, use `scripts\build\run_source.bat`. Setup and verification helpers are grouped under `scripts\build\`; their working directory is resolved from the repository location.
+For Python source execution after setting up the environment, use `scripts\build\run_source.bat`. Setup and verification helpers are grouped under `scripts\build\`; their working directory is resolved from the repository location. All language backends use a real language parser or compiler AST rather than a hand-written scanner.
 
 If Go is missing, the build script reports the required version and installation link. See the [Japanese source guide](../../README.md) for the canonical instructions.
