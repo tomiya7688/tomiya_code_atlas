@@ -67,12 +67,12 @@ if errorlevel 1 (
     echo [エラー] pipを更新できませんでした。ネットワーク接続と一時フォルダーへの書き込み権限を確認してください。
     exit /b 1
 )
-".venv\Scripts\python.exe" -m pip install -e ".[test,parser-build]"
+".venv\Scripts\python.exe" -m pip install -e ".[test,parser-build,cpp-parser]"
 if errorlevel 1 (
     echo [エラー] Python依存パッケージを準備できませんでした。ネットワーク接続と一時フォルダーへの書き込み権限を確認してください。
     exit /b 1
 )
 
 echo.
-echo Python source testとCPython AST helperのone-dir build環境が完了しました。Go版Windows配布物のbuildは build_exe.bat を実行してください。
+echo Python source testとparser helperのone-dir build環境が完了しました。Go版Windows配布物のbuildは build_exe.bat を実行してください。
 endlocal & exit /b 0

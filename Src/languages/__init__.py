@@ -13,6 +13,7 @@ from .backend import (
 from .base import LanguageAdapter
 from .csharp import CSharpAdapter
 from .csharp_backend import CSharpRoslynBackend
+from .cpp_backend import CppClangBackend
 from .cpp import CppAdapter
 from .gdscript import GDScriptAdapter
 from .gdscript_backend import GDScriptHelperBackend, GDScriptTreeSitterBackend
@@ -27,6 +28,7 @@ from .python_comments_adapter import PythonAdapter
 __all__ = [
     "CSharpAdapter",
     "CSharpRoslynBackend",
+    "CppClangBackend",
     "CppAdapter",
     "FilesystemGDScriptProjectResolver",
     "GDScriptAdapter",

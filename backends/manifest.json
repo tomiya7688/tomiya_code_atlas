@@ -24,6 +24,25 @@
       ]
     },
     {
+      "backend_id": "cpp-libclang-helper",
+      "language": "cpp",
+      "kind": "helper",
+      "contract_version": "1",
+      "delivery": "pyinstaller-onedir-helper",
+      "path": "cpp/tomiya-cpp-backend/tomiya-cpp-backend.exe",
+      "parser_engine": "Clang libclang C++ translation-unit parser",
+      "parser_version": "22.1.4",
+      "grammar_version": "Clang C++20 default; compile_commands.json flags override",
+      "runtime": "bundled-cpython-and-libclang",
+      "licenses": [
+        "cpp/tomiya-cpp-backend/licenses/Python-LICENSE.txt",
+        "cpp/tomiya-cpp-backend/licenses/PyInstaller-COPYING.txt",
+        "cpp/tomiya-cpp-backend/licenses/LLVM-LICENSE.txt"
+      ],
+      "project_configuration": "nearest compile_commands.json when available",
+      "missing_sdk_behavior": "preserve parsed source entities and add normalized compiler diagnostics"
+    },
+    {
       "backend_id": "go-stdlib-types-helper",
       "language": "go",
       "kind": "helper",

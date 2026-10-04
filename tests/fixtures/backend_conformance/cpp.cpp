@@ -1,10 +1,9 @@
-#include <future>
 #include "support.hpp"
 
 #define TOMIYA_TOUCH(value) helper(value)
 
-class BaseWorker {
-};
+namespace tomiya {
+class BaseWorker {};
 
 template <typename T>
 class Worker : public BaseWorker {
@@ -23,8 +22,8 @@ public:
         return count > 0 ? item : helper(item);
     }
 
-    std::future<T> async_probe(T item) {
-        return std::async(std::launch::async, [item]() { return item; });
+    future<T> async_probe(T item) {
+        return future<T>{};
     }
 
     T nested_probe(T item) {
@@ -32,3 +31,4 @@ public:
         return nested(item);
     }
 };
+}

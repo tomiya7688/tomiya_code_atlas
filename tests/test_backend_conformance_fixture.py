@@ -136,7 +136,7 @@ def test_fixture_suite_exercises_generic_async_and_nested_scope_cases() -> None:
     assert "async def async_probe" in sources["python"]
     assert "await " in sources["gdscript"]
     assert "async Task<T> async_probe" in sources["csharp"]
-    assert "std::future<T> async_probe" in sources["cpp"]
+    assert "future<T> async_probe" in sources["cpp"]
     assert "CompletableFuture<T> async_probe" in sources["java"]
     assert "go func" in sources["go"]
 

@@ -38,6 +38,8 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 .venv\Scripts\python.exe tools\csharp_backend_smoke.py ".build\dist\backends\csharp\tomiya-csharp-backend.exe"
 if errorlevel 1 exit /b 1
+.venv\Scripts\python.exe tools\cpp_backend_smoke.py ".build\dist\backends\cpp\tomiya-cpp-backend\tomiya-cpp-backend.exe"
+if errorlevel 1 exit /b 1
 
 ".venv\Scripts\python.exe" -m compileall -q Src tests tools
 if errorlevel 1 exit /b 1
@@ -50,5 +52,5 @@ if errorlevel 1 exit /b 1
 
 rmdir /s /q "%VERIFY_DIR%" >nul 2>nul
 echo.
-echo Go配布EXE、Python/GDScript parser helper、C# Roslyn helper、Python source testsの検証が完了しました。
+echo Go配布EXE、Python/GDScript、C# Roslyn、C++ Clang helper、Python source testsの検証が完了しました。
 exit /b 0
