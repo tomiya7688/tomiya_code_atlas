@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -20,12 +21,19 @@ def request(binary: Path, *, request_id: str, source: str, path: str) -> dict[st
         "source": source,
         "path": path,
     }
+    environment = {
+        key: value
+        for key, value in os.environ.items()
+        if key.upper() not in {"PATH", "GOROOT", "GOPATH", "GOTOOLDIR", "GOCACHE"}
+    }
+    environment["PATH"] = ""
     completed = subprocess.run(
         [str(binary)],
         input=json.dumps(payload),
         text=True,
         encoding="utf-8",
         capture_output=True,
+        env=environment,
         check=True,
     )
     response = json.loads(completed.stdout)
