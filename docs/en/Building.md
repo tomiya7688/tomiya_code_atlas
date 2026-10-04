@@ -20,7 +20,7 @@ build_exe.bat
 run_dist.bat
 ```
 
-`build_exe.bat` builds the Go CLI, CPython/GDScript and C++ PyInstaller one-dir helpers, the self-contained .NET 10 Roslyn helper, and the JavaParser helper with a private jlink runtime containing `java.se` and required JDK modules. JDK 25 and Maven are needed only to build the Java helper; Python setup does not require them. The current Go bootstrap supports help/version while product features are being migrated. The outputs include:
+`build_exe.bat` builds the Go CLI and Go standard-parser helper, CPython/GDScript and C++ PyInstaller one-dir helpers, the self-contained .NET 10 Roslyn helper, and the JavaParser helper with a private jlink runtime containing `java.se` and required JDK modules. JDK 25 and Maven are needed only to build the Java helper; Python setup does not require them. The current Go bootstrap supports help/version while product features are being migrated. The outputs include:
 
 ```text
 .build\dist\tomiya-code-atlas.exe
@@ -28,6 +28,7 @@ run_dist.bat
 .build\dist\backends\csharp\
 .build\dist\backends\cpp\
 .build\dist\backends\java\
+.build\dist\backends\go\tomiya-go-backend.exe
 ```
 
 To run the packaged command-line application, pass arguments through the launcher:
