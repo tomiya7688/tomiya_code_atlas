@@ -8,6 +8,9 @@ on:
       - "go/**"
       - "backends/python/**"
       - "backends/cpp/**"
+      - "backend-src/java/**"
+      - "backends/licenses/javaparser-NOTICE.txt"
+      - "Src/languages/java_backend.py"
       - "Src/languages/cpp_backend.py"
       - "Src/analyzers/ir.py"
       - "Src/languages/gdscript_backend.py"
@@ -23,8 +26,10 @@ on:
       - "scripts/build/build_python_backend.bat"
       - "scripts/build/build_csharp_backend.bat"
       - "scripts/build/build_cpp_backend.bat"
+      - "scripts/build/build_java_backend.bat"
       - "scripts/build/smoke_python_backend.py"
       - "tools/cpp_backend_smoke.py"
+      - "tools/java_backend_smoke.py"
       - "scripts/build/copy_python_runtime_license.py"
       - "scripts/build/setup.bat"
       - "build_exe.bat"
@@ -36,6 +41,8 @@ on:
       - "tests/test_csharp_roslyn_backend.py"
       - "tests/test_cpp_clang_backend.py"
       - "tests/test_cpp_backend_selection.py"
+      - "tests/test_java_javaparser_backend.py"
+      - "tests/fixtures/backend_conformance/java.java"
       - "tools/csharp_backend_smoke.py"
       - "tests/fixtures/backend_conformance/csharp*"
       - "tests/fixtures/backend_conformance/cpp*"
@@ -53,6 +60,9 @@ on:
       - "go/**"
       - "backends/python/**"
       - "backends/cpp/**"
+      - "backend-src/java/**"
+      - "backends/licenses/javaparser-NOTICE.txt"
+      - "Src/languages/java_backend.py"
       - "Src/languages/cpp_backend.py"
       - "Src/analyzers/ir.py"
       - "Src/languages/gdscript_backend.py"
@@ -68,8 +78,10 @@ on:
       - "scripts/build/build_python_backend.bat"
       - "scripts/build/build_csharp_backend.bat"
       - "scripts/build/build_cpp_backend.bat"
+      - "scripts/build/build_java_backend.bat"
       - "scripts/build/smoke_python_backend.py"
       - "tools/cpp_backend_smoke.py"
+      - "tools/java_backend_smoke.py"
       - "scripts/build/copy_python_runtime_license.py"
       - "scripts/build/setup.bat"
       - "build_exe.bat"
@@ -81,6 +93,8 @@ on:
       - "tests/test_csharp_roslyn_backend.py"
       - "tests/test_cpp_clang_backend.py"
       - "tests/test_cpp_backend_selection.py"
+      - "tests/test_java_javaparser_backend.py"
+      - "tests/fixtures/backend_conformance/java.java"
       - "tools/csharp_backend_smoke.py"
       - "tests/fixtures/backend_conformance/csharp*"
       - "tests/fixtures/backend_conformance/cpp*"
@@ -112,6 +126,12 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
+
+      - name: Java 25 JDKを準備
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
 
       - name: PythonとPyInstallerを準備
         uses: actions/setup-python@v7
@@ -155,6 +175,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & .\.venv\Scripts\python.exe tools\cpp_backend_smoke.py ".build\dist\backends\cpp\tomiya-cpp-backend\tomiya-cpp-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\.venv\Scripts\python.exe tools\java_backend_smoke.py ".build\dist\backends\java\runtime\bin\java.exe" -jar ".build\dist\backends\java\tomiya-java-backend.jar"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Go版Windows EXEをartifactとして保存
         uses: actions/upload-artifact@v7
@@ -165,4 +187,5 @@ jobs:
             .build/dist/backends/tomiya-python-backend/
             .build/dist/backends/csharp/
             .build/dist/backends/cpp/
+            .build/dist/backends/java/
           if-no-files-found: error

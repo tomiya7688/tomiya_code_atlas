@@ -14,7 +14,13 @@ def test_java_conformance_fixture_covers_semantic_selection_features() -> None:
     for marker in (
         "package fixture;",
         "import java.util.concurrent.CompletableFuture;",
+        "static java.util.Objects.requireNonNull",
         "interface WorkContract<T>",
+        "enum State",
+        "@interface Marker",
+        "record Pair<T>",
+        "Worker(T current)",
+        "static class Nested",
         "class Worker<T> extends BaseWorker implements WorkContract<T>",
         "T helper(T item)",
         "T helper(T item, int count)",
@@ -35,10 +41,12 @@ def test_java_backend_selection_records_helper_and_license_policy() -> None:
     assert selected["external_jvm_required_at_runtime"] is False
     assert selected["external_jdk_required_at_runtime"] is False
     assert selected["license"].startswith("Apache-2.0")
+    assert selected["grammar_version"] == "JavaParser LanguageLevel.JAVA_26"
 
     assert distribution["directory"] == "backends/java/"
     assert distribution["protocol"] == "Parser Backend Contract v1 JSON"
     assert "private Java runtime" in distribution["launcher"]
+    assert "JDK 25" in distribution["build_requirements"]
 
 
 def test_java_selection_prefers_semantics_over_syntax_only_backend() -> None:

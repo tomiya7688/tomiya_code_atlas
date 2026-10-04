@@ -35,6 +35,28 @@ if errorlevel 1 (
     exit /b 1
 )
 
+if defined JAVA_HOME set "JAVAC=%JAVA_HOME%\bin\javac.exe"
+if not defined JAVAC for %%I in (javac.exe) do set "JAVAC=%%~$PATH:I"
+if not defined JAVAC (
+    echo [エラー] 全parser helperのbuildにはJDK 25が必要です。JAVA_HOMEを設定してください。
+    exit /b 1
+)
+for %%I in ("%JAVAC%") do set "JAVA_HOME=%%~dpI.."
+if not exist "%JAVA_HOME%\bin\jlink.exe" (
+    echo [エラー] private Java runtime作成用のjlinkがJDKにありません。
+    exit /b 1
+)
+"%JAVAC%" -version 2>&1 | findstr /b /c:"javac 25." >nul
+if errorlevel 1 (
+    echo [エラー] parser helperのbuildにはJDK 25が必要です。JAVA_HOMEを確認してください。
+    exit /b 1
+)
+where mvn >nul 2>nul
+if errorlevel 1 (
+    echo [エラー] Java parser helperのbuildにはApache Mavenが必要です。
+    exit /b 1
+)
+
 if not exist ".venv\Scripts\python.exe" (
     %PYTHON% -m venv .venv
     if errorlevel 1 (
@@ -74,5 +96,5 @@ if errorlevel 1 (
 )
 
 echo.
-echo Python source testとparser helperのone-dir build環境が完了しました。Go版Windows配布物のbuildは build_exe.bat を実行してください。
+echo Python source testとparser helperのbuild環境が完了しました。Go版Windows配布物のbuildは build_exe.bat を実行してください。
 endlocal & exit /b 0

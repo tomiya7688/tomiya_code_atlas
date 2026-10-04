@@ -1,6 +1,6 @@
 # Java AST／意味解析バックエンドの評価
 
-Issue #136では、Java parser／意味解析backendを#131の共通適合fixtureに照らして評価します。
+Issue #136ではJava parser／意味解析backendを選定し、Issue #192でそのhelperをGo配布物へ実装します。
 
 ## 選定
 
@@ -11,6 +11,7 @@ backend id: java-javaparser-symbol-solver-helper
 role: 主構文 + 意味解析
 transport: Parser Backend Contract v1 JSON
 runtime: 同梱private JVM
+grammar: JavaParser LanguageLevel.JAVA_26
 ```
 
 Tomiyaの解析を実行するために、利用者へJDK、JRE、Maven、Gradleの導入を要求しません。
@@ -27,23 +28,25 @@ JavaParserは現代Javaの解析と高度な解析機能を提供し、Symbol So
 
 | 候補 | 構文 | symbol／overload | generic／lambda | 配布 | 判断 |
 | --- | --- | --- | --- | --- | --- |
-| JavaParser + Symbol Solver | 現代Java AST | project／source／JARを考慮した解決 | 強い意味解析 | helper JAR + private JVM | **選定** |
+| JavaParser + Symbol Solver | Java 26 grammar | project／source／JARを考慮した解決 | 強い意味解析 | helper JAR + jlink private JVM | **選定** |
 | Eclipse JDT Core | compiler級 | 非常に強いbinding／compiler model | 非常に強い | Eclipse／JDT連携の面が大きい | 主backendにはしない |
 | tree-sitter-java | 強いincremental syntax | 単独ではなし | 構文のみ | 小さなnative parser | 未完成buffer用fallback |
 | 現行regex comment adapter | 限定的 | なし | なし | 依存が軽い | コメント生成専用 |
 
 ## 配布
 
-実装時には次を同梱します。
+配布物には次を同梱します。
 
 ```text
 backends/java/
 ├─ tomiya-java-backend.jar
+├─ javaparser-NOTICE.txt
 └─ runtime/
-   └─ bin/java.exe
+   ├─ bin/java.exe
+   └─ legal/
 ```
 
-build中にredistributableなprivate OpenJDK runtimeを組み立てます。依存を確認した後に最小化した `jlink` runtimeを使えますが、trimmingによってSymbol Solverが気付かず壊れることがないようにします。
+buildにはJDK 25とApache Mavenを使い、`jdeps`でhelper依存moduleを特定してから`jlink`でprivate OpenJDK runtimeを組み立てます。これらは開発時だけ必要で、利用者へJDK／JRE／Maven／Gradleの導入を要求しません。
 
 Python hostは定義済みParser Backend Contract v1を介してhelperを起動します。stdoutはprotocol専用、diagnosticはstderrです。
 
@@ -80,12 +83,15 @@ Java fixtureには次を含めます。
 - method callの複数回出現
 - lambda
 - CompletionStage／CompletableFutureを使う非同期形式のflow
+- record、enum、annotationとannotation member
+- field、constructor、nested type、型付きparameter、static import
+- 不正構文を`unsupported_syntax`として返すhelper protocol smoke
 
 JavaParser／JDT／tree-sitterのnode名はCommon IR goldenに加えません。
 
 ## 今後の作業
 
-#136は選定のみです。Java helper、Symbol Solver連携、Common IRへの正規化、private JVMのWindows onedir同梱、#131 fixtureによるCI検証には別の実装Issueが必要です。
+Common IRは構文parserが認識するJava構文全体を受理し、宣言・member情報を共有modelへ正規化します。外部classpath不足によるsymbol resolutionの診断は、構文parse失敗と区別します。
 
 2026-09-18時点で確認した情報源:
 

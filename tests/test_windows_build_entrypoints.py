@@ -17,6 +17,8 @@ def test_python_environment_installs_the_parser_helper_build_dependency() -> Non
     assert "-m ensurepip --upgrade --default-pip" in setup
     assert 'pip install -e ".[test,parser-build,cpp-parser]"' in setup
     assert "PyInstaller" in read_repo_file("pyproject.toml")
+    assert "JDK 25" in setup
+    assert "where mvn" in setup
 
 
 def test_source_and_distribution_launchers_have_distinct_targets() -> None:
@@ -45,6 +47,7 @@ def test_root_build_creates_go_cli_and_cpython_ast_onedir_helper() -> None:
     assert "build_python_backend.bat" in go_build
     assert "build_csharp_backend.bat" in go_build
     assert "build_cpp_backend.bat" in go_build
+    assert "build_java_backend.bat" in go_build
     python_build = read_repo_file("scripts/build/build_python_backend.bat")
     assert "--onedir" in python_build
     assert "--onefile" not in python_build
@@ -75,13 +78,14 @@ def test_verification_smokes_the_frozen_python_parser_helper() -> None:
     assert "smoke_python_backend.py" in verification
     assert "csharp_backend_smoke.py" in verification
     assert "cpp_backend_smoke.py" in verification
+    assert "java_backend_smoke.py" in verification
     assert "package.bat" not in verification
 
 
 def test_only_direct_windows_build_and_distribution_entrypoints_remain_in_root() -> None:
     assert (ROOT / "build_exe.bat").is_file()
     assert (ROOT / "run_dist.bat").is_file()
-    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_python_backend.bat", "build_csharp_backend.bat", "build_cpp_backend.bat"):
+    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_python_backend.bat", "build_csharp_backend.bat", "build_cpp_backend.bat", "build_java_backend.bat"):
         assert (ROOT / "scripts" / "build" / helper).is_file()
     for removed_helper in ("package.bat", "build_python_legacy.bat"):
         assert not (ROOT / "scripts" / "build" / removed_helper).exists()
@@ -90,7 +94,7 @@ def test_only_direct_windows_build_and_distribution_entrypoints_remain_in_root()
 
 
 def test_windows_build_helpers_resolve_paths_from_the_repository_root() -> None:
-    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_python_backend.bat", "build_csharp_backend.bat", "build_cpp_backend.bat"):
+    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_python_backend.bat", "build_csharp_backend.bat", "build_cpp_backend.bat", "build_java_backend.bat"):
         source = read_repo_file(f"scripts/build/{helper}")
         assert 'cd /d "%~dp0\\..\\.."' in source
     for entrypoint in ("build_exe.bat", "run_dist.bat"):
@@ -119,12 +123,14 @@ def test_readme_explains_go_and_python_parser_build_requirements() -> None:
 
     for required_text in (
         "Go 1.22以降",
+        "JDK 25",
+        "Apache Maven",
         "build_exe.bat",
         "run_dist.bat",
         "scripts\\build\\setup.bat",
         "scripts\\build\\run_source.bat",
         "scripts\\build\\verify.bat",
-        "CPython AST",
+        "CPython標準AST",
         "PyInstaller",
         ".NET 10 SDK",
         "Go EXE",
@@ -168,6 +174,10 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert "cpp_backend_smoke.py" in go_workflow
     assert "cpp\\tomiya-cpp-backend\\tomiya-cpp-backend.exe" in go_workflow
     assert ".build/dist/backends/cpp/" in go_workflow
+    assert "build_java_backend.bat" in go_workflow
+    assert "java_backend_smoke.py" in go_workflow
+    assert "setup-java@v5" in go_workflow
+    assert ".build/dist/backends/java/" in go_workflow
     assert "Go版Windows EXEをartifactとして保存" in go_workflow
     assert not (ROOT / ".github/workflows/python-exe.yml").exists()
     assert not (ROOT / ".github/workflows/build.yml").exists()

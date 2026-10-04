@@ -43,6 +43,8 @@ call scripts\build\build_csharp_backend.bat
 if errorlevel 1 exit /b 1
 call scripts\build\build_cpp_backend.bat
 if errorlevel 1 exit /b 1
+call scripts\build\build_java_backend.bat
+if errorlevel 1 exit /b 1
 
 if not exist ".build\dist\tomiya-code-atlas.exe" (
     echo [エラー] Go版の配布EXEが生成されませんでした。
