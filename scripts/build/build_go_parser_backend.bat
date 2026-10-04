@@ -36,6 +36,15 @@ if not exist ".build\dist\backends\go\tomiya-go-backend.exe" (
     echo [エラー] Go parser helperが生成されませんでした。
     exit /b 1
 )
+copy /y "backends\go\NOTICE.txt" ".build\dist\backends\go\NOTICE.txt" >nul
+if errorlevel 1 (
+    echo [エラー] Go parserのlicense noticeを配置できませんでした。
+    exit /b 1
+)
+if not exist ".build\dist\backends\go\NOTICE.txt" (
+    echo [エラー] Go parserのlicense noticeが見つかりません。
+    exit /b 1
+)
 echo Go parser helper build complete.
 endlocal
 exit /b 0
