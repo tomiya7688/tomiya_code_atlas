@@ -83,13 +83,13 @@ app.py             # 移行中のPython版アプリケーション入口
 
 開発元からクローンした場合は、次のツールをインストールします。
 
-- Go 1.22以降: [GoのWindows配布](https://go.dev/dl/)。Go版EXEをローカルbuildするときに使います。
+- Go 1.27.x: [GoのWindows配布](https://go.dev/dl/)。Go版EXEとGo parser helperのbuildに使います。
 - .NET 10 SDK: [Microsoft .NETダウンロード](https://dotnet.microsoft.com/download/dotnet/10.0)。C# Roslyn helperのself-contained buildに使います。配布物の利用者は.NETを別途用意する必要がありません。
 - JDK 25: Java parser helperのbuildとprivate runtime作成に使います。配布物の利用者はJavaを別途用意する必要がありません。
 - Apache Maven: [Mavenの配布案内](https://maven.apache.org/download.cgi)。JavaParser helperのbuildに使います。利用者向けartifactにはMavenを含めません。
 - Python 3.11以降: [Windows向けPython配布](https://www.python.org/downloads/windows/)。source実行、test、parser helperのbuildに使います。配布物はCPython runtimeを同梱します。
 
-Go版EXEと全parser helperのbuildにはGo 1.22以降、Python 3.11以降、.NET 10 SDK、JDK 25、Apache Mavenと `scripts\build\setup.bat` が必要です。配布物の利用者はこれらの開発toolchainを別途用意する必要がありません。
+Go版EXEと全parser helperのbuildにはGo 1.27.x、Python 3.11以降、.NET 10 SDK、JDK 25、Apache Mavenと `scripts\build\setup.bat` が必要です。配布物の利用者はこれらの開発toolchainを別途用意する必要がありません。
 
 `scripts\build\setup.bat` はリポジトリ内の `.venv` を作り、source testとPyInstaller helper buildに必要なpackageをインストールします。ソース版を起動する場合は `scripts\build\run_source.bat` を使います。Pythonや依存packageをglobal環境へインストールしません。
 
