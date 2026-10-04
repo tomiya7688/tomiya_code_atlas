@@ -8,6 +8,7 @@ from enum import Enum
 
 class EntityKind(str, Enum):
     MODULE = "module"
+    NAMESPACE = "namespace"
     CLASS = "class"
     FUNCTION = "function"
     METHOD = "method"

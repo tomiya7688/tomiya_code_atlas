@@ -1,37 +1,40 @@
 {
   "evaluation_version": "1",
-  "observed_on": "2026-09-18",
+  "observed_on": "2026-10-04",
   "language": "cpp",
   "selected_backend": {
-    "backend_id": "cpp-clang-tooling-helper",
-    "role": "primary-syntax-and-semantic",
-    "implementation_status": "selected-not-yet-integrated",
-    "source_repository": "llvm/llvm-project",
-    "api": "Clang LibTooling / C++ AST",
+    "backend_id": "cpp-libclang-helper",
+    "role": "primary-compiler-parser-and-common-ir-structure",
+    "implementation_status": "contract-v1-compiled-helper",
+    "source_repository": "llvm/llvm-project clang bindings",
+    "api": "Clang libclang translation-unit parser through libclang-ng",
+    "parser_version": "22.1.4.2",
     "kind": "helper",
     "external_llvm_required_at_runtime": false,
+    "semantic_scope": "common IR structural subset",
     "license": "Apache-2.0 WITH LLVM-exception"
   },
   "candidates": [
     {
-      "id": "clang-libtooling-helper",
-      "status": "selected",
-      "syntax_fidelity": "compiler-authoritative C/C++ parser and full C++ AST/Sema integration",
-      "templates": "compiler-native template declarations/instantiations",
-      "overload_resolution": "compiler-native when translation unit arguments/references are sufficient",
-      "includes_macros": "preprocessor and include graph available from Clang frontend/tooling",
-      "incomplete_source_recovery": "diagnostics and recoverable AST where Clang can continue",
-      "packaging": "bundle helper plus required Clang/LLVM runtime and builtin resource headers",
+      "id": "libclang-c-api",
+      "status": "selected-primary",
+      "syntax_fidelity": "complete compiler grammar for the configured Clang version; Clang translation-unit AST",
+      "templates": "template declarations and parameters exposed where representable by CIndex",
+      "overload_resolution": "Clang semantic references where the translation unit configuration resolves them",
+      "includes_macros": "compile database flags, include directives, macro processing and compiler diagnostics",
+      "incomplete_source_recovery": "diagnostics and recoverable translation-unit cursors",
+      "packaging": "bundled libclang shared library inside a Python one-dir helper; no external LLVM install",
+      "semantic_scope": "common IR structural subset; advanced Sema details remain an explicit follow-up",
       "license": "Apache-2.0 WITH LLVM-exception"
     },
     {
-      "id": "libclang-c-api",
-      "status": "not-selected-primary",
-      "syntax_fidelity": "stable high-level Clang C API",
-      "templates": "partial/high-level exposure",
-      "overload_resolution": "limited relative to full C++ AST/Sema",
-      "includes_macros": "translation unit/preprocessor information available but API intentionally does not expose all Clang AST information",
-      "packaging": "bundle libclang native library",
+      "id": "clang-libtooling-helper",
+      "status": "future-advanced-semantic-backend",
+      "syntax_fidelity": "compiler-authoritative C/C++ parser and full C++ AST/Sema integration",
+      "templates": "compiler-native template declarations/instantiations",
+      "overload_resolution": "fuller compiler-native Sema access",
+      "includes_macros": "preprocessor and include graph available from Clang frontend/tooling",
+      "packaging": "larger native helper plus required Clang/LLVM toolchain assets",
       "license": "Apache-2.0 WITH LLVM-exception"
     },
     {
@@ -55,30 +58,36 @@
     "directory": "backends/cpp/",
     "entrypoint": "tomiya-cpp-backend.exe",
     "protocol": "Parser Backend Contract v1 JSON",
+    "parser_package": "libclang-ng==22.1.4.2",
+    "delivery": "PyInstaller one-dir with bundled CPython and libclang",
     "bundled_assets": [
       "helper executable",
-      "Clang/LLVM runtime libraries or statically linked equivalents",
-      "Clang builtin resource headers"
+      "libclang shared library",
+      "Python runtime",
+      "LLVM Apache-2.0 WITH LLVM-exception license"
     ],
     "external_compiler_required": false,
+    "parser_package": "libclang-ng==22.1.4.2",
     "external_sdk_policy": "do not require LLVM installation; project/system SDK headers may improve semantic completeness when available"
   },
   "project_strategy": {
     "preferred_compile_configuration": "compile_commands.json",
-    "fallback": "conservative language defaults plus discovered include paths",
+    "fallback": "C++20 defaults plus the source directory as a quoted-include path",
     "missing_headers": "emit diagnostics and unresolved facts; do not invent symbols",
     "system_headers": "do not silently claim complete semantics when required platform/toolchain headers are unavailable"
   },
   "known_limits": [
     "Exact C++ semantics depend strongly on compile flags, macros and include paths.",
-    "Bundling Clang does not automatically provide every platform/vendor standard library or SDK header.",
+    "Bundling libclang does not automatically provide every platform/vendor standard library or SDK header.",
     "Translation units with missing headers may still yield partial AST/diagnostics but symbol resolution can be incomplete.",
+    "CIndex exposes less semantic detail than LibTooling; move advanced template-instantiation and Sema needs to LibTooling in a follow-up.",
     "tree-sitter-cpp may be used later for malformed editor-buffer syntax fallback."
   ],
   "follow_up_required": true,
   "sources": [
     "https://github.com/llvm/llvm-project",
     "https://github.com/llvm/llvm-project/blob/main/clang/include/clang-c/Index.h",
-    "https://github.com/tree-sitter/tree-sitter-cpp"
+    "https://github.com/tree-sitter/tree-sitter-cpp",
+    "https://pypi.org/project/libclang-ng/22.1.4.2/"
   ]
 }
