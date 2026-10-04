@@ -42,6 +42,10 @@ def test_go_backend_selection_is_self_contained() -> None:
     assert GoStandardLibraryBackend.descriptor.backend_id == selected["backend_id"]
     assert GoStandardLibraryBackend.descriptor.kind is ParserBackendKind.HELPER
     assert GoStandardLibraryBackend.helper_relative_path == "go/" + distribution["entrypoint"]
+    manifest = json.loads(Path("backends/manifest.json").read_text(encoding="utf-8"))
+    entry = next(item for item in manifest["backends"] if item["backend_id"] == selected["backend_id"])
+    assert entry["parser_version"] == "Go 1.27.x standard library"
+    assert entry["grammar_version"] == "Go 1.27 language grammar implemented by go/parser"
 
 
 def test_go_packages_is_optional_because_default_loading_needs_go_command() -> None:
