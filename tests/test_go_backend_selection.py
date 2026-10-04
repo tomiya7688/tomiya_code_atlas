@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from Src.languages.backend import ParserBackendKind
+from Src.languages.go_backend import GoStandardLibraryBackend
 
 ROOT = Path("tests/fixtures/backend_conformance")
 EVALUATION = Path("tests/fixtures/backend-evaluations/go.json")
@@ -37,6 +39,9 @@ def test_go_backend_selection_is_self_contained() -> None:
     assert selected["external_go_runtime_required"] is False
     assert distribution["entrypoint"] == "tomiya-go-backend.exe"
     assert distribution["protocol"] == "Parser Backend Contract v1 JSON"
+    assert GoStandardLibraryBackend.descriptor.backend_id == selected["backend_id"]
+    assert GoStandardLibraryBackend.descriptor.kind is ParserBackendKind.HELPER
+    assert GoStandardLibraryBackend.helper_relative_path == "go/" + distribution["entrypoint"]
 
 
 def test_go_packages_is_optional_because_default_loading_needs_go_command() -> None:
@@ -51,3 +56,4 @@ def test_go_packages_is_optional_because_default_loading_needs_go_command() -> N
     assert selected["status"] == "selected"
     assert "go/types" in selected["symbol_resolution"]
     assert evaluation["follow_up_required"] is True
+
