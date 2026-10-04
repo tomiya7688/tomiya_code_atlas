@@ -21,7 +21,7 @@ def test_python_environment_installs_the_parser_helper_build_dependency() -> Non
     assert "where mvn" not in setup
     java_build = read_repo_file("scripts/build/build_java_backend.bat")
     assert 'call mvn -q -f "backend-src\\java\\pom.xml" -DskipTests package' in java_build
-    assert "ALL-MODULE-PATH" in java_build
+    assert "java.se,jdk.unsupported,jdk.zipfs,jdk.localedata" in java_build
     assert '%%~$PATH:I' in java_build
 
 
