@@ -48,6 +48,8 @@ def test_root_build_creates_go_cli_and_cpython_ast_onedir_helper() -> None:
     assert "build_csharp_backend.bat" in go_build
     assert "build_cpp_backend.bat" in go_build
     assert "build_java_backend.bat" in go_build
+    java_build = read_repo_file("scripts/build/build_java_backend.bat")
+    assert 'call mvn -q -f "backend-src\\java\\pom.xml" -DskipTests package' in java_build
     python_build = read_repo_file("scripts/build/build_python_backend.bat")
     assert "--onedir" in python_build
     assert "--onefile" not in python_build
@@ -182,3 +184,4 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert not (ROOT / ".github/workflows/python-exe.yml").exists()
     assert not (ROOT / ".github/workflows/build.yml").exists()
     assert not (ROOT / ".github/workflows/release.yml").exists()
+
