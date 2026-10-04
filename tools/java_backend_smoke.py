@@ -41,13 +41,33 @@ def main(argv: list[str] | None = None) -> int:
     assert interface["declaration_kind"] == "interface"
     assert run["call_sequence"].count("helper") == 2
     assert len(run["resolved_calls"]) >= 2
-    assert "static java.util.Objects.requireNonNull" in module["imports"]
+    assert "java.util.Objects" in module["imports"]
+    assert "static java.util.Objects.requireNonNull" not in module["imports"]
     assert any(item["name"] == "Pair" and item["declaration_kind"] == "record" for item in entities)
     assert any(item["name"] == "State" and item["declaration_kind"] == "enum" for item in entities)
     assert any(item["name"] == "Marker" and item["declaration_kind"] == "annotation" for item in entities)
     assert any(item["name"] == "value" and item["declaration_kind"] == "annotation_member" for item in entities)
+    annotation_member = next(item for item in entities if item["name"] == "value" and item["declaration_kind"] == "annotation_member")
+    assert annotation_member["visibility"] == "public"
+    enum_constants = {item["name"] for item in entities if item["declaration_kind"] == "enum_constant"}
+    assert enum_constants == {"READY", "RUNNING"}
     assert any(item["name"] == "current" and item["kind"] == "field" for item in entities)
-    assert any(item["name"] == "Worker" and item["declaration_kind"] == "constructor" for item in entities)
+    constructors = [item for item in entities if item["name"] in {"Worker", "Checked"} and item["declaration_kind"] == "constructor"]
+    worker_constructor = next(item for item in constructors if item["name"] == "Worker" and len(item["parameters"]) == 1)
+    assert worker_constructor["calls"] == ["requireNonNull"]
+    assert "Creates a worker." in worker_constructor["docstring"]
+    generic_constructor = next(item for item in constructors if item["name"] == "Worker" and len(item["parameters"]) == 2)
+    assert generic_constructor["type_parameters"] == ["N"]
+    assert generic_constructor["type_constraints"] == ["N extends Number"]
+    compact_constructor = next(item for item in constructors if item["name"] == "Checked")
+    assert compact_constructor["parameters"] == ["value"]
+    assert compact_constructor["calls"] == ["validate"]
+    record_component = next(item for item in entities if item["name"] == "left" and item["declaration_kind"] == "record_component")
+    assert "Marker" in record_component["decorators"]
+    native_method = next(item for item in entities if item["name"] == "read")
+    assert native_method["declaration_kind"] == "method"
+    varargs_method = next(item for item in entities if item["name"] == "log")
+    assert varargs_method["parameter_types"] == [["values", "String[]"]]
     nested = next(item for item in entities if item["name"] == "Nested")
     assert nested["parent"] == "Worker"
     run = next(item for item in entities if item["name"] == "run" and item.get("parent") == "Worker")
@@ -78,3 +98,4 @@ def invoke(command: list[str], request: dict[str, object]) -> dict[str, object]:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
