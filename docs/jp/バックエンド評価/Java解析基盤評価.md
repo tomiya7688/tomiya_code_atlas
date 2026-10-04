@@ -46,7 +46,7 @@ backends/java/
    └─ legal/
 ```
 
-buildにはJDK 25とApache Mavenを使い、任意のJava projectで標準APIを解決できるようJDKの標準module一式を`jlink`でprivate OpenJDK runtimeへ同梱します。これらはJava helper build時だけ必要で、Python source環境のsetupには要求しません。利用者へJDK／JRE／Maven／Gradleの導入を要求しません。
+buildにはJDK 25とApache Mavenを使い、`java.se`とparserの実行に必要なJDK moduleを`jlink`でprivate OpenJDK runtimeへ同梱します。Java 24以降のTemurinはJMODなしでlinkできるため、module名を明示してruntime imageから生成します。これらはJava helper build時だけ必要で、Python source環境のsetupには要求しません。利用者へJDK／JRE／Maven／Gradleの導入を要求しません。
 
 Python hostは定義済みParser Backend Contract v1を介してhelperを起動します。stdoutはprotocol専用、diagnosticはstderrです。
 
