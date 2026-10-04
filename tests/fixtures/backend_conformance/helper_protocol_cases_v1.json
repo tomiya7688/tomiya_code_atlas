@@ -11,7 +11,7 @@
         "path": "demo.go"
       },
       "expected_entity_names": ["demo", "Run"],
-      "expected_imports": ["\"fmt\""]
+      "expected_imports": ["fmt"]
     },
     "csharp": {
       "request": {
@@ -26,3 +26,4 @@
     }
   }
 }
+
