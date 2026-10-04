@@ -5,7 +5,12 @@ cd /d "%~dp0\..\.."
 
 where go >nul 2>nul
 if errorlevel 1 (
-    echo [エラー] Go parser helperのbuildにGo toolchainが必要です。
+    echo [エラー] Go parser helperのbuildにはGo 1.27.xが必要です。
+    exit /b 1
+)
+for /f "tokens=3" %%V in ('go version') do set "GO_VERSION=%%V"
+if not "%GO_VERSION:~0,6%"=="go1.27" (
+    echo [エラー] Go parser helperはGo 1.27.xでbuildしてください。検出したversion: %GO_VERSION%
     exit /b 1
 )
 
