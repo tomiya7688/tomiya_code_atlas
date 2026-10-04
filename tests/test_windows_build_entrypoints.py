@@ -131,7 +131,7 @@ def test_readme_explains_go_and_python_parser_build_requirements() -> None:
     readme = read_repo_file("README.md")
 
     for required_text in (
-        "Go 1.22以降",
+        "Go 1.27.x",
         "JDK 25",
         "Apache Maven",
         "build_exe.bat",
