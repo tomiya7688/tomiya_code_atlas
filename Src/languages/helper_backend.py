@@ -38,6 +38,7 @@ def module_from_wire_ir(payload: dict[str, Any]) -> ModuleIR:
                 line=int(item.get("line", 1)),
                 end_line=int(item.get("end_line", item.get("line", 1))),
                 parent=item.get("parent"),
+                docstring=item.get("docstring"),
                 parameters=tuple(str(value) for value in item.get("parameters", ())),
                 decorators=tuple(str(value) for value in item.get("decorators", ())),
                 calls=tuple(str(value) for value in item.get("calls", ())),
@@ -220,3 +221,4 @@ class JsonHelperBackend:
                 )
             )
         return module
+

@@ -74,5 +74,6 @@ if errorlevel 1 (
 )
 
 echo.
-echo Python source testとparser helperのone-dir build環境が完了しました。Go版Windows配布物のbuildは build_exe.bat を実行してください。
+echo Python source testとparser helperのbuild環境が完了しました。Go版Windows配布物のbuildは build_exe.bat を実行してください。
 endlocal & exit /b 0
+

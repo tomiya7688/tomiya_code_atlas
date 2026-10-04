@@ -9,6 +9,7 @@
     "source_repository": "javaparser/javaparser",
     "api": "JavaParser + JavaSymbolSolver",
     "observed_release": "3.28.2",
+    "grammar_version": "JavaParser LanguageLevel.JAVA_26",
     "kind": "helper",
     "external_jvm_required_at_runtime": false,
     "external_jdk_required_at_runtime": false,
@@ -22,6 +23,7 @@
     "stdout": "protocol-only",
     "stderr": "diagnostics/logging",
     "runtime_policy": "bundle a redistributable private OpenJDK runtime inside the onedir artifact; do not require system Java/JDK",
+    "build_requirements": "JDK 25 and Apache Maven; end users need neither",
     "optimization": "jlink/minimized runtime may be used after dependency verification; correctness is preferred over aggressive trimming"
   },
   "candidates": [

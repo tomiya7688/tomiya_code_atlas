@@ -43,6 +43,17 @@ call scripts\build\build_csharp_backend.bat
 if errorlevel 1 exit /b 1
 call scripts\build\build_cpp_backend.bat
 if errorlevel 1 exit /b 1
+echo Building Java parser helper and bundled runtime...
+call scripts\build\build_java_backend.bat
+if errorlevel 1 exit /b 1
+if not exist ".build\dist\backends\java\tomiya-java-backend.jar" (
+    echo [エラー] JavaParser helper JARが配布先にありません。
+    exit /b 1
+)
+if not exist ".build\dist\backends\java\runtime\bin\java.exe" (
+    echo [エラー] Java private runtimeが配布先にありません。
+    exit /b 1
+)
 
 if not exist ".build\dist\tomiya-code-atlas.exe" (
     echo [エラー] Go版の配布EXEが生成されませんでした。
@@ -52,3 +63,4 @@ echo.
 echo Windows Go distribution build complete.
 endlocal
 exit /b 0
+

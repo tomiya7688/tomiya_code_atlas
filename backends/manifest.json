@@ -97,11 +97,11 @@
       "language": "java",
       "kind": "helper",
       "contract_version": "1",
-      "delivery": "jar-plus-private-openjdk-runtime",
+      "delivery": "shaded-jar-plus-jlink-runtime",
       "path": "java/tomiya-java-backend.jar",
       "parser_engine": "JavaParser",
       "parser_version": "3.28.2",
-      "grammar_version": "JavaParser default language level",
+      "grammar_version": "JavaParser LanguageLevel.JAVA_26",
       "runtime": "java/runtime/bin/java.exe",
       "licenses": [
         "licenses/javaparser-NOTICE.txt",
