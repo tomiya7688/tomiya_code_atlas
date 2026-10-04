@@ -18,7 +18,16 @@ enum State {
     String value() default "fixture";
 }
 
-record Pair<T>(T left, T right) {
+record Pair<T>(@Marker("left") T left, T right) {
+}
+
+record Checked(int value) {
+    Checked {
+        validate(value);
+    }
+
+    private static void validate(int value) {
+    }
 }
 
 class BaseWorker {
@@ -27,8 +36,15 @@ class BaseWorker {
 class Worker<T> extends BaseWorker implements WorkContract<T> {
     private final T current;
 
+    /** Creates a worker. */
     Worker(T current) {
         this.current = requireNonNull(current);
+
+        class DeferredCall {
+            void later() {
+                helper(current);
+            }
+        }
     }
 
     static class Nested {
@@ -50,6 +66,15 @@ class Worker<T> extends BaseWorker implements WorkContract<T> {
         return item;
     }
 
+    <N extends Number> Worker(N number, T current) {
+        this(current);
+    }
+
+    native int read();
+
+    void log(String... values) {
+    }
+
     CompletableFuture<T> async_probe(T item) {
         return CompletableFuture.completedFuture(item);
     }
@@ -59,3 +84,4 @@ class Worker<T> extends BaseWorker implements WorkContract<T> {
         return nested.apply(item);
     }
 }
+
