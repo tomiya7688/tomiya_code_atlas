@@ -73,6 +73,7 @@ def module_from_wire_ir(payload: dict[str, Any]) -> ModuleIR:
         entities=entities,
         diagnostics=diagnostics,
         imports=tuple(str(value) for value in payload.get("imports", ())),
+        module_docstring=payload.get("module_docstring"),
     )
 
 
