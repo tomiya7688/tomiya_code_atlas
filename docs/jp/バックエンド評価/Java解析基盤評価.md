@@ -46,7 +46,7 @@ backends/java/
    └─ legal/
 ```
 
-buildにはJDK 25とApache Mavenを使い、`jdeps`でhelper依存moduleを特定してから`jlink`でprivate OpenJDK runtimeを組み立てます。これらは開発時だけ必要で、利用者へJDK／JRE／Maven／Gradleの導入を要求しません。
+buildにはJDK 25とApache Mavenを使い、任意のJava projectで標準APIを解決できるようJDKの標準module一式を`jlink`でprivate OpenJDK runtimeへ同梱します。これらはJava helper build時だけ必要で、Python source環境のsetupには要求しません。利用者へJDK／JRE／Maven／Gradleの導入を要求しません。
 
 Python hostは定義済みParser Backend Contract v1を介してhelperを起動します。stdoutはprotocol専用、diagnosticはstderrです。
 
@@ -98,3 +98,4 @@ Common IRは構文parserが認識するJava構文全体を受理し、宣言・m
 - https://github.com/javaparser/javaparser
 - https://github.com/eclipse-jdt/eclipse.jdt.core
 - https://github.com/tree-sitter/tree-sitter-java
+
