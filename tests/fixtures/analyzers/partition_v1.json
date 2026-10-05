@@ -1,0 +1,73 @@
+{
+  "cases": [
+    {
+      "name": "chain",
+      "nodes": [],
+      "edges": [["a", "b"], ["b", "c"], ["c", "d"]],
+      "fan_in_threshold": 4,
+      "min_child_series_size": 3,
+      "expected": {
+        "series": [["a", "b", "c", "d"]], "shared": [], "series_roots": ["a"],
+        "series_depths": [0], "series_parents": [null], "cross_series_edge_count": 0,
+        "cycle_count": 0, "fan_in_distribution": [0, 1, 1, 1], "fan_out_distribution": [0, 1, 1, 1]
+      }
+    },
+    {
+      "name": "recursive-branches",
+      "nodes": [],
+      "edges": [["A", "B"], ["A", "X"], ["B", "C"], ["B", "D"], ["C", "E"], ["C", "F"]],
+      "fan_in_threshold": 4,
+      "min_child_series_size": 3,
+      "expected": {
+        "series": [["A", "X"], ["B", "D"], ["C", "E", "F"]], "shared": [],
+        "series_roots": ["A", "B", "C"], "series_depths": [0, 1, 2], "series_parents": [null, "A", "B"],
+        "cross_series_edge_count": 2, "cycle_count": 0, "fan_in_distribution": [0, 1, 1, 1, 1, 1, 1],
+        "fan_out_distribution": [0, 0, 0, 0, 2, 2, 2]
+      }
+    },
+    {
+      "name": "external-reference-keeps-branch",
+      "nodes": [],
+      "edges": [["A", "B"], ["A", "X"], ["B", "C"], ["B", "D"], ["X", "C"]],
+      "fan_in_threshold": 4,
+      "min_child_series_size": 3,
+      "expected": {
+        "series": [["A", "B", "C", "D", "X"]], "shared": [], "series_roots": ["A"],
+        "series_depths": [0], "series_parents": [null], "cross_series_edge_count": 0, "cycle_count": 0,
+        "fan_in_distribution": [0, 1, 1, 1, 2], "fan_out_distribution": [0, 0, 1, 2, 2]
+      }
+    },
+    {
+      "name": "shared-fan-in-node",
+      "nodes": [],
+      "edges": [["first", "shared"], ["second", "shared"], ["shared", "sink"]],
+      "fan_in_threshold": 2,
+      "min_child_series_size": 3,
+      "expected": {
+        "series": [["first"], ["second"], ["sink"]], "shared": ["shared"],
+        "series_roots": ["first", "second", "sink"], "series_depths": [0, 0, 0],
+        "series_parents": [null, null, null], "cross_series_edge_count": 0, "cycle_count": 0,
+        "fan_in_distribution": [0, 0, 1, 2], "fan_out_distribution": [0, 1, 1, 1]
+      }
+    },
+    {
+      "name": "cycle-not-split",
+      "nodes": [],
+      "edges": [["A", "B"], ["A", "X"], ["B", "C"], ["C", "B"]],
+      "fan_in_threshold": 4,
+      "min_child_series_size": 3,
+      "expected": {
+        "series": [["A", "B", "C", "X"]], "shared": [], "series_roots": ["A"],
+        "series_depths": [0], "series_parents": [null], "cross_series_edge_count": 0, "cycle_count": 1,
+        "fan_in_distribution": [0, 1, 1, 2], "fan_out_distribution": [0, 1, 1, 2]
+      }
+    }
+  ],
+  "metrics_graph": {
+    "nodes": ["D"],
+    "edges": [["A", "B"], ["B", "C"], ["C", "B"], ["E", "E"]],
+    "expected_scc": [["A"], ["B", "C"], ["D"], ["E"]],
+    "expected_cyclic_scc": [["B", "C"], ["E"]]
+  }
+}
+
