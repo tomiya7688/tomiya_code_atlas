@@ -1,0 +1,50 @@
+{
+  "component_modules": [
+    {"name": "app.api", "component": "api", "imports": ["app.store", "requests"]},
+    {"name": "app.store", "component": "store", "imports": ["app.api"]}
+  ],
+  "merge": {
+    "topologies": [
+      {
+        "nodes": [
+          {"id": "service:api", "label": "API candidate", "kind": "service", "confidence": "inferred"},
+          {"id": "service:store", "label": "Store", "kind": "database", "confidence": "unknown"}
+        ],
+        "connections": [
+          {"source": "service:api", "target": "service:store", "relation": "uses", "confidence": "inferred"}
+        ]
+      },
+      {
+        "nodes": [
+          {"id": "service:api", "label": "API", "kind": "service", "confidence": "confirmed"},
+          {"id": "service:store", "label": "Store", "kind": "database", "confidence": "inferred"}
+        ],
+        "connections": [
+          {"source": "service:api", "target": "service:store", "relation": "uses", "confidence": "confirmed"}
+        ]
+      }
+    ],
+    "expected": {
+      "nodes": [
+        {"id": "service:api", "label": "API", "kind": "service", "confidence": "confirmed"},
+        {"id": "service:store", "label": "Store", "kind": "database", "confidence": "inferred"}
+      ],
+      "connections": [
+        {"source": "service:api", "target": "service:store", "relation": "uses", "confidence": "confirmed"}
+      ]
+    }
+  },
+  "expected_component_topology": {
+    "nodes": [
+      {"id": "component:api", "label": "api", "kind": "application-component", "confidence": "inferred", "source": "source imports"},
+      {"id": "external:requests", "label": "requests", "kind": "external-dependency", "confidence": "inferred", "source": "source imports"},
+      {"id": "component:store", "label": "store", "kind": "application-component", "confidence": "inferred", "source": "source imports"}
+    ],
+    "connections": [
+      {"source": "component:api", "target": "component:store", "relation": "imports", "confidence": "inferred"},
+      {"source": "component:api", "target": "external:requests", "relation": "imports", "confidence": "inferred"},
+      {"source": "component:store", "target": "component:api", "relation": "imports", "confidence": "inferred"}
+    ]
+  }
+}
+
