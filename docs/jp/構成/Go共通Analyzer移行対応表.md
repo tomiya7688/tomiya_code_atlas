@@ -8,7 +8,9 @@ Issue #195で、Python版の決定的な共通解析をCommon IR入力のGo実�
 | --- | --- | --- | --- |
 | Call graphの構築、fan-in/out、到達範囲、深さ制限、循環 | `Src/analyzers/call_graph.py` | `go/internal/analyzers/call_graph.go` | `tests/fixtures/backend_conformance/serialized_common_ir_v1.json` 内の`logical_output.call_graph`とGoテスト |
 | package/module依存、相対import、孤立node、循環 | `Src/analyzers/package_dependencies.py` | `go/internal/analyzers/package_dependencies.go` | `tests/fixtures/analyzers/package_dependencies_v1.json`をPython/Go両方で読む |
-| class/object/component関係 | `Src/analyzers/class_relations.py`、`object_relations.py`、`component_dependencies.py` | 未移植 | 対応時にAnalyzerごとの共有goldenを追加 |
+| class relations（継承、解決済みclass use、外部base保持） | `Src/analyzers/class_relations.py` | `go/internal/analyzers/relations.go` | `tests/fixtures/analyzers/relations_v1.json` |
+| object references（scope内解決、曖昧参照の除外、cycle） | `Src/analyzers/object_relations.py` | `go/internal/analyzers/relations.go` | `tests/fixtures/analyzers/relations_v1.json` |
+| component依存（project内module集約、external package、cycle） | `Src/analyzers/component_dependencies.py` | `go/internal/analyzers/relations.go` | `tests/fixtures/analyzers/relations_v1.json` |
 | partition、graph metrics、flow | `Src/analyzers/partition.py`、`graph_metrics.py`、`call_sequence.py` | 未移植 | 順序、scope/depth、SCC/循環、統計を個別に比較 |
 
 ## 現時点のCall graph契約
