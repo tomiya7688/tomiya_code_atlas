@@ -14,7 +14,9 @@ Issue #195で、Python版の決定的な共通解析をCommon IR入力のGo実�
 | partition（共有node分離、閉じたbranch、scope/depth、統計） | `Src/analyzers/partition.py` | `go/internal/analyzers/partition.go` | `tests/fixtures/analyzers/partition_v1.json` |
 | strongly connected components | `Src/analyzers/graph_metrics.py` | `go/internal/analyzers/graph_metrics.go` | `tests/fixtures/analyzers/partition_v1.json` |
 | call sequenceと内部relation graph | `Src/analyzers/call_sequence.py` | `go/internal/analyzers/call_sequence.go` | `tests/fixtures/analyzers/call_sequence_v1.json` |
-| Timing/state flowとdeployment topology | `Src/analyzers/deployment.py`および対応flow処理 | 未移植 | Common IR event facts、YAML境界、confirmed/inferred/unknownの保持を個別に照合 |
+| component依存からの推定deployment topology、確度を保つtopology統合 | `Src/analyzers/deployment.py` | `go/internal/analyzers/deployment_topology.go` | `tests/fixtures/analyzers/deployment_topology_v1.json`をPython/Go両方で読む |
+| Dockerfile / Compose / Kubernetesのdeployment事実抽出 | `Src/analyzers/deployment.py` | 未移植 | Dockerfile/YAML readerの境界と契約を照合 |
+| Timing/state flow | Common IR factsと対応generator | 未移植 | 共通IRの順序・状態遷移factsから論理出力を比較 |
 
 ## 現時点のCall graph契約
 
