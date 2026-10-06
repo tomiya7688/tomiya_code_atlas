@@ -16,7 +16,8 @@ Issue #195で、Python版の決定的な共通解析をCommon IR入力のGo実�
 | call sequenceと内部relation graph | `Src/analyzers/call_sequence.py` | `go/internal/analyzers/call_sequence.go` | `tests/fixtures/analyzers/call_sequence_v1.json` |
 | component依存からの推定deployment topology、確度を保つtopology統合 | `Src/analyzers/deployment.py` | `go/internal/analyzers/deployment_topology.go` | `tests/fixtures/analyzers/deployment_topology_v1.json`をPython/Go両方で読む |
 | Dockerfile / Compose / Kubernetesのdeployment事実抽出 | `Src/analyzers/deployment.py` | 未移植 | Dockerfile/YAML readerの境界と契約を照合 |
-| Timing/state flow | Common IR factsと対応generator | 未移植 | 共通IRの順序・状態遷移factsから論理出力を比較 |
+| state machine factsからの状態図logical model生成 | `Src/generators/state_diagram.py` | `go/internal/generators/state_timing.go` | `tests/fixtures/analyzers/state_timing_v1.json`をPython/Go両方で読む |
+| timing flow factsからのタイミング図logical model生成 | `Src/generators/timing_chart.py` | `go/internal/generators/state_timing.go` | `tests/fixtures/analyzers/state_timing_v1.json`をPython/Go両方で読む |
 
 ## 現時点のCall graph契約
 
