@@ -2,8 +2,24 @@ package analyzers
 
 import "sort"
 
-// StronglyConnectedComponents returns deterministic SCCs, including isolated nodes.
+//	{
+//	  責務: [
+//	    StronglyConnectedComponents: 有向graphを強連結componentへ分けて安定順で返す
+//	  ]
+//	  処理: [
+//	    1: adjacencyを重複除去して辞書順に整える
+//	    2: Tarjan法でnodeをstrongly connected componentへ分類する
+//	    3: 各componentとcomponent一覧を辞書順に整列する
+//	  ]
+//	  引数: [
+//	    graph: 孤立nodeを含む解析対象の有向relation graph
+//	  ]
+//	  戻り値: [
+//	    [][]string: node名を辞書順にしたstrongly connected component一覧
+//	  ]
+//	}
 func StronglyConnectedComponents(graph RelationGraph) [][]string {
+	// 隣接先を集合化してから辞書順へ整え、探索順による出力差を防ぎます。
 	adjacency := make(map[string][]string, len(graph.nodes))
 	targets := make(map[string]map[string]struct{}, len(graph.nodes))
 	for node := range graph.nodes {
@@ -21,6 +37,7 @@ func StronglyConnectedComponents(graph RelationGraph) [][]string {
 	for node, items := range targets {
 		adjacency[node] = sortedKeys(items)
 	}
+	// Tarjan indexとlow-linkでstack上のstrongly connected componentを抽出します。
 	index := 0
 	indices := map[string]int{}
 	low := map[string]int{}
@@ -70,6 +87,7 @@ func StronglyConnectedComponents(graph RelationGraph) [][]string {
 			visit(node)
 		}
 	}
+	// 各componentとcomponent一覧を安定順にして、呼び出しごとの差をなくします。
 	sort.Slice(components, func(i, j int) bool {
 		a, b := components[i], components[j]
 		if a[0] != b[0] {
@@ -88,7 +106,21 @@ func StronglyConnectedComponents(graph RelationGraph) [][]string {
 	return components
 }
 
-// CyclicStronglyConnectedComponents returns only SCCs containing a cycle.
+//	{
+//	  責務: [
+//	    CyclicStronglyConnectedComponents: cycleを含むstrongly connected componentだけを返す
+//	  ]
+//	  処理: [
+//	    1: graph全体のstrongly connected componentを求める
+//	    2: 2 node以上のcomponentとself-loopを持つ1 node componentを残す
+//	  ]
+//	  引数: [
+//	    graph: cycleの有無を調べる有向relation graph
+//	  ]
+//	  戻り値: [
+//	    [][]string: cycleを含むnode名一覧
+//	  ]
+//	}
 func CyclicStronglyConnectedComponents(graph RelationGraph) [][]string {
 	selfLoops := map[string]struct{}{}
 	for _, edge := range graph.edges {
@@ -110,4 +142,3 @@ func CyclicStronglyConnectedComponents(graph RelationGraph) [][]string {
 	}
 	return out
 }
-

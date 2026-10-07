@@ -2,7 +2,16 @@ package analyzers
 
 import "sort"
 
-// Confidence records how directly a deployment fact was observed.
+//	{
+//	  責務: [
+//	    Confidence: deployment factの確認確度を表す
+//	  ]
+//	  フィールド: [
+//	    ConfidenceUnknown: 入力から確認できない状態
+//	    ConfidenceInferred: 入力情報から推定した状態
+//	    ConfidenceConfirmed: 入力に明示され確認できた状態
+//	  ]
+//	}
 type Confidence string
 
 const (
@@ -11,7 +20,20 @@ const (
 	ConfidenceConfirmed Confidence = "confirmed"
 )
 
-// DeploymentNode is a renderer-neutral logical deployment entity.
+//	{
+//	  責務: [
+//	    DeploymentNode: 出力形式に依存しないdeployment entityを保持する
+//	  ]
+//	  フィールド: [
+//	    ID: nodeを識別するkey
+//	    Label: 利用者向けの表示名
+//	    Kind: entityの種類
+//	    Confidence: factの確認確度
+//	    Environment: 配置環境
+//	    Source: factの情報源
+//	    Metadata: 補足属性
+//	  ]
+//	}
 type DeploymentNode struct {
 	ID          string            `json:"id"`
 	Label       string            `json:"label"`
@@ -22,7 +44,17 @@ type DeploymentNode struct {
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
-// DeploymentConnection is a logical relation between deployment nodes.
+//	{
+//	  責務: [
+//	    DeploymentConnection: deployment node間の論理relationを保持する
+//	  ]
+//	  フィールド: [
+//	    Source: 関係元node ID
+//	    Target: 関係先node ID
+//	    Relation: 関係の種類
+//	    Confidence: relation factの確認確度
+//	  ]
+//	}
 type DeploymentConnection struct {
 	Source     string     `json:"source"`
 	Target     string     `json:"target"`
@@ -30,13 +62,36 @@ type DeploymentConnection struct {
 	Confidence Confidence `json:"confidence"`
 }
 
-// DeploymentTopology contains normalized deployment facts only.
+//	{
+//	  責務: [
+//	    DeploymentTopology: 正規化したdeployment factsを保持する
+//	  ]
+//	  フィールド: [
+//	    Nodes: deployment entityの一覧
+//	    Connections: entity間relationの一覧
+//	  ]
+//	}
 type DeploymentTopology struct {
 	Nodes       []DeploymentNode       `json:"nodes"`
 	Connections []DeploymentConnection `json:"connections"`
 }
 
-// MergeDeploymentTopologies deduplicates facts and keeps the most certain one.
+//	{
+//	  責務: [
+//	    MergeDeploymentTopologies: 複数topologyの重複factを確度優先で統合する
+//	  ]
+//	  処理: [
+//	    1: nodeとconnectionを一意keyで集約する
+//	    2: 同じfactでは確認確度が高い値を選ぶ
+//	    3: IDとrelation順に整列して返す
+//	  ]
+//	  引数: [
+//	    topologies: 統合するdeployment topology
+//	  ]
+//	  戻り値: [
+//	    DeploymentTopology: 重複を除いた統合結果
+//	  ]
+//	}
 func MergeDeploymentTopologies(topologies ...DeploymentTopology) DeploymentTopology {
 	nodes := make(map[string]DeploymentNode)
 	connections := make(map[deploymentConnectionKey]DeploymentConnection)
@@ -76,7 +131,22 @@ func MergeDeploymentTopologies(topologies ...DeploymentTopology) DeploymentTopol
 	return result
 }
 
-// DeploymentTopologyFromComponentGraph converts source dependencies to inferred placement facts.
+//	{
+//	  責務: [
+//	    DeploymentTopologyFromComponentGraph: component依存graphを推定deployment factsへ変換する
+//	  ]
+//	  処理: [
+//	    1: internal componentとexternal dependencyをnodeへ変換する
+//	    2: dependency edgeをimports connectionへ変換する
+//	    3: すべてのfactをinferredとして返す
+//	  ]
+//	  引数: [
+//	    graph: component単位の依存graph
+//	  ]
+//	  戻り値: [
+//	    DeploymentTopology: 推定したnodeとconnection
+//	  ]
+//	}
 func DeploymentTopologyFromComponentGraph(graph ComponentDependencyGraph) DeploymentTopology {
 	result := emptyDeploymentTopology()
 	external := make(map[string]struct{})
@@ -107,8 +177,33 @@ func DeploymentTopologyFromComponentGraph(graph ComponentDependencyGraph) Deploy
 	return result
 }
 
+//	{
+//	  責務: [
+//	    deploymentConnectionKey: connectionをsource・target・relationの組で識別する
+//	  ]
+//	  フィールド: [
+//	    source: 関係元node ID
+//	    target: 関係先node ID
+//	    relation: 関係の種類
+//	  ]
+//	}
 type deploymentConnectionKey struct{ source, target, relation string }
 
+//	{
+//	  責務: [
+//	    confidenceRank: 確度の優先順を数値で返す
+//	  ]
+//	  処理: [
+//	    1: confirmed、inferred、unknownの順に順位を割り当てる
+//	    2: 未知の値はunknown相当として返す
+//	  ]
+//	  引数: [
+//	    confidence: 比較するfactの確度
+//	  ]
+//	  戻り値: [
+//	    int: 比較用の順位
+//	  ]
+//	}
 func confidenceRank(confidence Confidence) int {
 	switch confidence {
 	case ConfidenceConfirmed:
@@ -120,6 +215,21 @@ func confidenceRank(confidence Confidence) int {
 	}
 }
 
+//	{
+//	  責務: [
+//	    cloneDeploymentNode: nodeとそのmetadata mapを独立した値へ複製する
+//	  ]
+//	  処理: [
+//	    1: node valueを複製する
+//	    2: metadataがある場合は別mapへ複製する
+//	  ]
+//	  引数: [
+//	    node: 複製元のdeployment node
+//	  ]
+//	  戻り値: [
+//	    DeploymentNode: 入力と独立したmetadataを持つnode
+//	  ]
+//	}
 func cloneDeploymentNode(node DeploymentNode) DeploymentNode {
 	if node.Metadata != nil {
 		metadata := make(map[string]string, len(node.Metadata))

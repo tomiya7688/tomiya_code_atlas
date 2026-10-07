@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// deploymentConfigFixturePath is the shared Python/Go deployment config golden.
+// deploymentConfigFixturePathは、Python版とGo版で比較するdeployment設定fixtureのpathです。
 const deploymentConfigFixturePath = "../../../tests/fixtures/analyzers/deployment_config_v1.json"
 
 //	{
