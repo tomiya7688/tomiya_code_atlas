@@ -1,0 +1,38 @@
+{
+  "common_ir": {
+    "language": "python",
+    "entities": [
+      {"kind": "class", "name": "Service", "line": 1, "end_line": 7},
+      {"kind": "method", "name": "run", "parent": "Service", "line": 2, "end_line": 3, "calls": ["self.helper", "cls.helper", "helper", "free", "missing", "Other.helper"], "call_sequence": ["self.helper", "cls.helper", "helper", "free", "missing", "Other.helper"]},
+      {"kind": "method", "name": "helper", "parent": "Service", "line": 4, "end_line": 4},
+      {"kind": "class", "name": "Other", "line": 8, "end_line": 11},
+      {"kind": "method", "name": "helper", "parent": "Other", "line": 9, "end_line": 9},
+      {"kind": "function", "name": "free", "line": 12, "end_line": 12}
+    ],
+    "objects": [],
+    "imports": [],
+    "diagnostics": []
+  },
+  "expected": {
+    "resolved": {
+      "Service.helper": [],
+      "Service.run": [
+        {"raw": "self.helper", "target": "Service.helper"},
+        {"raw": "cls.helper", "target": "Service.helper"},
+        {"raw": "helper", "target": "helper"},
+        {"raw": "free", "target": "free"},
+        {"raw": "missing", "target": "missing"},
+        {"raw": "Other.helper", "target": "Other.helper"}
+      ],
+      "Other.helper": [],
+      "free": []
+    },
+    "graph_nodes": ["Other.helper", "Service.helper", "Service.run", "free"],
+    "graph_edges": [
+      {"caller": "Service.run", "callee": "Service.helper"},
+      {"caller": "Service.run", "callee": "free"},
+      {"caller": "Service.run", "callee": "Other.helper"}
+    ]
+  }
+}
+

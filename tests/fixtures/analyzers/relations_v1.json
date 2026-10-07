@@ -1,0 +1,53 @@
+{
+  "common_ir": {
+    "language": "python",
+    "entities": [
+      {"kind": "class", "name": "Base", "line": 1, "end_line": 1},
+      {"kind": "class", "name": "Helper", "line": 2, "end_line": 2},
+      {"kind": "class", "name": "Service", "line": 3, "end_line": 4, "bases": ["Base", "Base", "ThirdParty.Root", "Service"]},
+      {"kind": "method", "name": "run", "line": 4, "end_line": 4, "parent": "Service", "calls": ["Helper", "Alpha.Shared", "Shared", "Helper"]},
+      {"kind": "class", "name": "Shared", "line": 5, "end_line": 5, "parent": "Alpha"},
+      {"kind": "class", "name": "Shared", "line": 6, "end_line": 6, "parent": "Beta"}
+    ],
+    "objects": [
+      {"name": "left", "type_name": "Node", "line": 1, "scope": "build", "references": [["right", "right"]]},
+      {"name": "right", "type_name": "Node", "line": 2, "scope": "build", "references": [["left", "left"]]},
+      {"name": "caller", "type_name": "Caller", "line": 3, "scope": "build", "references": [["ambiguous", "duplicate"]]},
+      {"name": "duplicate", "type_name": "Item", "line": 4, "scope": "first"},
+      {"name": "duplicate", "type_name": "Item", "line": 5, "scope": "second"},
+      {"name": "isolated", "type_name": "Item", "line": 6, "scope": "build"}
+    ],
+    "imports": [],
+    "diagnostics": []
+  },
+  "component_modules": [
+    {"name": "ui.view", "component": "ui", "imports": ["ui.controller", "data.repo", "requests"]},
+    {"name": "ui.controller", "component": "ui", "imports": ["data.repo"]},
+    {"name": "data.repo", "component": "data", "imports": ["ui.view", "requests"]}
+  ],
+  "expected": {
+    "class_nodes": ["Alpha.Shared", "Base", "Beta.Shared", "Helper", "Service", "ThirdParty.Root"],
+    "class_edges": [
+      {"caller": "Service", "callee": "Base", "relation": "inheritance"},
+      {"caller": "Service", "callee": "ThirdParty.Root", "relation": "inheritance"},
+      {"caller": "Service", "callee": "Helper", "relation": "uses"},
+      {"caller": "Service", "callee": "Alpha.Shared", "relation": "uses"}
+    ],
+    "object_nodes": ["build:caller", "build:isolated", "build:left", "build:right", "first:duplicate", "second:duplicate"],
+    "object_edges": [
+      {"caller": "build:left", "callee": "build:right", "label": "right"},
+      {"caller": "build:right", "callee": "build:left", "label": "left"}
+    ],
+    "object_cycles": [["build:left", "build:right", "build:left"]],
+    "component_nodes": ["data", "external:requests", "ui"],
+    "component_edges": [
+      {"caller": "ui", "callee": "data"},
+      {"caller": "ui", "callee": "external:requests"},
+      {"caller": "data", "callee": "ui"},
+      {"caller": "data", "callee": "external:requests"}
+    ],
+    "component_external_nodes": ["external:requests"],
+    "component_cycles": [["data", "ui", "data"]]
+  }
+}
+

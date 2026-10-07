@@ -1,0 +1,83 @@
+{
+  "common_ir": {
+    "language": "python",
+    "entities": [],
+    "state_machines": [
+      {
+        "owner": "Worker",
+        "state_type": "State",
+        "state_variable": "state",
+        "states": ["IDLE", "RUNNING", "DONE"],
+        "transitions": [
+          {"source": "IDLE", "target": "RUNNING", "line": 12, "event": "start", "condition": "state == IDLE"},
+          {"source": "RUNNING", "target": "DONE", "line": 18, "event": "finish"}
+        ],
+        "initial_state": "IDLE",
+        "terminal_states": ["DONE"]
+      }
+    ],
+    "timing_flows": [
+      {
+        "owner": "Worker.load-data",
+        "is_async": true,
+        "events": [
+          {"order": 2, "kind": "await", "line": 28, "target": "fetch", "detail": "timeout=1"},
+          {"order": 1, "kind": "callback", "line": 25, "target": "done"},
+          {"order": 3, "kind": "parallel_start", "line": 30},
+          {"order": 4, "kind": "parallel_join", "line": 31}
+        ]
+      },
+      {"owner": "empty", "is_async": false, "events": []}
+    ],
+    "imports": [],
+    "diagnostics": []
+  },
+  "expected": {
+    "state": {
+      "diagrams": [
+        {
+          "name": "state_60f8674639_Worker_state",
+          "owner": "Worker",
+          "state_type": "State",
+          "state_variable": "state",
+          "states": ["IDLE", "RUNNING", "DONE"],
+          "transitions": [
+            {"source": "IDLE", "target": "RUNNING", "event": "start", "condition": "state == IDLE"},
+            {"source": "RUNNING", "target": "DONE", "event": "finish"}
+          ],
+          "initial_state": "IDLE",
+          "terminal_states": ["DONE"]
+        }
+      ],
+      "statistics": {"machine_count": 1, "state_count": 3, "transition_count": 2}
+    },
+    "timing": {
+      "charts": [
+        {
+          "name": "Worker.load-data",
+          "owner": "Worker.load-data",
+          "is_async": true,
+          "events": [
+            {"order": 2, "kind": "await", "line": 28, "target": "fetch", "detail": "timeout=1"},
+            {"order": 1, "kind": "callback", "line": 25, "target": "done"},
+            {"order": 3, "kind": "parallel_start", "line": 30},
+            {"order": 4, "kind": "parallel_join", "line": 31}
+          ]
+        }
+      ],
+      "statistics": {
+        "chart_count": 1,
+        "async_flow_count": 1,
+        "await_count": 1,
+        "parallel_start_count": 1,
+        "parallel_join_count": 1,
+        "wait_count": 0,
+        "sync_count": 0,
+        "timer_count": 0,
+        "callback_count": 1,
+        "periodic_count": 0
+      }
+    }
+  }
+}
+
