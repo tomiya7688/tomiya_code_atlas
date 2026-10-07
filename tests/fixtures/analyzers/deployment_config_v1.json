@@ -1,0 +1,49 @@
+{
+  "dockerfile": {
+    "source_name": "Dockerfile",
+    "source": "FROM --platform=linux/amd64 python:3.13-slim AS build\nFROM gcr.io/distroless/python3\n",
+    "expected": {
+      "nodes": [
+        {"id": "docker:Dockerfile", "label": "Dockerfile", "kind": "container-image", "confidence": "confirmed", "environment": "container", "source": "Dockerfile", "metadata": {"base_images": "python:3.13-slim, gcr.io/distroless/python3"}},
+        {"id": "image:gcr.io/distroless/python3", "label": "gcr.io/distroless/python3", "kind": "external-image", "confidence": "confirmed", "environment": "registry", "source": "Dockerfile"},
+        {"id": "image:python:3.13-slim", "label": "python:3.13-slim", "kind": "external-image", "confidence": "confirmed", "environment": "registry", "source": "Dockerfile"}
+      ],
+      "connections": [
+        {"source": "docker:Dockerfile", "target": "image:gcr.io/distroless/python3", "relation": "FROM", "confidence": "confirmed"},
+        {"source": "docker:Dockerfile", "target": "image:python:3.13-slim", "relation": "FROM", "confidence": "confirmed"}
+      ]
+    }
+  },
+  "compose": {
+    "source_name": "compose.yaml",
+    "source": "services:\n  web:\n    build:\n      context: .\n      dockerfile: Dockerfile\n    ports: [\"8080:80\"]\n    depends_on: [db, cache]\n    links: [cache:6379]\n  db:\n    image: postgres:17\n  cache:\n    image: redis:8\n  queue:\n    image: rabbitmq:3\n",
+    "expected": {
+      "nodes": [
+        {"id": "compose:cache", "label": "cache", "kind": "cache", "confidence": "confirmed", "environment": "compose", "source": "compose.yaml", "metadata": {"image": "redis:8"}},
+        {"id": "compose:db", "label": "db", "kind": "database", "confidence": "confirmed", "environment": "compose", "source": "compose.yaml", "metadata": {"image": "postgres:17"}},
+        {"id": "compose:queue", "label": "queue", "kind": "message-queue", "confidence": "confirmed", "environment": "compose", "source": "compose.yaml", "metadata": {"image": "rabbitmq:3"}},
+        {"id": "compose:web", "label": "web", "kind": "service", "confidence": "confirmed", "environment": "compose", "source": "compose.yaml", "metadata": {"build": "{'context': '.', 'dockerfile': 'Dockerfile'}", "ports": "8080:80"}}
+      ],
+      "connections": [
+        {"source": "compose:web", "target": "compose:cache", "relation": "depends_on", "confidence": "confirmed"},
+        {"source": "compose:web", "target": "compose:cache", "relation": "links", "confidence": "confirmed"},
+        {"source": "compose:web", "target": "compose:db", "relation": "depends_on", "confidence": "confirmed"}
+      ]
+    }
+  },
+  "kubernetes": {
+    "source_name": "manifest.yaml",
+    "source": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\nspec:\n  replicas: 2\n  template:\n    metadata:\n      labels:\n        app: api\n    spec:\n      containers:\n        - name: api\n          image: example/api:1\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: api-service\nspec:\n  selector:\n    app: api\n---\napiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: public\nspec:\n  rules:\n    - http:\n        paths:\n          - path: /\n            backend:\n              service:\n                name: api-service\n                port:\n                  number: 80\n",
+    "expected": {
+      "nodes": [
+        {"id": "k8s:deployment:api", "label": "api", "kind": "workload", "confidence": "confirmed", "environment": "kubernetes", "source": "manifest.yaml", "metadata": {"kind": "Deployment", "images": "example/api:1", "replicas": "2"}},
+        {"id": "k8s:ingress:public", "label": "public", "kind": "ingress", "confidence": "confirmed", "environment": "kubernetes", "source": "manifest.yaml"},
+        {"id": "k8s:service:api-service", "label": "api-service", "kind": "service-endpoint", "confidence": "confirmed", "environment": "kubernetes", "source": "manifest.yaml"}
+      ],
+      "connections": [
+        {"source": "k8s:ingress:public", "target": "k8s:service:api-service", "relation": "routes_to", "confidence": "confirmed"},
+        {"source": "k8s:service:api-service", "target": "k8s:deployment:api", "relation": "routes_to", "confidence": "confirmed"}
+      ]
+    }
+  }
+}

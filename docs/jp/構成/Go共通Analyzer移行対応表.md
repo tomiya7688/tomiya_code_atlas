@@ -15,7 +15,7 @@ Issue #195で、Python版の決定的な共通解析をCommon IR入力のGo実�
 | strongly connected components | `Src/analyzers/graph_metrics.py` | `go/internal/analyzers/graph_metrics.go` | `tests/fixtures/analyzers/partition_v1.json` |
 | call sequenceと内部relation graph | `Src/analyzers/call_sequence.py` | `go/internal/analyzers/call_sequence.go` | `tests/fixtures/analyzers/call_sequence_v1.json` |
 | component依存からの推定deployment topology、確度を保つtopology統合 | `Src/analyzers/deployment.py` | `go/internal/analyzers/deployment_topology.go` | `tests/fixtures/analyzers/deployment_topology_v1.json`をPython/Go両方で読む |
-| Dockerfile / Compose / Kubernetesのdeployment事実抽出 | `Src/analyzers/deployment.py` | 未移植 | Dockerfile/YAML readerの境界と契約を照合 |
+| Dockerfile / Compose / Kubernetesのdeployment事実抽出 | `Src/analyzers/deployment.py` | `go/internal/analyzers/deployment_config*.go`, `deployment_kubernetes.go` | `tests/fixtures/analyzers/deployment_config_v1.json`をPython/Go両方で読む。YAMLは`yaml.v3`で読み、Renderer構文へ依存しない |
 | state machine factsからの状態図logical model生成 | `Src/generators/state_diagram.py` | `go/internal/generators/state_timing.go` | `tests/fixtures/analyzers/state_timing_v1.json`をPython/Go両方で読む |
 | timing flow factsからのタイミング図logical model生成 | `Src/generators/timing_chart.py` | `go/internal/generators/state_timing.go` | `tests/fixtures/analyzers/state_timing_v1.json`をPython/Go両方で読む |
 
@@ -31,4 +31,9 @@ Issue #195で、Python版の決定的な共通解析をCommon IR入力のGo実�
 - SCC出力はlexical orderで安定化します。自己loopはcyclic SCCとして含みます。
 
 この表は移植済み範囲を示すもので、未移植項目と情報確度のIssue #195完了を意味しません。追加時は共有fixture、Python版との比較、意図した差をこの表へ記録します。
+
+## 意図した差
+
+- deployment topologyのnodeとconnectionはGo版でID・relation順に安定化します。Python版は設定ファイル内の宣言順を保つ場合があります。共有fixtureでは配列を正規化して比較し、node・edgeの意味、metadata、confidenceが一致することを確認します。
+- Composeのmapping metadataはGo版でkeyを辞書順にして文字列化します。Python版のmapping文字列は入力順に依存します。metadataの値は維持し、同じ設定を繰り返し解析したときのGo出力を決定的にします。
 

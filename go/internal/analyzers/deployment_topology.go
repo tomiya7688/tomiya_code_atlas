@@ -55,7 +55,7 @@ func MergeDeploymentTopologies(topologies ...DeploymentTopology) DeploymentTopol
 			}
 		}
 	}
-	result := DeploymentTopology{}
+	result := emptyDeploymentTopology()
 	for _, node := range nodes {
 		result.Nodes = append(result.Nodes, node)
 	}
@@ -78,7 +78,7 @@ func MergeDeploymentTopologies(topologies ...DeploymentTopology) DeploymentTopol
 
 // DeploymentTopologyFromComponentGraph converts source dependencies to inferred placement facts.
 func DeploymentTopologyFromComponentGraph(graph ComponentDependencyGraph) DeploymentTopology {
-	result := DeploymentTopology{}
+	result := emptyDeploymentTopology()
 	external := make(map[string]struct{})
 	for _, name := range graph.ExternalNodes() {
 		external[name] = struct{}{}
@@ -130,4 +130,3 @@ func cloneDeploymentNode(node DeploymentNode) DeploymentNode {
 	}
 	return node
 }
-
