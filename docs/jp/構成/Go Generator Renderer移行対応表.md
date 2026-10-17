@@ -18,6 +18,7 @@ Issue #196 で、共通IRまたは共通Analyzerの結果から論理出力を�
 | Use case diagram | `go/internal/generators` | `RenderUseCaseDiagramMermaid` | Mermaid |
 | Deployment diagram | `go/internal/generators` | `RenderDeploymentDiagramMermaid` | Mermaid |
 | Responsibility table | `go/internal/generators` | `RenderResponsibilityMarkdown` / `RenderResponsibilityCSV` | Markdown / CSV |
+| Activity diagram | `go/internal/generators` | `RenderActivityFlowchart` | Mermaid |
 
 ## 境界
 
@@ -27,6 +28,8 @@ Issue #196 で、共通IRまたは共通Analyzerの結果から論理出力を�
 - stable output name、node順、message順、末尾改行は決定的にする。
 
 ## 共有golden
+
+Activity flowchart は `tests/fixtures/generators/activity_flowchart_v1.json` を Python / Go で共有し、node形状、edge順、方向、末尾改行を検証する。
 
 `tests/fixtures/generators/renderers_v1.json` はPython 1.0とGo rendererが共有するgoldenで、Mermaid / PlantUML / Markdown / CSVの順序、escaping、改行を固定する。Go側は `go/internal/renderers/renderers_test.go`、Python側は `tests/test_generator_renderer_shared_fixture.py` で同じ期待値を検証する。
 
