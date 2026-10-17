@@ -1,0 +1,19 @@
+{
+    "expected": {
+        "call_graph_mermaid": "flowchart LR\n    n_helper[\"helper\"]\n    n_main[\"main\"]\n    n_main --> n_helper\n",
+        "class_mermaid": "classDiagram\ndirection LR\n    class c_329cb8b6ba[\"Service\"] {\n        +run(x)\n    }\n    class c_e6ca57202c[\"Repo\"]\n    c_329cb8b6ba --> c_e6ca57202c : uses\n",
+        "class_plantuml": "@startuml\nleft to right direction\nclass \"Service\" as c_329cb8b6ba {\n  +run(x)\n}\nclass \"Repo\" as c_e6ca57202c {\n}\nc_329cb8b6ba --> c_e6ca57202c : uses\n@enduml\n",
+        "communication_mermaid": "flowchart LR\n    p0[\"Service\"]\n    p1[\"Repo\"]\n    p0 -->|\"1: load item\"| p1\n",
+        "component_mermaid": "flowchart LR\n    component_app[\"app\"]\n    component_external_requests([\"requests\"])\n    component_app --> component_external_requests\n",
+        "deployment_mermaid": "flowchart LR\n    n0[[\"API\\\\napp:v1\"]]\n    n1[(\"DB\\\\n[prod]\")]\n    n0 -.->|\"connects [inferred]\"| n1\n    classDef confirmed stroke-width:2px;\n    classDef inferred stroke-dasharray:5 5;\n    classDef unknown stroke-dasharray:2 4;\n    class n0 confirmed;\n    class n1 inferred;\n",
+        "object_mermaid": "flowchart LR\n    o0[\"service : Service<br/>name = api\"]\n    o1[\"repo : Repo\"]\n    o0 -->|repo| o1\n",
+        "package_mermaid": "flowchart LR\n    pkg_app[\"app\"]\n    pkg_data[\"data\"]\n    pkg_app --> pkg_data\n    classDef cycle stroke-width:3px\n    class pkg_app,pkg_data cycle\n    classDef isolated stroke-dasharray: 5 5\n    class pkg_data isolated\n",
+        "responsibility_csv": "Class,Responsibility\nService,Coordinates service processing.\n",
+        "responsibility_markdown": "| Class | Responsibility |\n| --- | --- |\n| Service | Coordinates service processing. |\n",
+        "sequence_mermaid": "sequenceDiagram\n    participant p0 as Service.run\n    participant p1 as Repo.load\n    p0->>p1: load- item\n    p1-->>p0: return\n",
+        "sequence_plantuml": "@startuml\nparticipant \"Service.run\" as p_e4fafa5fcc\nparticipant \"Repo.load\" as p_566c7a23a0\np_e4fafa5fcc -> p_566c7a23a0 : load: item\np_566c7a23a0 --> p_e4fafa5fcc : return\n@enduml\n",
+        "state_mermaid": "stateDiagram-v2\n    %% Worker.state : State\n    [*] --> IDLE\n    state \"Any current state\" as __any\n    __any --> RUNNING: start [ready]\n    RUNNING --> [*]\n",
+        "timing_mermaid": "sequenceDiagram\n    participant p0 as \"Worker.load\"\n    participant p1 as \"fetch\"\n    Note over p0: async flow\n    p0->>p1: 1. await timeout=1\n    p1-->>p0: resume\n    Note over p0: 2. parallel_start parallel_start\n",
+        "use_case_mermaid": "flowchart LR\n    actor1[\"User\"]\n    uc1([\"Open\"])\n    actor1 -->|\"button / click\"| uc1\n    %% handler-chain: Controller.on_open -> Repo.load\n"
+    }
+}

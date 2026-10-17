@@ -1,0 +1,15 @@
+{
+  "logical_input": {
+    "entry": "start",
+    "nodes": [
+      {"id": "start", "label": "Start", "kind": "activity"},
+      {"id": "check", "label": "Is valid?", "kind": "decision"},
+      {"id": "finish", "label": "Finish", "kind": "activity"}
+    ],
+    "edges": [
+      {"source": "start", "target": "check"},
+      {"source": "check", "target": "finish", "label": "Yes"}
+    ]
+  },
+  "expected_mermaid": "flowchart TD\n    act_start[Start]\n    act_check{Is valid?}\n    act_finish[Finish]\n    act_start --> act_check\n    act_check -->|Yes| act_finish\n"
+}
