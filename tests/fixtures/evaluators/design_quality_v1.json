@@ -1,0 +1,22 @@
+{
+  "module": {
+    "language": "python",
+    "entities": [
+      {"kind": "function", "name": "alpha", "calls": ["beta"]},
+      {"kind": "function", "name": "beta", "calls": ["alpha"]}
+    ],
+    "imports": [],
+    "diagnostics": []
+  },
+  "thresholds": {
+    "high_fan_in": 10,
+    "high_fan_out": 10,
+    "large_series": 10,
+    "high_cross_series_ratio": 0.25
+  },
+  "expected": {
+    "finding_codes": ["call-cycle", "strongly-connected-component"],
+    "finding_subjects": ["alpha -> beta -> alpha", "alpha, beta"],
+    "call_cycle_count": 1
+  }
+}
