@@ -1,0 +1,21 @@
+{
+  "module": {
+    "language": "python",
+    "entities": [
+      {"kind": "class", "name": "ReportBuilder", "line": 1},
+      {"kind": "method", "name": "build_report", "line": 2, "indent": 4},
+      {"kind": "function", "name": "loadConfig", "line": 8},
+      {"kind": "function", "name": "documented", "line": 10, "docstring": "Already explained."},
+      {"kind": "function", "name": "handle_event", "line": 12, "calls": ["dispatch"]},
+      {"kind": "branch", "name": "if_ready", "line": 14}
+    ],
+    "imports": [],
+    "diagnostics": []
+  },
+  "expected_candidates": [
+    {"target": "class", "name": "ReportBuilder", "line": 1, "text": "report builderに関する状態と処理をまとめます。"},
+    {"target": "method", "name": "build_report", "line": 2, "indent": "    ", "text": "reportを構築します。"},
+    {"target": "function", "name": "loadConfig", "line": 8, "text": "configを読み込みます。"},
+    {"target": "function", "name": "handle_event", "line": 12, "text": "handle eventの処理を実行し、関連処理を連携させます。"}
+  ]
+}
