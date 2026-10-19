@@ -3,6 +3,7 @@ package data
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -14,7 +15,13 @@ import (
 //	  戻り値: []
 //	}
 func TestLoadRepositoryBackendManifest(t *testing.T) {
-	applicationRoot := filepath.Clean(filepath.Join("..", "..", "..", "..", ".."))
+	// テストのworking directoryはGoの実行環境で異なるため、固定の相対階層を使わずsource pathを取得する。
+	_, testSourcePath, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller() did not return the test source path")
+	}
+	// test sourceはgo/internal/dataにあるため、そこから三階層上をrepository rootとしてmanifestを読む。
+	applicationRoot := filepath.Clean(filepath.Join(filepath.Dir(testSourcePath), "..", "..", ".."))
 	manifest, err := LoadBackendManifest(applicationRoot)
 	if err != nil {
 		t.Fatalf("LoadBackendManifest() error = %v", err)
