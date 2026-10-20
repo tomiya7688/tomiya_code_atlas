@@ -85,6 +85,26 @@ func TestProjectFileScannerSupportsSingleFileRoot(t *testing.T) {
 }
 
 //	{
+//	  責務: [TestIsDirectoryDistinguishesFilesAndDirectories: fileとdirectoryの判定および存在しないpathのerrorを検証する]
+//	  処理: [1: fileとdirectoryを用意する, 2: IsDirectoryの結果を比較する, 3: 未存在pathがerrorになることを確認する]
+//	  引数: [t: Go test runner]
+//	  戻り値: []
+//	}
+func TestIsDirectoryDistinguishesFilesAndDirectories(t *testing.T) {
+	rootPath := t.TempDir()
+	filePath := writeProjectTestFile(t, rootPath, "source.go")
+	if isDirectory, err := IsDirectory(rootPath); err != nil || !isDirectory {
+		t.Fatalf("IsDirectory(directory) = (%v, %v), want (true, nil)", isDirectory, err)
+	}
+	if isDirectory, err := IsDirectory(filePath); err != nil || isDirectory {
+		t.Fatalf("IsDirectory(file) = (%v, %v), want (false, nil)", isDirectory, err)
+	}
+	if _, err := IsDirectory(filepath.Join(rootPath, "missing")); err == nil {
+		t.Fatal("IsDirectory(missing) returned no error")
+	}
+}
+
+//	{
 //	  責務: [TestProjectFileScannerFindsDeploymentCandidates: deployment scanがDockerfile・Compose・YAML候補を見つけてignored treeを除くことを検証する]
 //	  処理: [1: DockerfileとYAML設定を作る, 2: 除外directoryにも候補名を作る, 3: scan結果をpath順で比較する]
 //	  引数: [t: Go test runner]

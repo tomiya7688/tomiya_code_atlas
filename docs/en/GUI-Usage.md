@@ -2,7 +2,7 @@
 
 Japanese source: [GUI operation guide](../jp/GUI操作ガイド.md).
 
-The existing Python source implementation opens its desktop GUI when you start `app.py` without arguments. The Go Windows executable currently has no GUI. Its CLI can generate call graphs and class diagrams from one source file; see the [CLI reference](CLI-Reference.md).
+The existing Python source implementation opens its desktop GUI when you start `app.py` without arguments. The Go Windows executable currently has no GUI. Its CLI can generate call graphs and class diagrams from a source file or recursively scanned project folder; each source file is parsed independently. See the [CLI reference](CLI-Reference.md).
 
 The current GUI can:
 

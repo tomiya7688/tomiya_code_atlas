@@ -147,13 +147,13 @@ func parseAnalyzeArguments(arguments []string) (analyzeOptions, error) {
 				return analyzeOptions{}, fmt.Errorf("認識できないオプションです: %s", argument)
 			}
 			if options.sourcePath != "" {
-				return analyzeOptions{}, fmt.Errorf("解析するsource fileは一つだけ指定してください")
+				return analyzeOptions{}, fmt.Errorf("解析するsource fileまたはproject folderは一つだけ指定してください")
 			}
 			options.sourcePath = argument
 		}
 	}
 	if options.sourcePath == "" {
-		return analyzeOptions{}, fmt.Errorf("解析するsource fileを指定してください")
+		return analyzeOptions{}, fmt.Errorf("解析するsource fileまたはproject folderを指定してください")
 	}
 	if len(options.operations) == 0 {
 		return analyzeOptions{}, fmt.Errorf("--operation を1つ以上指定してください")
@@ -165,8 +165,8 @@ func parseAnalyzeArguments(arguments []string) (analyzeOptions, error) {
 }
 
 //	{
-//	  責務: [runAnalyze: 指定sourceをmanifestのparserで解析し、複数の図を出力先へ保存する]
-//	  処理: [1: source languageとparser hostを解決する, 2: helperでCommon IRへ解析する, 3: operationごとにMermaidを生成する, 4: Markdown outputを保存する]
+//	  責務: [runAnalyze: 指定source fileまたはproject folderをparserで解析し、複数の図を出力先へ保存する]
+//	  処理: [1: parser hostを解決する, 2: Process serviceへ解析とCommon IR統合を依頼する, 3: operationごとにMermaidを生成しMarkdown outputを保存する]
 //	  引数: [options: 検証済みsource・operation・output directory]
 //	  戻り値: [error: source読込・parser・generator・renderer・file保存に失敗した場合の内容]
 //	}
@@ -197,11 +197,13 @@ func runAnalyze(options analyzeOptions) error {
 //	  責務: [writeAnalyzeHelp: analyzeの入力・operation複数指定・出力先を日本語で案内する]
 //	}
 func writeAnalyzeHelp(w io.Writer) {
-	fmt.Fprintln(w, "使用方法: tomiya-code-atlas analyze <source file> --operation <operation> [--operation <operation> ...] --output-dir <folder>")
+	fmt.Fprintln(w, "使用方法: tomiya-code-atlas analyze <source file or project folder> --operation <operation> [--operation <operation> ...] --output-dir <folder>")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "operationは複数回指定できます。")
+	fmt.Fprintln(w, "入力がfolderの場合、対応するsource fileを下位folderも含めて解析します。")
+	fmt.Fprintln(w, "各source fileは拡張子に対応するparserで個別に解析し、結果をまとめて図を生成します。")
 	fmt.Fprintln(w, "  call-graph    呼び出し図を生成")
 	fmt.Fprintln(w, "  class-diagram クラス図を生成")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "例: tomiya-code-atlas analyze src/main.py --operation call-graph --operation class-diagram --output-dir atlas-output")
+	fmt.Fprintln(w, "例: tomiya-code-atlas analyze src --operation call-graph --operation class-diagram --output-dir atlas-output")
 }

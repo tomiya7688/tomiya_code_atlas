@@ -1,6 +1,6 @@
 # Command-line reference
 
-The Go distribution currently supports single-file call-graph and class-diagram generation. Project scanning, the other operations, and the GUI are still being ported. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) for the canonical instructions.
+The Go distribution supports recursive project scanning and call-graph and class-diagram generation. Each discovered source file is parsed independently and its Common IR facts are combined; cross-file name and type resolution is not available yet. Other operations and the GUI are still being ported. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) for the canonical instructions.
 
 Japanese source: [README](../../README.md). This guide documents the commands currently exposed by `app.py`; run `python app.py <command> --help` for the live option list.
 
@@ -19,7 +19,7 @@ The Go CLI command is available through `run_dist.bat` or the packaged executabl
 run_dist.bat analyze sample.py --operation call-graph --operation class-diagram --output-dir atlas-output
 ```
 
-The current Go command accepts one source file and requires at least one `--operation` and an `--output-dir`. Each selected operation creates one Markdown file in that folder. The parser helper and `backends/manifest.json` must be next to the executable. Run `run_dist.bat analyze --help` for the option list.
+The current Go command accepts one source file or project folder and requires at least one `--operation` and an `--output-dir`. A folder is scanned recursively. Each selected operation creates one Markdown file in that folder. The parser helper and `backends/manifest.json` must be next to the executable. Run `run_dist.bat analyze --help` for the option list.
 
 The following broader commands remain available only in the legacy Python source implementation:
 

@@ -76,6 +76,10 @@ type cliContractFixture struct {
 		RequiredOptions    []string `json:"required_options"`
 		RepeatableOptions  []string `json:"repeatable_options"`
 		SupportedOperation []string `json:"supported_operations"`
+		InputPath          struct {
+			Accepts       []string `json:"accepts"`
+			DirectoryScan string   `json:"directory_scan"`
+		} `json:"input_path"`
 	} `json:"commands"`
 	ExitCodes map[string]int `json:"exit_codes"`
 }
@@ -96,6 +100,9 @@ func TestCLIContractFixtureMatchesCommandAndExitCodes(t *testing.T) {
 		t.Fatalf("unexpected CLI contract fixture shape: %#v", fixture)
 	}
 	command := fixture.Commands[0]
+	if !containsString(command.InputPath.Accepts, "file") || !containsString(command.InputPath.Accepts, "directory") || command.InputPath.DirectoryScan != "recursive" {
+		t.Fatalf("input path contract = %#v", command.InputPath)
+	}
 	if len(command.RequiredOptions) != 2 || !containsString(command.RequiredOptions, "--operation") || !containsString(command.RequiredOptions, "--output-dir") {
 		t.Fatalf("required options = %#v", command.RequiredOptions)
 	}
