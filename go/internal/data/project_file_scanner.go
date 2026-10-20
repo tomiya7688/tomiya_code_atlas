@@ -86,6 +86,20 @@ func (scanner ProjectFileScanner) DiscoverSupportedFiles(rootPath string) ([]Pro
 }
 
 //	{
+//	  責務: [IsDirectory: 指定pathがdirectoryか判定する]
+//	  処理: [1: pathのfile情報を取得する, 2: directoryかどうかを返す]
+//	  引数: [path: file種別を確認するpath]
+//	  戻り値: [bool: directoryならtrue, error: pathを確認できない場合の説明]
+//	}
+func IsDirectory(path string) (bool, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false, fmt.Errorf("pathを確認できません (%s): %w", path, err)
+	}
+	return fileInfo.IsDir(), nil
+}
+
+//	{
 //	  責務: [DiscoverDeploymentFiles: project directoryからDocker・Compose・Kubernetes設定候補を列挙する]
 //	  処理: [1: directory root以外を空結果にする, 2: 共通除外規則で配下fileを列挙する, 3: 設定名またはYAML extensionで候補を選び順序を固定する]
 //	  引数: [rootPath: deployment設定を探索するproject directory]

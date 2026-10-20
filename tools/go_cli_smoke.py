@@ -23,7 +23,7 @@ def main() -> int:
         print(f"[エラー] CLI実行ファイルが見つかりません: {executable}", file=sys.stderr)
         return 1
 
-    source = ROOT / "tests/fixtures/backend_conformance/go.go"
+    source = ROOT / "tests/fixtures/backend_conformance/go_project"
     smoke_directory = ROOT / ".build" / f"go-cli-smoke-{uuid4().hex}"
     output_directory = smoke_directory / "output"
     output_directory.mkdir(parents=True, exist_ok=False)
@@ -57,8 +57,8 @@ def main() -> int:
         return 1
 
     expectations = {
-        "go_call-graph.md": ("flowchart LR", "Worker.run"),
-        "go_class-diagram.md": ("classDiagram", "Worker"),
+        "go_project_call-graph.md": ("flowchart LR", "Runner"),
+        "go_project_class-diagram.md": ("classDiagram", "Result"),
     }
     for file_name, markers in expectations.items():
         output_path = output_directory / file_name
@@ -70,7 +70,7 @@ def main() -> int:
             print(f"[エラー] {file_name} に期待した図の内容がありません。", file=sys.stderr)
             return 1
 
-    print("Go CLI smoke testに成功しました。複数operationの解析結果を出力しました。")
+    print("Go CLI smoke testに成功しました。recursive project scanと複数operationを確認しました。")
     return 0
 
 

@@ -15,7 +15,7 @@ import (
 
 //	{
 //	  責務: [DiagramRequest: 一回のsource解析で生成するoperationと入出力pathを保持する]
-//	  状態: [SourcePath: 解析する一つのsource file, Operations: 実行するdiagram operation, OutputDirectory: 生成fileの保存先]
+//	  状態: [SourcePath: 解析するsource fileまたはproject directory, Operations: 実行するdiagram operation, OutputDirectory: 生成fileの保存先]
 //	}
 type DiagramRequest struct {
 	SourcePath      string
@@ -46,14 +46,14 @@ func NewDiagramService(applicationRoot string, timeout time.Duration) (DiagramSe
 }
 
 //	{
-//	  責務: [Generate: sourceを一度parseし、選択した複数diagramをMarkdown fileへ保存する]
-//	  処理: [1: requestの必須pathとoperationを検証する, 2: Dataからsourceを読みlanguageを判定する, 3: manifest helperでCommon IRへparseする, 4: 各diagramを生成してDataへ保存する]
+//	  責務: [Generate: fileまたはproject directory内のsourceを解析し、選択diagramをMarkdown fileへ保存する]
+//	  処理: [1: requestの必須pathとoperationを検証する, 2: Dataで対応sourceを探索する, 3: 各fileをmanifest helperでCommon IRへparseして統合する, 4: 各diagramを生成してDataへ保存する]
 //	  引数: [ctx: 呼出元のcancel・deadline, request: source・operation・outputの指定]
 //	  戻り値: [outputPaths: 保存したfile path, error: 入力・parser・Generator・保存に失敗した場合の説明]
 //	}
 func (service DiagramService) Generate(ctx context.Context, request DiagramRequest) ([]string, error) {
 	if request.SourcePath == "" || request.OutputDirectory == "" || len(request.Operations) == 0 {
-		return nil, fmt.Errorf("source file、operation、出力folderを指定してください")
+		return nil, fmt.Errorf("source fileまたはproject folder、operation、出力folderを指定してください")
 	}
 	seenOperations := make(map[string]struct{}, len(request.Operations))
 	for _, operation := range request.Operations {
@@ -65,27 +65,29 @@ func (service DiagramService) Generate(ctx context.Context, request DiagramReque
 		}
 		seenOperations[operation] = struct{}{}
 	}
-	source, err := data.ReadSourceFile(request.SourcePath)
-	if err != nil {
-		return nil, err
-	}
 	scanner := data.NewProjectFileScanner()
-	language := scanner.DetectLanguage(request.SourcePath)
-	if language == "unknown" {
-		return nil, fmt.Errorf("拡張子から解析言語を判定できません: %s", filepath.Ext(request.SourcePath))
-	}
-	sourcePath, err := filepath.Abs(request.SourcePath)
-	if err != nil {
-		return nil, fmt.Errorf("source pathを解決できません: %w", err)
-	}
-	payload, err := service.parserHost.ParseLanguage(ctx, language, source, &sourcePath)
+	sourceFiles, err := scanner.DiscoverSupportedFiles(request.SourcePath)
 	if err != nil {
 		return nil, err
 	}
-	baseName := strings.TrimSuffix(filepath.Base(request.SourcePath), filepath.Ext(request.SourcePath))
+	if len(sourceFiles) == 0 {
+		return nil, fmt.Errorf("対応するsource fileが見つかりません: %s", request.SourcePath)
+	}
+	module, err := service.parseProjectModules(ctx, scanner, sourceFiles)
+	if err != nil {
+		return nil, err
+	}
+	isDirectory, err := data.IsDirectory(request.SourcePath)
+	if err != nil {
+		return nil, err
+	}
+	baseName := filepath.Base(request.SourcePath)
+	if !isDirectory {
+		baseName = strings.TrimSuffix(baseName, filepath.Ext(baseName))
+	}
 	outputPaths := make([]string, 0, len(request.Operations))
 	for _, operation := range request.Operations {
-		contents, err := renderDiagram(payload.Module, operation)
+		contents, err := renderDiagram(module, operation)
 		if err != nil {
 			return nil, err
 		}
@@ -96,6 +98,62 @@ func (service DiagramService) Generate(ctx context.Context, request DiagramReque
 		outputPaths = append(outputPaths, outputPath)
 	}
 	return outputPaths, nil
+}
+
+//	{
+//	  責務: [parseProjectModules: 発見した各sourceを適切なparser helperで解析してCommon IRを統合する]
+//	  処理: [1: sourceをpath順に読み込む, 2: language別helperで解析する, 3: 各IRの事実を一つのmoduleへ追加する]
+//	  引数: [ctx: parser実行のcancel・deadline, scanner: extension languageの判定器, sourceFiles: path順の解析対象]
+//	  戻り値: [commonir.Module: 全sourceの宣言・関係をまとめたIR, error: 読込・path解決・parserに失敗した場合の説明]
+//	}
+func (service DiagramService) parseProjectModules(ctx context.Context, scanner data.ProjectFileScanner, sourceFiles []data.ProjectSourceFile) (commonir.Module, error) {
+	combined := commonir.Module{}
+	languages := map[string]struct{}{}
+	for _, sourceFile := range sourceFiles {
+		source, err := data.ReadSourceFile(sourceFile.Path)
+		if err != nil {
+			return commonir.Module{}, err
+		}
+		if sourceFile.Language == "unknown" {
+			return commonir.Module{}, fmt.Errorf("拡張子から解析言語を判定できません: %s", filepath.Ext(sourceFile.Path))
+		}
+		sourcePath, err := filepath.Abs(sourceFile.Path)
+		if err != nil {
+			return commonir.Module{}, fmt.Errorf("source pathを解決できません (%s): %w", sourceFile.Path, err)
+		}
+		payload, err := service.parserHost.ParseLanguage(ctx, sourceFile.Language, source, &sourcePath)
+		if err != nil {
+			return commonir.Module{}, fmt.Errorf("sourceを解析できません (%s): %w", sourceFile.Path, err)
+		}
+		appendModule(&combined, payload.Module)
+		languages[sourceFile.Language] = struct{}{}
+	}
+	if len(languages) > 1 {
+		combined.Language = "mixed"
+	}
+	return combined, nil
+}
+
+//	{
+//	  責務: [appendModule: parser helperが返したCommon IRの配列要素を集約先へ追加する]
+//	  処理: [1: 初回moduleのlanguageを記録する, 2: 各言語非依存fact collectionを追加する]
+//	  引数: [target: 解析結果を集約するmodule, source: 一つのfileから得たmodule]
+//	  戻り値: []
+//	}
+func appendModule(target *commonir.Module, source commonir.Module) {
+	if target.Language == "" {
+		target.Language = source.Language
+	} else if target.Language != source.Language {
+		target.Language = "mixed"
+	}
+	target.Entities = append(target.Entities, source.Entities...)
+	target.Objects = append(target.Objects, source.Objects...)
+	target.StateMachines = append(target.StateMachines, source.StateMachines...)
+	target.TimingFlows = append(target.TimingFlows, source.TimingFlows...)
+	target.InputEvents = append(target.InputEvents, source.InputEvents...)
+	target.Signals = append(target.Signals, source.Signals...)
+	target.Diagnostics = append(target.Diagnostics, source.Diagnostics...)
+	target.Imports = append(target.Imports, source.Imports...)
 }
 
 //	{

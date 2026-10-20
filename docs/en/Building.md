@@ -20,7 +20,7 @@ build_exe.bat
 run_dist.bat
 ```
 
-`build_exe.bat` builds the Go CLI and Go standard-parser helper, CPython/GDScript and C++ PyInstaller one-dir helpers, the self-contained .NET 10 Roslyn helper, and the JavaParser helper with a private jlink runtime containing `java.se` and required JDK modules. JDK 25 and Maven are needed only to build the Java helper; Python setup does not require them. The Go CLI currently generates call graphs and class diagrams from one source file. The outputs include:
+`build_exe.bat` builds the Go CLI and Go standard-parser helper, CPython/GDScript and C++ PyInstaller one-dir helpers, the self-contained .NET 10 Roslyn helper, and the JavaParser helper with a private jlink runtime containing `java.se` and required JDK modules. JDK 25 and Maven are needed only to build the Java helper; Python setup does not require them. The Go CLI scans a source file or project folder and generates call graphs and class diagrams. Folder files are parsed independently and their Common IR facts are combined; cross-file name and type resolution is not available yet. The outputs include:
 
 ```text
 .build\dist\tomiya-code-atlas.exe
