@@ -33,6 +33,7 @@ on:
       - "tools/cpp_backend_smoke.py"
       - "tools/java_backend_smoke.py"
       - "tools/go_backend_smoke.py"
+      - "tools/go_cli_smoke.py"
       - "scripts/build/copy_python_runtime_license.py"
       - "scripts/build/setup.bat"
       - "build_exe.bat"
@@ -88,6 +89,7 @@ on:
       - "tools/cpp_backend_smoke.py"
       - "tools/java_backend_smoke.py"
       - "tools/go_backend_smoke.py"
+      - "tools/go_cli_smoke.py"
       - "scripts/build/copy_python_runtime_license.py"
       - "scripts/build/setup.bat"
       - "build_exe.bat"
@@ -205,5 +207,7 @@ jobs:
           & .\.venv\Scripts\python.exe tools\java_backend_smoke.py $java -jar ".build\dist\backends\java\tomiya-java-backend.jar"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & .\.venv\Scripts\python.exe tools\go_backend_smoke.py ".build\dist\backends\go\tomiya-go-backend.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\.venv\Scripts\python.exe tools\go_cli_smoke.py ".build\dist\tomiya-code-atlas.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

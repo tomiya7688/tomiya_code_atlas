@@ -1,6 +1,6 @@
 # Command-line reference
 
-The Go distribution currently supports only help and version output while the port is in progress. The commands below describe the existing Python source implementation.
+The Go distribution currently supports single-file call-graph and class-diagram generation. Project scanning, the other operations, and the GUI are still being ported. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) for the canonical instructions.
 
 Japanese source: [README](../../README.md). This guide documents the commands currently exposed by `app.py`; run `python app.py <command> --help` for the live option list.
 
@@ -13,7 +13,15 @@ python app.py --help
 python app.py --version
 ```
 
-The Go Windows executable currently supports only `--help` and `--version`. The following product commands are available only in the legacy Python source implementation; they are not yet available through `run_dist.bat`:
+The Go CLI command is available through `run_dist.bat` or the packaged executable:
+
+```bat
+run_dist.bat analyze sample.py --operation call-graph --operation class-diagram --output-dir atlas-output
+```
+
+The current Go command accepts one source file and requires at least one `--operation` and an `--output-dir`. Each selected operation creates one Markdown file in that folder. The parser helper and `backends/manifest.json` must be next to the executable. Run `run_dist.bat analyze --help` for the option list.
+
+The following broader commands remain available only in the legacy Python source implementation:
 
 ```bat
 python app.py --help

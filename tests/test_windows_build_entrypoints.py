@@ -53,6 +53,8 @@ def test_root_build_creates_go_cli_and_cpython_ast_onedir_helper() -> None:
     assert "build_cpp_backend.bat" in go_build
     assert "build_java_backend.bat" in go_build
     assert "build_go_parser_backend.bat" in go_build
+    assert 'copy /y "backends\\manifest.json" ".build\\dist\\backends\\manifest.json"' in go_build
+    assert 'if not exist ".build\\dist\\backends\\manifest.json"' in go_build
     assert "backends\\go\\tomiya-go-backend.exe" in go_build
     java_build = read_repo_file("scripts/build/build_java_backend.bat")
     assert 'call mvn -q -f "backend-src\\java\\pom.xml" -DskipTests package' in java_build
@@ -88,6 +90,7 @@ def test_verification_smokes_the_frozen_python_parser_helper() -> None:
     assert "cpp_backend_smoke.py" in verification
     assert "java_backend_smoke.py" in verification
     assert "go_backend_smoke.py" in verification
+    assert "go_cli_smoke.py" in verification
     assert "package.bat" not in verification
 
 
@@ -190,6 +193,7 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert "build_java_backend.bat" in go_workflow
     assert "java_backend_smoke.py" in go_workflow
     assert "go_backend_smoke.py" in go_workflow
+    assert "go_cli_smoke.py" in go_workflow
     assert ".build/dist/backends/go/" in go_workflow
     assert "setup-java@v5" in go_workflow
     assert ".build/dist/backends/java/" in go_workflow

@@ -68,6 +68,21 @@ func (host ParserHost) Parse(ctx context.Context, backendID string, language str
 }
 
 //	{
+//	  責務: [ParseLanguage: manifestからlanguageに対応するparser helperを選びCommon IRへ解析する]
+//	  処理: [1: manifestのbackendを順に確認する, 2: languageが一致したhelperをParseへ渡す, 3: 一致がなければunsupported_languageを返す]
+//	  引数: [ctx: 呼出元のcancel・deadline, language: 拡張子等から判定したlanguage ID, source: parserへ渡すsource, sourcePath: 任意のsource path]
+//	  戻り値: [payload: version検証済みCommon IR, error: 未登録languageまたはhelper processの正規化error]
+//	}
+func (host ParserHost) ParseLanguage(ctx context.Context, language string, source string, sourcePath *string) (commonir.Payload, error) {
+	for _, backend := range host.manifest.Backends {
+		if backend.Language == language {
+			return host.Parse(ctx, backend.BackendID, language, source, sourcePath)
+		}
+	}
+	return commonir.Payload{}, newBackendError("unsupported_language", fmt.Sprintf("No parser helper is registered for %q.", language), "", false)
+}
+
+//	{
 //	  責務: [findBackend: registry内からbackend_idに一致する定義を検索する]
 //	  処理: [1: backend定義を順に確認する, 2: 最初のbackend ID一致を返す, 3: 見つからない場合はfalseを返す]
 //	  引数: [backendID: 検索するparser helperの一意なID]
