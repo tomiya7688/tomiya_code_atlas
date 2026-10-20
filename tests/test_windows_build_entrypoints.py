@@ -88,6 +88,7 @@ def test_verification_smokes_the_frozen_python_parser_helper() -> None:
     assert "cpp_backend_smoke.py" in verification
     assert "java_backend_smoke.py" in verification
     assert "go_backend_smoke.py" in verification
+    assert "go_cli_smoke.py" in verification
     assert "package.bat" not in verification
 
 
@@ -190,6 +191,7 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert "build_java_backend.bat" in go_workflow
     assert "java_backend_smoke.py" in go_workflow
     assert "go_backend_smoke.py" in go_workflow
+    assert "go_cli_smoke.py" in go_workflow
     assert ".build/dist/backends/go/" in go_workflow
     assert "setup-java@v5" in go_workflow
     assert ".build/dist/backends/java/" in go_workflow

@@ -1,0 +1,16 @@
+{
+  "schema_version": "1",
+  "commands": [
+    {
+      "name": "analyze",
+      "required_options": ["--operation", "--output-dir"],
+      "repeatable_options": ["--operation"],
+      "supported_operations": ["call-graph", "class-diagram"]
+    }
+  ],
+  "exit_codes": {
+    "success": 0,
+    "analysis_error": 1,
+    "usage_error": 2
+  }
+}
