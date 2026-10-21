@@ -32,4 +32,4 @@ parserが失敗した場合も、原因と次の確認手順を日本語で案�
 
 ## 現在の範囲
 
-現在のGo CLIが対応するoperationは`call-graph`と`class-diagram`です。project folderを指定した場合も各fileを独立して解析し、宣言などのCommon IR情報を集約します。fileをまたぐ名前・型解決、その他の図やコメント生成、GUIは後続の移行Issueで対応します。
+現在のGo版が対応するoperationは`call-graph`と`class-diagram`です。GUIはGo配布版EXEを引数なしで起動すると開きます。project folderを指定した場合も各fileを独立して解析し、宣言などのCommon IR情報を集約します。fileをまたぐ名前・型解決、その他の図やコメント生成は後続の移行Issueで対応します。画面の使い方は[GUI操作ガイド](GUI操作ガイド.md)を参照してください。
