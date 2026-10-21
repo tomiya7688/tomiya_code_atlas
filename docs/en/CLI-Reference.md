@@ -1,6 +1,6 @@
 # Command-line reference
 
-The Go distribution supports recursive project scanning and call-graph and class-diagram generation. Each discovered source file is parsed independently and its Common IR facts are combined; cross-file name and type resolution is not available yet. Other operations and the GUI are still being ported. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) for the canonical instructions.
+The Go distribution supports recursive project scanning and call-graph and class-diagram generation. Each discovered source file is parsed independently and its Common IR facts are combined; cross-file name and type resolution is not available yet. The Windows executable opens its Go GUI when started without arguments. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) for canonical instructions and the [GUI guide](GUI-Usage.md) for the interface.
 
 Japanese source: [README](../../README.md). This guide documents the commands currently exposed by `app.py`; run `python app.py <command> --help` for the live option list.
 
