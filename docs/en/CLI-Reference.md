@@ -21,6 +21,8 @@ run_dist.bat analyze sample.py --operation call-graph --operation class-diagram 
 
 The current Go command accepts one source file or project folder and requires at least one `--operation` and an `--output-dir`. A folder is scanned recursively. Each selected operation creates one Markdown file in that folder. The parser helper and `backends/manifest.json` must be next to the executable. Run `run_dist.bat analyze --help` for the option list.
 
+When a parser fails, the CLI shows a Japanese cause and a suggested next step. The `Details:` portion preserves the parser's technical message.
+
 The following broader commands remain available only in the legacy Python source implementation:
 
 ```bat

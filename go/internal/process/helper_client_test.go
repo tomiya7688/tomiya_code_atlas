@@ -56,16 +56,41 @@ func TestHelperClientNormalizesProcessAndProtocolFailures(t *testing.T) {
 		name          string
 		mode          string
 		wantKind      string
+		wantSummary   string
 		wantRetryable bool
 	}{
-		{name: "non-zero exit", mode: "non-zero", wantKind: "failure"},
-		{name: "invalid JSON", mode: "invalid-json", wantKind: "protocol_error"},
-		{name: "unsupported helper version", mode: "unsupported-contract", wantKind: "protocol_error"},
-		{name: "wrong request ID", mode: "wrong-request", wantKind: "protocol_error"},
-		{name: "unsupported Common IR version", mode: "unsupported-ir", wantKind: "protocol_error"},
-		{name: "missing Common IR", mode: "missing-ir", wantKind: "protocol_error"},
-		{name: "helper unsupported syntax", mode: "unsupported-syntax", wantKind: "unsupported_syntax"},
-		{name: "unknown helper failure", mode: "unknown-failure", wantKind: "protocol_error"},
+		{
+			name: "non-zero exit", mode: "non-zero", wantKind: "failure",
+			wantSummary: "parserの実行に失敗しました",
+		},
+		{
+			name: "invalid JSON", mode: "invalid-json", wantKind: "protocol_error",
+			wantSummary: "parserとの通信結果を読み取れませんでした",
+		},
+		{
+			name: "unsupported helper version", mode: "unsupported-contract", wantKind: "protocol_error",
+			wantSummary: "parserとの通信結果を読み取れませんでした",
+		},
+		{
+			name: "wrong request ID", mode: "wrong-request", wantKind: "protocol_error",
+			wantSummary: "parserとの通信結果を読み取れませんでした",
+		},
+		{
+			name: "unsupported Common IR version", mode: "unsupported-ir", wantKind: "protocol_error",
+			wantSummary: "parserとの通信結果を読み取れませんでした",
+		},
+		{
+			name: "missing Common IR", mode: "missing-ir", wantKind: "protocol_error",
+			wantSummary: "parserとの通信結果を読み取れませんでした",
+		},
+		{
+			name: "helper unsupported syntax", mode: "unsupported-syntax", wantKind: "unsupported_syntax",
+			wantSummary: "現在のparserが対応していない構文があります",
+		},
+		{
+			name: "unknown helper failure", mode: "unknown-failure", wantKind: "protocol_error",
+			wantSummary: "parserとの通信結果を読み取れませんでした",
+		},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -84,6 +109,9 @@ func TestHelperClientNormalizesProcessAndProtocolFailures(t *testing.T) {
 			}
 			if backendError.Failure.Retryable != testCase.wantRetryable {
 				t.Errorf("failure retryable = %t, want %t", backendError.Failure.Retryable, testCase.wantRetryable)
+			}
+			if !strings.Contains(backendError.Error(), testCase.wantSummary) {
+				t.Errorf("user-facing error = %q, want Japanese summary %q", backendError.Error(), testCase.wantSummary)
 			}
 		})
 	}
@@ -105,6 +133,9 @@ func TestHelperClientTimesOut(t *testing.T) {
 	}
 	if backendError.Failure.Kind != "timeout" || !backendError.Failure.Retryable {
 		t.Fatalf("timeout failure = %#v, want retryable timeout", backendError.Failure)
+	}
+	if !strings.Contains(backendError.Error(), "parserが制限時間内に完了しませんでした") {
+		t.Fatalf("timeout error = %q, want Japanese cause and action", backendError.Error())
 	}
 }
 
