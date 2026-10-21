@@ -6,6 +6,7 @@ Tomiya Code AtlasでAIが最初に読む簡潔な索引です。詳細仕様や�
 - 現在の作業、優先度、未完了内容: GitHub Issues。`.codex/next_issue.md` があれば、そのIssueを優先する。
 - 実装済みの挙動: `Src/`、`tools/`、`tests/`
 - 規範ルール: `specification/architecture-policy.md`
+- ソース・テストのコメント規約: `specification/source-comment-policy.md`
 - 現在の機能と阻害要因: `docs/jp/現状.md`
 - 責務routing: `docs/jp/責務マップ.md`
 - アーキテクチャ説明: `docs/jp/構成/UPDコマンダー適用.md`
