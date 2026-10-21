@@ -48,7 +48,7 @@ Tomiya Code Atlasは、言語固有の解析、共通解析、出力形式を交
 - UPD境界: UIは表示と入力、Processは処理の調整・解析の流れ、Dataは入出力・永続化・外部dataの詳細を扱います。
 - Commanderは処理を振り分けて薄く保ちます。Messengerは境界を越えて情報を運び、領域処理を持ちません。
 
-Required/Recommended/Advisoryの規則は `specification/architecture-policy.md` を参照してください。
+Required/Recommended/Advisoryの規則は `specification/architecture-policy.md` を参照してください。ソースコードとテストコードのコメント規則は `specification/source-comment-policy.md` を参照してください。
 
 ## 出力方針
 - 図の既定出力形式はMermaidです。
