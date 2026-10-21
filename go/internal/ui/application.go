@@ -77,18 +77,27 @@ func Run(generator DiagramGenerator, smokeMode bool) error {
 		AssetServer: &assetserver.Options{
 			Assets: webFiles,
 		},
-		OnStartup: application.startup,
-		Bind:      []interface{}{application},
+		OnStartup:  application.startup,
+		OnDomReady: application.domReady,
+		Bind:       []interface{}{application},
 	})
 }
 
 //	{
 //	  責務: [
-//	    startup: runtime contextを保存し、CI確認modeでは短時間後にwindowを閉じる,
+//	    startup: runtime contextを保存してfile dialogとwindow操作へ渡す,
 //	  ],
 //	}
 func (application *Application) startup(runtimeContext context.Context) {
 	application.context = runtimeContext
+}
+
+//	{
+//	  責務: [
+//	    domReady: CI smoke modeではruntime初期化後にGUIを隠して終了する,
+//	  ],
+//	}
+func (application *Application) domReady(runtimeContext context.Context) {
 	if !application.smokeMode {
 		return
 	}
