@@ -44,6 +44,32 @@ func TestRunUnknownCommand(t *testing.T) {
 	}
 }
 
+func TestRunWithGUIOpensDesktopAndSmokeMode(t *testing.T) {
+	for _, testCase := range []struct {
+		name      string
+		args      []string
+		wantSmoke bool
+	}{
+		{name: "default opens GUI", wantSmoke: false},
+		{name: "hidden smoke opens and exits", args: []string{"--gui-smoke"}, wantSmoke: true},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			called := false
+			code := runWithGUI(testCase.args, &stdout, &stderr, func(smoke bool) error {
+				called = true
+				if smoke != testCase.wantSmoke {
+					t.Fatalf("smoke mode = %v, want %v", smoke, testCase.wantSmoke)
+				}
+				return nil
+			})
+			if code != exitSuccess || !called || stderr.Len() != 0 {
+				t.Fatalf("code=%d called=%v stderr=%q", code, called, stderr.String())
+			}
+		})
+	}
+}
+
 //	{
 //	  責務: [TestRunAnalyzeReportsStableUsageAndRuntimeExitCodes: command引数誤りと実行環境失敗のexit codeを検証する]
 //	}
