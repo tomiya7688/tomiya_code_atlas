@@ -28,6 +28,8 @@ run_dist.bat analyze path\to\source.go --operation call-graph --operation class-
 
 入力file、出力folder、operation、配布assetに問題があると、日本語のエラーと原因を表示します。`tomiya-code-atlas.exe analyze --help`は引数の説明を、`tomiya-code-atlas.exe --help`はcommand一覧を表示します。
 
+parserが失敗した場合も、原因と次の確認手順を日本語で案内します。たとえば、制限時間を超えた場合は入力fileを確認し、parserとの通信形式が不正な場合は配布物を再取得してください。`詳細:`にはparserが返した技術情報を表示します。
+
 ## 現在の範囲
 
 現在のGo CLIが対応するoperationは`call-graph`と`class-diagram`です。project folderを指定した場合も各fileを独立して解析し、宣言などのCommon IR情報を集約します。fileをまたぐ名前・型解決、その他の図やコメント生成、GUIは後続の移行Issueで対応します。

@@ -88,13 +88,43 @@ type helperError struct {
 }
 
 //	{
-//	  責務: [Error: BackendFailureのmessageを標準error文字列として返す]
-//	  処理: [1: 利用者向けmessageを返す]
+//	  責務: [Error: backend失敗分類から日本語の原因と対処を示すerror文字列を作る]
+//	  処理: [1: failure kindに対応する日本語説明を選ぶ, 2: backend IDと詳細を付けて返す]
 //	  引数: [failure: 正規化失敗を持つerror]
-//	  戻り値: [message: 失敗内容]
+//	  戻り値: [message: 利用者向け日本語説明とbackend詳細]
 //	}
 func (failure *BackendError) Error() string {
-	return failure.Failure.Message
+	message := backendFailureSummary(failure.Failure.Kind)
+	if failure.Failure.BackendID != "" {
+		message += fmt.Sprintf("（parser: %s）", failure.Failure.BackendID)
+	}
+	if details := strings.TrimSpace(failure.Failure.Message); details != "" {
+		message += " 詳細: " + details
+	}
+	return message
+}
+
+//	{
+//	  責務: [backendFailureSummary: backend failure kindを利用者向けの日本語原因と対処へ変換する]
+//	  処理: [1: 安定したfailure kindを照合する, 2: 原因と次の確認手順を返す]
+//	  引数: [kind: helper processまたはprotocol境界の失敗分類]
+//	  戻り値: [string: 日本語で書いた原因と利用者の確認手順]
+//	}
+func backendFailureSummary(kind string) string {
+	switch kind {
+	case "timeout":
+		return "parserが制限時間内に完了しませんでした。入力fileを確認して再実行してください。"
+	case "unsupported_syntax":
+		return "sourceに現在のparserが対応していない構文があります。対象言語とversionを確認してください。"
+	case "unsupported_language":
+		return "この言語のparserを利用できません。対応parserを含む配布物を使ってください。"
+	case "protocol_error":
+		return "parserとの通信結果を読み取れませんでした。配布物を再取得して再実行してください。"
+	case "failure":
+		return "parserの実行に失敗しました。sourceとparserの環境を確認してください。"
+	default:
+		return "parserで解析できませんでした。入力fileと配布物を確認してください。"
+	}
 }
 
 //	{
