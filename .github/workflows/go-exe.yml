@@ -160,6 +160,7 @@ jobs:
 
 
       - name: 配布EXEのhelpとversionをsmoke test
+        timeout-minutes: 3
         shell: pwsh
         run: |
           $exe = ".\.build\dist\tomiya-code-atlas.exe"
@@ -178,6 +179,11 @@ jobs:
             Write-Error "Go版のEXEのhelp smoke testに失敗しました: $help"
             exit 1
           }
+
+      - name: 配布Java runtimeをsmoke test
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
           $java = ".\.build\dist\backends\java\runtime\bin\java.exe"
           if (-not (Test-Path $java)) {
             Get-ChildItem ".\.build\dist\backends\java" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName
@@ -186,18 +192,55 @@ jobs:
           }
           & $java -version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Python parser helperをsmoke test
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
           & .\.venv\Scripts\python.exe scripts\build\smoke_python_backend.py ".build\dist\backends\tomiya-python-backend\tomiya-python-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: C# parser helperをsmoke test
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
           & .\.venv\Scripts\python.exe tools\csharp_backend_smoke.py ".build\dist\backends\csharp\tomiya-csharp-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: C++ parser helperをsmoke test
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
           & .\.venv\Scripts\python.exe tools\cpp_backend_smoke.py ".build\dist\backends\cpp\tomiya-cpp-backend\tomiya-cpp-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Java parser helperをsmoke test
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          $java = ".\.build\dist\backends\java\runtime\bin\java.exe"
           & .\.venv\Scripts\python.exe tools\java_backend_smoke.py $java -jar ".build\dist\backends\java\tomiya-java-backend.jar"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Go parser helperをsmoke test
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
           & .\.venv\Scripts\python.exe tools\go_backend_smoke.py ".build\dist\backends\go\tomiya-go-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Go CLIの配布解析をsmoke test
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
           & .\.venv\Scripts\python.exe tools\go_cli_smoke.py ".build\dist\tomiya-code-atlas.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Go GUIの配布起動をsmoke test
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          $exe = ".\.build\dist\tomiya-code-atlas.exe"
           & $exe --gui-smoke
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
