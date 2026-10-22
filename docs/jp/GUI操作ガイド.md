@@ -2,7 +2,7 @@
 
 英語版: [GUI Usage](../en/GUI-Usage.md)
 
-既存Python source版は、`app.py` を引数なしで起動するとデスクトップGUIを開きます。
+既存Python source版は、`Src.app` を引数なしで起動するとデスクトップGUIを開きます。
 
 初期GUIで利用できる機能:
 
@@ -17,10 +17,10 @@
 CLIも引き続き利用できます。
 
 ```text
-python app.py comment sample.py
-python app.py ci .github/workflows/ci.yml
-python app.py --version
-python app.py gui
+python -m Src.app comment sample.py
+python -m Src.app ci .github/workflows/ci.yml
+python -m Src.app --version
+python -m Src.app gui
 ```
 
 現段階のMermaidプレビューはMermaidソースの表示です。画像やHTMLとしての埋め込みレンダリングは今後の拡張です。

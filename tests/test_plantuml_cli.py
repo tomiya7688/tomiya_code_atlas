@@ -1,7 +1,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from app import main
+from Src.app import main
 
 
 def test_class_diagram_cli_writes_plantuml_files() -> None:

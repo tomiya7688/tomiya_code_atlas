@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app import main
+from Src.app import main
 from Src.languages import (
     FilesystemGDScriptProjectResolver,
     GDScriptHelperBackend,

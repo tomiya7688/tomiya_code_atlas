@@ -1,4 +1,4 @@
-from app import main
+from Src.app import main
 
 
 def test_static_spec_cli_prints_markdown(capsys) -> None:
@@ -39,7 +39,7 @@ def test_static_spec_cli_routes_markdown_to_output_path(monkeypatch) -> None:
         written["path"] = path
         written["content"] = content
 
-    monkeypatch.setattr("app.write_text", capture_write)
+    monkeypatch.setattr("Src.app.write_text", capture_write)
 
     assert main(["static-spec", str(source), "--output", "sample-spec.md"]) == 0
     assert written["path"] == Path("sample-spec.md")
