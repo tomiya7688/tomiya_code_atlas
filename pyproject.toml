@@ -3,9 +3,9 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tomiya-code-atlas"
+name = "tomiya-code-atlas-python-reference"
 dynamic = ["version"]
-description = "Source code analysis, visualization, and design evaluation toolkit."
+description = "Python reference implementation and parser-helper build tooling for Tomiya Code Atlas."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -24,10 +24,7 @@ parser-build = ["PyInstaller>=6.10,<7"]
 cpp-parser = ["libclang-ng==22.1.4.2; python_version >= '3.12'"]
 
 [project.scripts]
-tomiya-code-atlas = "app:main"
-
-[tool.setuptools]
-py-modules = ["app"]
+tomiya-code-atlas-python = "Src.app:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "Src.version.__version__"}

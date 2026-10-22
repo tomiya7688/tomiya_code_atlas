@@ -2,7 +2,7 @@
 
 Japanese source: [GUI operation guide](../jp/GUI操作ガイド.md).
 
-The existing Python source implementation opens its desktop GUI when you start `app.py` without arguments. The Go Windows executable currently has no GUI. Its CLI can generate call graphs and class diagrams from a source file or recursively scanned project folder; each source file is parsed independently. See the [CLI reference](CLI-Reference.md).
+The existing Python source implementation opens its desktop GUI when you start `Src.app` without arguments. The Go Windows executable currently has no GUI. Its CLI can generate call graphs and class diagrams from a source file or recursively scanned project folder; each source file is parsed independently. See the [CLI reference](CLI-Reference.md).
 
 The current GUI can:
 
@@ -19,10 +19,10 @@ The Mermaid preview currently displays Mermaid source text. It does not render t
 CLI commands remain available alongside the GUI. For example:
 
 ```text
-python app.py comment sample.py
-python app.py ci .github/workflows/ci.yml
-python app.py --version
-python app.py gui
+python -m Src.app comment sample.py
+python -m Src.app ci .github/workflows/ci.yml
+python -m Src.app --version
+python -m Src.app gui
 ```
 
 See the [CLI reference](CLI-Reference.md) for command options. The Japanese guide is the source of truth for GUI capabilities and limitations.

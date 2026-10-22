@@ -58,24 +58,46 @@ Source
 
 ## repository構成
 
-```text
-Src/
-  analyzers/       # 関係・graphの決定的な解析
-  models/          # 受動的な共通data契約
-  generators/      # 論理出力の生成
-  renderers/       # Mermaid / textなどの出力形式
-  evaluators/      # 設計・コード品質の評価
-  languages/       # 言語固有のadapter
-config/            # 実行時設定と例
-tests/             # 自動検証
-tools/             # Issue / PR / context補助
-scripts/dev/       # 開発用Issue / context / PR入口
-docs/jp/           # 日本語正本
-docs/en/           # 日本語正本から作成した英語版
-specification/     # 規範となるプロジェクトルール
-go/                # Go版のmoduleと製品コマンド
-app.py             # 移行中のPython版アプリケーション入口
-```
+    .github/
+      workflows/                 # GitHub ActionsのCI／配布workflow
+      config/
+        oop-design-checker.json  # GitHub CI専用の静的解析設定
+    assets/                      # アプリケーションの静的素材
+    config/                      # 実行時設定と例
+    docs/
+      jp/                        # 日本語正本
+      en/                        # 日本語正本から作成した英語版
+    go/                          # Go製品本体とCLI
+    parser-backends/             # 言語別parser source、manifest、license
+    scripts/
+      build/                     # build、source起動、検証の内部処理
+      dev/                       # Issue、context、PRの開発補助
+    specification/               # 規範となるプロジェクトルール
+    Src/
+      app.py                     # Python参照実装のmodule entry
+      analyzers/                 # 関係・graphの決定的な解析
+      models/                    # 受動的な共通data契約
+      generators/                # 論理出力の生成
+      renderers/                 # Mermaid / textなどの出力形式
+      evaluators/                # 設計・コード品質の評価
+      languages/                 # 言語固有のadapter
+    tests/                       # 自動検証
+    tools/                       # Issue / PR / context補助
+
+ルート直下には、利用者向けのWindows build/run入口、リポジトリ案内、Python参照実装用metadataを置きます。各ファイルの役割は次のとおりです。
+
+| ルート直下のファイル | 役割 |
+| --- | --- |
+| `README.md` | 人向けの概要、セットアップ、利用入口を説明します。 |
+| `LICENSE` | MITライセンスを記載します。 |
+| `AGENTS.md` | エージェントが作業時に守る安定した規則を記載します。 |
+| `AI_CONTEXT.md` | AIが正本や責務の場所を探すための短い案内です。 |
+| `.gitignore` | build成果物、cache、ローカル状態をGitの追跡対象から除外します。 |
+| `.updcommanderignore` | UPD Commanderの解析対象から除外するpathを指定します。 |
+| `build_exe.bat`, `run_dist.bat` | Windows配布物のbuildと起動に使う2つの直接入口です。内部処理は `scripts/build/` にあります。 |
+| `pyproject.toml`, `setup.cfg`, `MANIFEST.in` | Python参照実装のeditable install・testとparser helper build用の開発metadataです。Go製品の配布buildには使いません。 |
+
+Python参照実装は `python -m Src.app` または `scripts\build\run_source.bat` から起動します。Windows配布物の利用者は `build_exe.bat` と `run_dist.bat` を使ってください。
 
 文書は日本語を正本とし、[`docs/jp/現状.md`](docs/jp/現状.md)で現在の能力と既知制約を、[`docs/jp/責務マップ.md`](docs/jp/責務マップ.md)で責務から探す場所を確認できます。利用者向けの英語版は[`docs/en/README.md`](docs/en/README.md)から、[ビルド手順](docs/en/Building.md)、[GUIガイド](docs/en/GUI-Usage.md)、[CLIリファレンス](docs/en/CLI-Reference.md)を参照できます。
 

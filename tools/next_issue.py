@@ -92,7 +92,7 @@ TASK_ROUTES = [
     ),
     (
         re.compile(r"gui|ui|画面", re.IGNORECASE),
-        ["app.py", "Src/"],
+        ["Src/app.py", "Src/"],
         ["tests/"],
         ["docs/jp/構成/UPDコマンダー適用.md", "specification/architecture-policy.md"],
     ),

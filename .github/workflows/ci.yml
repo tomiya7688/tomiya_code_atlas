@@ -47,7 +47,7 @@ jobs:
         run: go test ./...
 
       - name: Python sourceをcompile
-        run: python -m compileall -q app.py Src tools tests
+        run: python -m compileall -q Src tools tests
 
       - name: 全testを実行
         run: python -m pytest
@@ -62,7 +62,7 @@ jobs:
         run: python tools/context_tool.py policy-check
 
       - name: 起動smoke test
-        run: python app.py --version
+        run: python -m Src.app --version
 
       - name: 自己解析smoke summary
         if: matrix.python-version == '3.12'
@@ -191,7 +191,7 @@ jobs:
               dotnet run \
                 --project "$RUNNER_TEMP/oop-design-checker/tools/oop-design-checker/src/frontends/cui/OopDesignChecker.Cui.csproj" \
                 -- "$project" \
-                --config "$GITHUB_WORKSPACE/oop-design-checker.json" \
+                --config "$GITHUB_WORKSPACE/.github/config/oop-design-checker.json" \
                 --fail-on danger \
                 --format github
             done
@@ -199,7 +199,7 @@ jobs:
             dotnet run \
               --project "$RUNNER_TEMP/oop-design-checker/tools/oop-design-checker/src/frontends/cui/OopDesignChecker.Cui.csproj" \
               -- . \
-              --config "$GITHUB_WORKSPACE/oop-design-checker.json" \
+              --config "$GITHUB_WORKSPACE/.github/config/oop-design-checker.json" \
               --fail-on danger \
               --format github
           fi

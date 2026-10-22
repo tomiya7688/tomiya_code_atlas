@@ -77,12 +77,12 @@ def test_v1_user_guides_have_english_names_and_reciprocal_japanese_links() -> No
 def test_english_cli_guide_keeps_real_entrypoint_and_command_names() -> None:
     guide = (ROOT / "docs" / "en" / "CLI-Reference.md").read_text(encoding="utf-8")
     for command in (
-        "python app.py --help",
-        "python app.py comment",
-        "python app.py ci",
-        "python app.py call-graph",
-        "python app.py class-diagram",
-        "python app.py sequence-diagram",
+        "python -m Src.app --help",
+        "python -m Src.app comment",
+        "python -m Src.app ci",
+        "python -m Src.app call-graph",
+        "python -m Src.app class-diagram",
+        "python -m Src.app sequence-diagram",
         "--output-dir",
         "--in-place",
     ):

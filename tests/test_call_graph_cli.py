@@ -1,7 +1,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from app import main
+from Src.app import main
 
 
 def test_call_graph_cli_writes_partitioned_output_folder() -> None:

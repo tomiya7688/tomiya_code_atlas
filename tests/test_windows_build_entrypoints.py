@@ -31,7 +31,7 @@ def test_source_and_distribution_launchers_have_distinct_targets() -> None:
 
     assert "Python環境が見つかりません" in source_launcher
     assert "scripts\\build\\setup.bat" in source_launcher
-    assert '".venv\\Scripts\\python.exe" app.py %*' in source_launcher
+    assert '".venv\\Scripts\\python.exe" -m Src.app %*' in source_launcher
     assert ".build\\dist\\tomiya-code-atlas.exe" in distribution_launcher
     assert '"%APP%" %*' in distribution_launcher
 
@@ -105,6 +105,15 @@ def test_only_direct_windows_build_and_distribution_entrypoints_remain_in_root()
         assert not (ROOT / "scripts" / "build" / removed_helper).exists()
     for old_root_helper in ("setup.bat", "build.bat", "run.bat", "verify_build.bat"):
         assert not (ROOT / old_root_helper).exists()
+
+
+def test_ci_checker_configuration_is_grouped_under_github() -> None:
+    checker_config = ROOT / ".github" / "config" / "oop-design-checker.json"
+
+    assert checker_config.is_file()
+    assert not (ROOT / "oop-design-checker.json").exists()
+    workflow = read_repo_file(".github/workflows/ci.yml")
+    assert "$GITHUB_WORKSPACE/.github/config/oop-design-checker.json" in workflow
 
 
 def test_windows_build_helpers_resolve_paths_from_the_repository_root() -> None:
