@@ -1,6 +1,8 @@
 {
   "manifest_version": "1",
   "parser_backend_contract_version": "1",
+  "source_root": "parser-backends",
+  "build_output_root": ".build/dist/backends",
   "backends": [
     {
       "backend_id": "gdscript-tree-sitter",
@@ -21,7 +23,14 @@
         "tomiya-python-backend/licenses/PyInstaller-COPYING.txt",
         "tomiya-python-backend/licenses/tree-sitter-LICENSE.txt",
         "tomiya-python-backend/licenses/tree-sitter-gdscript-LICENSE.txt"
-      ]
+      ],
+      "source_directory": "python",
+      "source_licenses": [
+        "licenses/PyInstaller-COPYING.txt",
+        "licenses/tree-sitter-LICENSE.txt",
+        "licenses/tree-sitter-gdscript-LICENSE.txt"
+      ],
+      "source_shared_with": "python"
     },
     {
       "backend_id": "cpp-libclang-helper",
@@ -40,7 +49,12 @@
         "cpp/tomiya-cpp-backend/licenses/LLVM-LICENSE.txt"
       ],
       "project_configuration": "nearest compile_commands.json when available",
-      "missing_sdk_behavior": "preserve parsed source entities and add normalized compiler diagnostics"
+      "missing_sdk_behavior": "preserve parsed source entities and add normalized compiler diagnostics",
+      "source_directory": "cpp",
+      "source_licenses": [
+        "licenses/PyInstaller-COPYING.txt",
+        "licenses/libclang-ng-LICENSE.txt"
+      ]
     },
     {
       "backend_id": "go-stdlib-types-helper",
@@ -53,6 +67,10 @@
       "parser_version": "Go 1.27.x standard library",
       "grammar_version": "Go 1.27 language grammar implemented by go/parser",
       "licenses": [
+        "go/NOTICE.txt"
+      ],
+      "source_directory": "go",
+      "source_licenses": [
         "go/NOTICE.txt"
       ]
     },
@@ -72,6 +90,12 @@
         "tomiya-python-backend/licenses/PyInstaller-COPYING.txt",
         "tomiya-python-backend/licenses/tree-sitter-LICENSE.txt",
         "tomiya-python-backend/licenses/tree-sitter-gdscript-LICENSE.txt"
+      ],
+      "source_directory": "python",
+      "source_licenses": [
+        "licenses/PyInstaller-COPYING.txt",
+        "licenses/tree-sitter-LICENSE.txt",
+        "licenses/tree-sitter-gdscript-LICENSE.txt"
       ]
     },
     {
@@ -87,9 +111,13 @@
       "runtime": ".NET 10 self-contained win-x64",
       "publish_mode": "one-dir",
       "licenses": [
-        "licenses/roslyn-LICENSE.txt",
-        "licenses/dotnet-LICENSE.txt",
-        "licenses/dotnet-ThirdPartyNotices.txt"
+        "csharp/licenses/roslyn-LICENSE.txt",
+        "csharp/licenses/dotnet-LICENSE.txt",
+        "csharp/licenses/dotnet-ThirdPartyNotices.txt"
+      ],
+      "source_directory": "csharp",
+      "source_licenses": [
+        "licenses/roslyn-LICENSE.txt"
       ]
     },
     {
@@ -104,8 +132,12 @@
       "grammar_version": "JavaParser LanguageLevel.JAVA_26",
       "runtime": "java/runtime/bin/java.exe",
       "licenses": [
-        "licenses/javaparser-NOTICE.txt",
+        "java/javaparser-NOTICE.txt",
         "java/runtime/legal/"
+      ],
+      "source_directory": "java",
+      "source_licenses": [
+        "licenses/javaparser-NOTICE.txt"
       ]
     }
   ]

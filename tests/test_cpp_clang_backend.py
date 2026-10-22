@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from runpy import run_path
 
 import pytest
 
 pytest.importorskip("clang")
 
-from backends.cpp.main import handle_request  # noqa: E402
+# parser-backendsはPythonのmodule名にできないため、helperを実ファイルから読み込む。
+ROOT = Path(__file__).resolve().parents[1]
+handle_request = run_path(str(ROOT / "parser-backends" / "cpp" / "main.py"))[
+    "handle_request"
+]
 from Src.languages import CppClangBackend, ParserBackendKind  # noqa: E402
 
 

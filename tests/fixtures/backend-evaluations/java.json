@@ -94,7 +94,7 @@
   ],
   "integration": {
     "python_host": "Src/languages/java_backend.py",
-    "helper_source": "backend-src/java/",
+    "helper_source": "parser-backends/java/",
     "manifest_path": "java/tomiya-java-backend.jar",
     "private_runtime": "java/runtime/bin/java.exe",
     "ci_smoke": "tools/java_backend_smoke.py",

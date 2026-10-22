@@ -29,8 +29,43 @@ func TestLoadRepositoryBackendManifest(t *testing.T) {
 	if manifest.ManifestVersion != supportedManifestVersion || manifest.ParserBackendContractVersion != "1" {
 		t.Fatalf("manifest contract = (%q, %q), want (1, 1)", manifest.ManifestVersion, manifest.ParserBackendContractVersion)
 	}
+	if manifest.SourceRoot != "parser-backends" || manifest.BuildOutputRoot != ".build/dist/backends" {
+		t.Fatalf("manifest roots = (%q, %q), want parser-backends and .build/dist/backends", manifest.SourceRoot, manifest.BuildOutputRoot)
+	}
 	if len(manifest.Backends) < 6 {
 		t.Fatalf("registered backend count = %d, want at least 6", len(manifest.Backends))
+	}
+}
+
+//	{
+//	  責務: [TestResolveSourceManifestUsesBuildOutputRoot: source manifestのbuild output rootからhelper executableを解決する]
+//	  処理: [1: source manifestとbuild outputを用意する, 2: manifestを読み込む, 3: helper pathがbuild output配下になることを検証する]
+//	  引数: [t: Go test runner]
+//	  戻り値: []
+//	}
+func TestResolveSourceManifestUsesBuildOutputRoot(t *testing.T) {
+	applicationRoot := t.TempDir()
+	sourceManifestPath := filepath.Join(applicationRoot, "parser-backends", "manifest.json")
+	if err := os.MkdirAll(filepath.Dir(sourceManifestPath), 0o755); err != nil {
+		t.Fatalf("create source manifest directory: %v", err)
+	}
+	manifestJSON := `{"manifest_version":"1","parser_backend_contract_version":"1","source_root":"parser-backends","build_output_root":".build/dist/backends","backends":[{"backend_id":"source-helper","language":"go","kind":"helper","path":"go/atlas.exe"}]}`
+	if err := os.WriteFile(sourceManifestPath, []byte(manifestJSON), 0o600); err != nil {
+		t.Fatalf("write source manifest: %v", err)
+	}
+	helperPath := filepath.Join(applicationRoot, ".build", "dist", "backends", "go", "atlas.exe")
+	writeBackendTestFile(t, helperPath)
+
+	manifest, err := LoadBackendManifest(applicationRoot)
+	if err != nil {
+		t.Fatalf("LoadBackendManifest() error = %v", err)
+	}
+	resolvedPath, err := ResolveBackendExecutable(applicationRoot, manifest, "source-helper", "windows", "amd64")
+	if err != nil {
+		t.Fatalf("ResolveBackendExecutable() error = %v", err)
+	}
+	if resolvedPath != helperPath {
+		t.Fatalf("resolved path = %q, want %q", resolvedPath, helperPath)
 	}
 }
 

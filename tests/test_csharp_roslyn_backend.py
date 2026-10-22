@@ -14,7 +14,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_csharp_backend_descriptor_and_manifest_match_contract() -> None:
     descriptor = CSharpRoslynBackend.descriptor
-    manifest = json.loads((ROOT / "backends" / "manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads(
+        (ROOT / "parser-backends" / "manifest.json").read_text(encoding="utf-8")
+    )
     entry = next(
         item
         for item in manifest["backends"]
@@ -30,9 +32,9 @@ def test_csharp_backend_descriptor_and_manifest_match_contract() -> None:
     assert entry["path"] == "csharp/tomiya-csharp-backend.exe"
     assert entry["delivery"] == "self-contained-dotnet-helper-folder"
     assert entry["runtime"] == ".NET 10 self-contained win-x64"
-    assert "licenses/roslyn-LICENSE.txt" in entry["licenses"]
-    assert "licenses/dotnet-LICENSE.txt" in entry["licenses"]
-    assert "licenses/dotnet-ThirdPartyNotices.txt" in entry["licenses"]
+    assert "csharp/licenses/roslyn-LICENSE.txt" in entry["licenses"]
+    assert "csharp/licenses/dotnet-LICENSE.txt" in entry["licenses"]
+    assert "csharp/licenses/dotnet-ThirdPartyNotices.txt" in entry["licenses"]
 
 
 def test_wire_ir_preserves_roslyn_semantic_facts_without_roslyn_types() -> None:

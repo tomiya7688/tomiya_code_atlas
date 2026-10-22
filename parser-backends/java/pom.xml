@@ -22,6 +22,7 @@
     </dependency>
   </dependencies>
   <build>
+    <directory>${project.basedir}/../../.build/java</directory>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
