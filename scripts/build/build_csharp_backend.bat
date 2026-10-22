@@ -17,7 +17,7 @@ if errorlevel 1 (
 )
 
 if not exist ".build\dist\backends\csharp" mkdir ".build\dist\backends\csharp"
-dotnet publish "backend-src\csharp\Tomiya.CSharp.Backend.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false -o ".build\dist\backends\csharp"
+dotnet publish "parser-backends\csharp\Tomiya.CSharp.Backend.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false -p:BaseIntermediateOutputPath="%CD%\.build\dotnet\csharp\obj/" -p:BaseOutputPath="%CD%\.build\dotnet\csharp\bin/" -o ".build\dist\backends\csharp"
 if errorlevel 1 exit /b 1
 
 if not exist ".build\dist\backends\csharp\tomiya-csharp-backend.exe" (
@@ -26,7 +26,7 @@ if not exist ".build\dist\backends\csharp\tomiya-csharp-backend.exe" (
 )
 
 if not exist ".build\dist\backends\csharp\licenses" mkdir ".build\dist\backends\csharp\licenses"
-copy /y "backends\licenses\roslyn-LICENSE.txt" ".build\dist\backends\csharp\licenses\roslyn-LICENSE.txt" >nul
+copy /y "parser-backends\licenses\roslyn-LICENSE.txt" ".build\dist\backends\csharp\licenses\roslyn-LICENSE.txt" >nul
 if errorlevel 1 exit /b 1
 for %%I in (dotnet.exe) do set "DOTNET_EXE=%%~$PATH:I"
 for %%I in ("%DOTNET_EXE%") do set "DOTNET_INSTALL_DIR=%%~dpI"

@@ -23,7 +23,7 @@ def test_go_stdlib_helper_emits_contract_v1_response() -> None:
     environment.update({"GOCACHE": str(go_cache), "GOTMPDIR": str(go_temp)})
     subprocess.run(
         ["go", "build", "-o", str(binary), "."],
-        cwd="backends/go",
+        cwd="parser-backends/go",
         env=environment,
         check=True,
     )

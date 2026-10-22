@@ -20,7 +20,7 @@ def test_python_environment_installs_the_parser_helper_build_dependency() -> Non
     assert "JDK 25" not in setup
     assert "where mvn" not in setup
     java_build = read_repo_file("scripts/build/build_java_backend.bat")
-    assert 'call mvn -q -f "backend-src\\java\\pom.xml" -DskipTests package' in java_build
+    assert 'call mvn -q -f "parser-backends\\java\\pom.xml" -DskipTests package' in java_build
     assert "java.se,jdk.unsupported,jdk.zipfs,jdk.localedata" in java_build
     assert '%%~$PATH:I' in java_build
 
@@ -53,11 +53,11 @@ def test_root_build_creates_go_cli_and_cpython_ast_onedir_helper() -> None:
     assert "build_cpp_backend.bat" in go_build
     assert "build_java_backend.bat" in go_build
     assert "build_go_parser_backend.bat" in go_build
-    assert 'copy /y "backends\\manifest.json" ".build\\dist\\backends\\manifest.json"' in go_build
+    assert 'copy /y "parser-backends\\manifest.json" ".build\\dist\\backends\\manifest.json"' in go_build
     assert 'if not exist ".build\\dist\\backends\\manifest.json"' in go_build
     assert "backends\\go\\tomiya-go-backend.exe" in go_build
     java_build = read_repo_file("scripts/build/build_java_backend.bat")
-    assert 'call mvn -q -f "backend-src\\java\\pom.xml" -DskipTests package' in java_build
+    assert 'call mvn -q -f "parser-backends\\java\\pom.xml" -DskipTests package' in java_build
     python_build = read_repo_file("scripts/build/build_python_backend.bat")
     assert "--onedir" in python_build
     assert "--onefile" not in python_build
@@ -70,6 +70,8 @@ def test_root_build_creates_go_cli_and_cpython_ast_onedir_helper() -> None:
     assert "-r win-x64" in csharp_build
     assert "PublishSingleFile=false" in csharp_build
     assert "PublishTrimmed=false" in csharp_build
+    assert 'BaseIntermediateOutputPath="%CD%\\.build\\dotnet\\csharp\\obj/"' in csharp_build
+    assert 'BaseOutputPath="%CD%\\.build\\dotnet\\csharp\\bin/"' in csharp_build
     assert "dotnet --list-sdks" in csharp_build
     assert "dotnet-ThirdPartyNotices.txt" in csharp_build
 
@@ -167,14 +169,25 @@ def test_windows_user_entrypoint_errors_are_japanese() -> None:
 def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None:
     ci_workflow = read_repo_file(".github/workflows/ci.yml")
     assert "- name: 全testを実行" in ci_workflow
+    assert "working-directory: parser-backends/go" in ci_workflow
+    assert "../../.build/ci/parser-backends/go/tomiya-go-backend" in ci_workflow
+    assert "parser-backends/csharp/Tomiya.CSharp.Backend.csproj" in ci_workflow
+    assert ".build/dotnet/csharp/bin/Release/net10.0/" in ci_workflow
+    assert "mvn -q -f parser-backends/java/pom.xml package" in ci_workflow
+    assert ".build/java/tomiya-java-backend.jar" in ci_workflow
     go_workflow = read_repo_file(".github/workflows/go-exe.yml")
     assert go_workflow.startswith("name: Go EXE")
     assert 'go-version: "1.27.x"' in go_workflow
     assert '"go/**"' in go_workflow
-    assert '"backends/go/**"' in go_workflow
+    assert '"parser-backends/go/**"' in go_workflow
+    assert '"parser-backends/python/**"' in go_workflow
+    assert '"parser-backends/cpp/**"' in go_workflow
+    assert '"parser-backends/java/**"' in go_workflow
+    assert '"parser-backends/csharp/**"' in go_workflow
+    assert '"parser-backends/manifest.json"' in go_workflow
     assert "go test ./..." in go_workflow
     go_builder = read_repo_file("scripts/build/build_go_parser_backend.bat")
-    assert 'copy /y "backends\\go\\NOTICE.txt" ".build\\dist\\backends\\go\\NOTICE.txt"' in go_builder
+    assert 'copy /y "parser-backends\\go\\NOTICE.txt" ".build\\dist\\backends\\go\\NOTICE.txt"' in go_builder
     assert 'if not exist ".build\\dist\\backends\\go\\NOTICE.txt"' in go_builder
     assert "call build_exe.bat" in go_workflow
     assert "--version" in go_workflow

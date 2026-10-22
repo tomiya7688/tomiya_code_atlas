@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
+from runpy import run_path
 
 import pytest
 
-from backends.python.main import handle_request
+# parser-backendsはPythonのmodule名にできないため、helperを実ファイルから読み込む。
+ROOT = Path(__file__).resolve().parents[1]
+handle_request = run_path(str(ROOT / "parser-backends" / "python" / "main.py"))[
+    "handle_request"
+]
 
 
 def _request(source: str) -> dict[str, str]:

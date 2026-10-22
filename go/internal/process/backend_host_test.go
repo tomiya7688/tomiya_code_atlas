@@ -73,7 +73,7 @@ func TestParserHostRunsRepositoryGoParserHelper(t *testing.T) {
 		t.Fatal("runtime.Caller() did not return the test source path")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(testSourcePath), "..", "..", ".."))
-	helperModuleDirectory := filepath.Join(repositoryRoot, "backends", "go")
+	helperModuleDirectory := filepath.Join(repositoryRoot, "parser-backends", "go")
 	helperName := "tomiya-go-backend"
 	if runtime.GOOS == "windows" {
 		helperName += ".exe"

@@ -37,8 +37,10 @@ jobs:
           go-version: "1.27.x"
 
       - name: Go parser helperをbuild
-        working-directory: backends/go
-        run: go build -o tomiya-go-backend .
+        working-directory: parser-backends/go
+        run: |
+          mkdir -p ../../.build/ci/parser-backends/go
+          go build -o ../../.build/ci/parser-backends/go/tomiya-go-backend .
 
       - name: Go Common IR conformance test
         working-directory: go
@@ -97,10 +99,10 @@ jobs:
           python-version: "3.12"
 
       - name: Roslyn helperをbuild
-        run: dotnet build backend-src/csharp/Tomiya.CSharp.Backend.csproj -c Release
+        run: dotnet build parser-backends/csharp/Tomiya.CSharp.Backend.csproj -c Release -p:BaseIntermediateOutputPath="$GITHUB_WORKSPACE/.build/dotnet/csharp/obj/" -p:BaseOutputPath="$GITHUB_WORKSPACE/.build/dotnet/csharp/bin/"
 
       - name: Roslyn conformance smoke test
-        run: python tools/csharp_backend_smoke.py dotnet backend-src/csharp/bin/Release/net10.0/tomiya-csharp-backend.dll
+        run: python tools/csharp_backend_smoke.py dotnet .build/dotnet/csharp/bin/Release/net10.0/tomiya-csharp-backend.dll
 
   java-backend:
     name: JavaParser Symbol Solver backend
@@ -123,10 +125,10 @@ jobs:
           python-version: "3.12"
 
       - name: JavaParser helperをbuild
-        run: mvn -q -f backend-src/java/pom.xml package
+        run: mvn -q -f parser-backends/java/pom.xml package
 
       - name: JavaParser conformance smoke test
-        run: python tools/java_backend_smoke.py java -jar backend-src/java/target/tomiya-java-backend.jar
+        run: python tools/java_backend_smoke.py java -jar .build/java/tomiya-java-backend.jar
 
   oop-design:
     name: OOP設計policy

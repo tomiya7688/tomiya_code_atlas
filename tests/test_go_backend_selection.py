@@ -45,7 +45,7 @@ def test_go_backend_selection_is_self_contained() -> None:
     helper_name = "tomiya-go-backend.exe" if os.name == "nt" else "tomiya-go-backend"
     assert GoStandardLibraryBackend.helper_relative_path == "go/" + helper_name
     assert distribution["entrypoint"] == "tomiya-go-backend.exe"
-    manifest = json.loads(Path("backends/manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads(Path("parser-backends/manifest.json").read_text(encoding="utf-8"))
     entry = next(item for item in manifest["backends"] if item["backend_id"] == selected["backend_id"])
     assert entry["parser_version"] == "Go 1.27.x standard library"
     assert entry["grammar_version"] == "Go 1.27 language grammar implemented by go/parser"

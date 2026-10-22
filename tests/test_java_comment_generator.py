@@ -25,7 +25,7 @@ def test_java_idempotent():
 def test_java_comment_generation_finishes_for_backend_source():
     source_path = (
         Path(__file__).resolve().parents[1]
-        / "backend-src/java/src/main/java/dev/tomiya/backend/Main.java"
+        / "parser-backends/java/src/main/java/dev/tomiya/backend/Main.java"
     )
     source = source_path.read_text(encoding="utf-8")
 

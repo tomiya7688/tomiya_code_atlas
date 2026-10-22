@@ -14,11 +14,13 @@ const supportedManifestVersion = "1"
 
 //	{
 //	  責務: [BackendManifest: 配布対象のparser helperと共通protocol versionを保持する]
-//	  状態: [ManifestVersion: manifest形式のversion, ParserBackendContractVersion: helper通信契約のversion, Backends: helper定義]
+//	  状態: [ManifestVersion: manifest形式のversion, ParserBackendContractVersion: helper通信契約のversion, SourceRoot: parser source root, BuildOutputRoot: helper配布root, Backends: helper定義]
 //	}
 type BackendManifest struct {
 	ManifestVersion              string    `json:"manifest_version"`
 	ParserBackendContractVersion string    `json:"parser_backend_contract_version"`
+	SourceRoot                   string    `json:"source_root"`
+	BuildOutputRoot              string    `json:"build_output_root"`
 	Backends                     []Backend `json:"backends"`
 }
 
@@ -37,14 +39,18 @@ type Backend struct {
 //	{
 //	  責務: [LoadBackendManifest: 配布rootのmanifestを読み、versionとbackend識別子を検証する]
 //	  処理: [1: manifest fileを開く, 2: JSONをdecodeする, 3: 末尾の余分な値と必須項目を検証する, 4: 検証済みmanifestを返す]
-//	  引数: [applicationRoot: backends directoryを含む配布root]
+//	  引数: [applicationRoot: backends directoryを含む配布rootまたはrepository root]
 //	  戻り値: [manifest: helper registry, error: 読込または契約違反の内容]
 //	}
 func LoadBackendManifest(applicationRoot string) (BackendManifest, error) {
-	manifestPath := filepath.Join(applicationRoot, "backends", "manifest.json")
+	manifestPath := filepath.Join(backendAssetRoot(applicationRoot), "manifest.json")
 	manifestFile, err := os.Open(manifestPath)
 	if err != nil {
-		return BackendManifest{}, fmt.Errorf("open backend manifest: %w", err)
+		sourceManifestPath := filepath.Join(applicationRoot, "parser-backends", "manifest.json")
+		manifestFile, err = os.Open(sourceManifestPath)
+		if err != nil {
+			return BackendManifest{}, fmt.Errorf("open backend manifest: %w", err)
+		}
 	}
 	defer manifestFile.Close()
 
@@ -60,6 +66,39 @@ func LoadBackendManifest(applicationRoot string) (BackendManifest, error) {
 		return BackendManifest{}, err
 	}
 	return manifest, nil
+}
+
+//	{
+//	  責務: [backendAssetRoot: packageまたはsource manifestに基づいてhelper配布rootを選ぶ]
+//	  処理: [1: packaged manifestを優先する, 2: なければsource manifestのbuild_output_rootを検証する, 3: repository内のbuild output rootを返す]
+//	  引数: [applicationRoot: 配布rootまたはrepository root]
+//	  戻り値: [backendRoot: helper assetを解決するdirectory]
+//	}
+func backendAssetRoot(applicationRoot string) string {
+	packagedRoot := filepath.Join(applicationRoot, "backends")
+	if _, err := os.Stat(filepath.Join(packagedRoot, "manifest.json")); err == nil {
+		return packagedRoot
+	}
+
+	sourceManifestPath := filepath.Join(applicationRoot, "parser-backends", "manifest.json")
+	sourceManifest, err := os.ReadFile(sourceManifestPath)
+	if err != nil {
+		return packagedRoot
+	}
+	var sourceMetadata struct {
+		BuildOutputRoot string `json:"build_output_root"`
+	}
+	if err := json.Unmarshal(sourceManifest, &sourceMetadata); err != nil {
+		return packagedRoot
+	}
+	if sourceMetadata.BuildOutputRoot == "" {
+		return packagedRoot
+	}
+	relativeRoot := filepath.Clean(filepath.FromSlash(sourceMetadata.BuildOutputRoot))
+	if filepath.IsAbs(relativeRoot) || relativeRoot == "." || relativeRoot == ".." || strings.HasPrefix(relativeRoot, ".."+string(filepath.Separator)) {
+		return packagedRoot
+	}
+	return filepath.Join(applicationRoot, relativeRoot)
 }
 
 //	{
@@ -147,7 +186,7 @@ func ResolveBackendExecutable(applicationRoot string, manifest BackendManifest, 
 //	  戻り値: [resolvedPath: helper fileの絶対path, error: path不正またはfile未配布の内容]
 //	}
 func resolveManifestPath(applicationRoot string, relativePath string) (string, error) {
-	backendRoot, err := filepath.Abs(filepath.Join(applicationRoot, "backends"))
+	backendRoot, err := filepath.Abs(backendAssetRoot(applicationRoot))
 	if err != nil {
 		return "", fmt.Errorf("resolve backend asset root: %w", err)
 	}
