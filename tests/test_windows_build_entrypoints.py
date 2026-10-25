@@ -217,10 +217,13 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert "mvn -q -f parser-backends/java/pom.xml package" in ci_workflow
     assert ".build/java/tomiya-java-backend.jar" in ci_workflow
     go_workflow = read_repo_file(".github/workflows/go-exe.yml")
-    assert "GioのLinux compile用依存を準備" in ci_workflow
-    assert "if: runner.os == 'Linux'" in ci_workflow
-    assert "libxkbcommon-dev" in ci_workflow
-    assert "libwayland-dev" in ci_workflow
+    dependency_step_name = "      - name: GioのLinux compile用依存を準備"
+    assert dependency_step_name in ci_workflow
+    dependency_step = ci_workflow.partition(dependency_step_name)[2].partition("\n      - name: ")[0]
+    assert "if: runner.os == 'Linux'" in dependency_step
+    assert "libxkbcommon-dev" in dependency_step
+    assert "libwayland-dev" in dependency_step
+    assert "libvulkan-dev" in dependency_step
     assert go_workflow.startswith("name: Go EXE")
     assert 'go-version: "1.27.x"' in go_workflow
     assert "fetch-depth: 0" in go_workflow
@@ -264,3 +267,12 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert not (ROOT / ".github/workflows/python-exe.yml").exists()
     assert not (ROOT / ".github/workflows/build.yml").exists()
     assert not (ROOT / ".github/workflows/release.yml").exists()
+
+
+def test_go_sources_use_lf_for_deterministic_gofmt() -> None:
+    attributes = read_repo_file(".gitattributes")
+    rules = [line.split() for line in attributes.splitlines() if line.strip() and not line.lstrip().startswith("#")]
+    go_rules = [rule for rule in rules if rule[0] == "*.go"]
+
+    assert go_rules
+    assert {"text", "eol=lf"}.issubset(go_rules[-1][1:])
