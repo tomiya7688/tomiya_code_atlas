@@ -123,6 +123,29 @@ func TestHelperClientNormalizesProcessAndProtocolFailures(t *testing.T) {
 //	  引数: [t: Go test runner]
 //	  戻り値: []
 //	}
+func TestHelperClientRejectsOversizedOutput(t *testing.T) {
+	t.Setenv(helperModeEnvironmentName, "oversized-output")
+	client := newTestHelperClient(time.Second)
+	client.maxStdoutBytes = 128
+	_, err := client.Parse(context.Background(), "fake-helper", "go-stdlib-types-helper", "go", "package demo", nil)
+	var backendError *BackendError
+	if !errors.As(err, &backendError) {
+		t.Fatalf("Parse() error = %v, want BackendError", err)
+	}
+	if backendError.Failure.Kind != "protocol_error" {
+		t.Fatalf("failure kind = %q, want protocol_error", backendError.Failure.Kind)
+	}
+	if !strings.Contains(backendError.Failure.Message, "128-byte limit") {
+		t.Fatalf("failure message = %q, want bounded-output diagnostic", backendError.Failure.Message)
+	}
+}
+
+//	{
+//	  責務: [TestHelperClientTimesOut: helperが設定時間を超過したときtimeout診断と再試行可能性を返すことを確認する]
+//	  処理: [1: delay modeを選ぶ, 2: 短いtimeoutでhelperを起動する, 3: timeout failureを検証する]
+//	  引数: [t: Go test runner]
+//	  戻り値: []
+//	}
 func TestHelperClientTimesOut(t *testing.T) {
 	t.Setenv(helperModeEnvironmentName, "delay")
 	client := newTestHelperClient(20 * time.Millisecond)
@@ -167,6 +190,10 @@ func TestHelperClientProcess(t *testing.T) {
 	}
 	if mode == "invalid-json" {
 		_, _ = os.Stdout.WriteString("{invalid response")
+		os.Exit(0)
+	}
+	if mode == "oversized-output" {
+		_, _ = os.Stdout.WriteString(strings.Repeat("x", 1024))
 		os.Exit(0)
 	}
 
