@@ -22,6 +22,8 @@ const (
 	// }
 	ParserBackendContractVersion = "1"
 	defaultHelperTimeout         = 30 * time.Second
+	maxHelperStdoutBytes         = 16 * 1024 * 1024
+	maxHelperStderrBytes         = 256 * 1024
 )
 
 //	{
@@ -50,6 +52,43 @@ type BackendError struct {
 type HelperClient struct {
 	timeout       time.Duration
 	createCommand func(context.Context, string) *exec.Cmd
+}
+
+type boundedCapture struct {
+	buffer    bytes.Buffer
+	limit     int
+	truncated bool
+}
+
+func newBoundedCapture(limit int) *boundedCapture {
+	if limit < 1 {
+		limit = 1
+	}
+	return &boundedCapture{limit: limit}
+}
+
+func (capture *boundedCapture) Write(data []byte) (int, error) {
+	remaining := capture.limit - capture.buffer.Len()
+	keep := len(data)
+	if remaining <= 0 {
+		keep = 0
+		capture.truncated = capture.truncated || len(data) > 0
+	} else if keep > remaining {
+		keep = remaining
+		capture.truncated = true
+	}
+	if keep > 0 {
+		_, _ = capture.buffer.Write(data[:keep])
+	}
+	return len(data), nil
+}
+
+func (capture *boundedCapture) Bytes() []byte {
+	return capture.buffer.Bytes()
+}
+
+func (capture *boundedCapture) String() string {
+	return capture.buffer.String()
 }
 
 //	{
@@ -184,12 +223,24 @@ func (client HelperClient) Parse(parentContext context.Context, executablePath s
 	defer cancel()
 	command := createCommand(runContext, executablePath)
 	command.Stdin = bytes.NewReader(append(requestBytes, '\n'))
-	var standardOutput bytes.Buffer
-	var standardError bytes.Buffer
-	command.Stdout = &standardOutput
-	command.Stderr = &standardError
+	standardOutput := newBoundedCapture(maxHelperStdoutBytes)
+	standardError := newBoundedCapture(maxHelperStderrBytes)
+	command.Stdout = standardOutput
+	command.Stderr = standardError
 	if err := command.Run(); err != nil {
-		return commonir.Payload{}, classifyProcessError(runContext, err, standardError.String(), backendID)
+		message := standardError.String()
+		if standardError.truncated {
+			message += "\n[stderr truncated at helper output limit]"
+		}
+		return commonir.Payload{}, classifyProcessError(runContext, err, message, backendID)
+	}
+	if standardOutput.truncated {
+		return commonir.Payload{}, newBackendError(
+			"protocol_error",
+			"Parser helper stdout exceeded the bounded response limit.",
+			backendID,
+			false,
+		)
 	}
 
 	response, err := decodeHelperResponse(standardOutput.Bytes(), requestID, backendID)
