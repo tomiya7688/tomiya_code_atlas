@@ -163,7 +163,11 @@ jobs:
           foreach ($file in $changedGoFiles) {
             $result = gofmt -l $file
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            if ($result) { $unformatted += $result }
+            if ($result) {
+              $unformatted += $result
+              gofmt -d $file
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
           }
           if ($unformatted.Count -gt 0) {
             $unformatted | ForEach-Object { Write-Error "gofmt未適用: $_" }
