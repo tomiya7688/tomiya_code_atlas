@@ -1,31 +1,26 @@
-# GUI usage
+# Go GUI usage
 
 Japanese source: [GUI operation guide](../jp/GUI操作ガイド.md).
 
-The existing Python source implementation opens its desktop GUI when you start `Src.app` without arguments. The Go Windows executable currently has no GUI. Its CLI can generate call graphs and class diagrams from a source file or recursively scanned project folder; each source file is parsed independently. See the [CLI reference](CLI-Reference.md).
+The Go GUI lets Windows users choose source files or project folders, select diagrams, set an output folder, and review status, diagnostics, and generated files in one window. The GUI runs in Go and does not require Python to be installed. Language parsers start from the bundled `backends/` directory.
 
-The current GUI can:
+Double-click `tomiya-code-atlas.exe` in the Windows distribution to start the GUI. Developers can run `run_dist.bat` without arguments from the repository root.
 
-- Select supported files or a project folder.
-- Show discovered files and detected languages.
-- Generate source comments.
-- Generate a Mermaid call graph for Python.
-- Generate a Markdown class-responsibility table for Python.
-- Generate a CI graph from a GitHub Actions YAML file.
-- Preview the generated source and save the result.
+## Run an analysis
 
-The Mermaid preview currently displays Mermaid source text. It does not render the diagram as an image or embedded HTML.
+1. Choose **Select file** or **Select folder** and select a source file or project folder. You can also type a path directly. Relative paths use the working directory from which the app was started. Use the picker buttons if you are unsure of that location.
+2. Check either or both diagrams under **Choose diagrams**. The GUI lists only diagrams currently available in the Go version.
+3. Confirm the output folder. The default is `Tomiya Code Atlas/atlas-output` under your home folder. Choose another folder or type a path to change it.
+4. Select **Run analysis**. The GUI shows the running status. When analysis finishes, it lists the generated file paths. On failure, it shows the cause under **Diagnostics**.
 
-CLI commands remain available alongside the GUI. For example:
+Keyboard shortcuts are also available: `Alt+F` selects a source file, `Alt+P` selects an input folder, `Alt+O` selects an output folder, and `Alt+R` runs the selected analyses. Each button displays its shortcut.
 
-```text
-python -m Src.app comment sample.py
-python -m Src.app ci .github/workflows/ci.yml
-python -m Src.app --version
-python -m Src.app gui
-```
+## Current support
 
-See the [CLI reference](CLI-Reference.md) for command options. The Japanese guide is the source of truth for GUI capabilities and limitations.
-# Migration status
+The Go GUI currently generates Markdown call graphs and class diagrams. For a project folder, it scans supported source files recursively and sends each file to its parser. Cross-file name and type resolution, comment generation, other diagrams, and CI analysis are still being ported. Unsupported diagrams are not shown in the GUI.
 
-This guide describes the existing Python source GUI. The Go Windows executable does not include analysis features or a GUI yet.
+For command-line use, run `tomiya-code-atlas-cli.exe` or pass CLI arguments to `run_dist.bat`. See the [CLI reference](CLI-Reference.md).
+
+Developers can run `build_exe.bat` from the repository root to build the GUI, CLI, and parser helpers as a directory-based distribution.
+
+Visual interaction and execution from the GitHub distribution artifact are still being accepted.

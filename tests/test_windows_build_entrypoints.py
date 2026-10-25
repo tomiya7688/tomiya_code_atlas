@@ -17,12 +17,14 @@ def test_python_environment_installs_the_parser_helper_build_dependency() -> Non
     assert "-m ensurepip --upgrade --default-pip" in setup
     assert 'pip install -e ".[test,parser-build,cpp-parser]"' in setup
     assert "PyInstaller" in read_repo_file("pyproject.toml")
+    assert 'ruff=="0.15.22"' not in read_repo_file("pyproject.toml")
+    assert '"ruff==0.15.22"' in read_repo_file("pyproject.toml")
     assert "JDK 25" not in setup
     assert "where mvn" not in setup
     java_build = read_repo_file("scripts/build/build_java_backend.bat")
     assert 'call mvn -q -f "parser-backends\\java\\pom.xml" -DskipTests package' in java_build
     assert "java.se,jdk.unsupported,jdk.zipfs,jdk.localedata" in java_build
-    assert '%%~$PATH:I' in java_build
+    assert "%%~$PATH:I" in java_build
 
 
 def test_source_and_distribution_launchers_have_distinct_targets() -> None:
@@ -33,6 +35,9 @@ def test_source_and_distribution_launchers_have_distinct_targets() -> None:
     assert "scripts\\build\\setup.bat" in source_launcher
     assert '".venv\\Scripts\\python.exe" -m Src.app %*' in source_launcher
     assert ".build\\dist\\tomiya-code-atlas.exe" in distribution_launcher
+    assert ".build\\dist\\tomiya-code-atlas-cli.exe" in distribution_launcher
+    assert 'if "%~1"=="" goto launch_gui' in distribution_launcher
+    assert 'if /i "%~1"=="gui" goto launch_gui' in distribution_launcher
     assert '"%APP%" %*' in distribution_launcher
 
 
@@ -47,7 +52,10 @@ def test_root_build_creates_go_cli_and_cpython_ast_onedir_helper() -> None:
     assert "pushd go" in go_build
     assert "go test ./..." in go_build
     assert "go build -trimpath" in go_build
+    assert "-H=windowsgui" in go_build
+    assert "-tags console" in go_build
     assert ".build\\dist\\tomiya-code-atlas.exe" in go_build
+    assert ".build\\dist\\tomiya-code-atlas-cli.exe" in go_build
     assert "build_python_backend.bat" in go_build
     assert "build_csharp_backend.bat" in go_build
     assert "build_cpp_backend.bat" in go_build
@@ -99,7 +107,19 @@ def test_verification_smokes_the_frozen_python_parser_helper() -> None:
 def test_only_direct_windows_build_and_distribution_entrypoints_remain_in_root() -> None:
     assert (ROOT / "build_exe.bat").is_file()
     assert (ROOT / "run_dist.bat").is_file()
-    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_go_parser_backend.bat", "build_python_backend.bat", "build_csharp_backend.bat", "build_cpp_backend.bat", "build_java_backend.bat"):
+    for helper in (
+        "setup.bat",
+        "run_source.bat",
+        "verify.bat",
+        "build_go.bat",
+        "format_go.bat",
+        "format_python.bat",
+        "build_go_parser_backend.bat",
+        "build_python_backend.bat",
+        "build_csharp_backend.bat",
+        "build_cpp_backend.bat",
+        "build_java_backend.bat",
+    ):
         assert (ROOT / "scripts" / "build" / helper).is_file()
     for removed_helper in ("package.bat", "build_python_legacy.bat"):
         assert not (ROOT / "scripts" / "build" / removed_helper).exists()
@@ -117,7 +137,19 @@ def test_ci_checker_configuration_is_grouped_under_github() -> None:
 
 
 def test_windows_build_helpers_resolve_paths_from_the_repository_root() -> None:
-    for helper in ("setup.bat", "run_source.bat", "verify.bat", "build_go.bat", "build_go_parser_backend.bat", "build_python_backend.bat", "build_csharp_backend.bat", "build_cpp_backend.bat", "build_java_backend.bat"):
+    for helper in (
+        "setup.bat",
+        "run_source.bat",
+        "verify.bat",
+        "build_go.bat",
+        "format_go.bat",
+        "format_python.bat",
+        "build_go_parser_backend.bat",
+        "build_python_backend.bat",
+        "build_csharp_backend.bat",
+        "build_cpp_backend.bat",
+        "build_java_backend.bat",
+    ):
         source = read_repo_file(f"scripts/build/{helper}")
         assert 'cd /d "%~dp0\\..\\.."' in source
     for entrypoint in ("build_exe.bat", "run_dist.bat"):
@@ -187,6 +219,9 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     go_workflow = read_repo_file(".github/workflows/go-exe.yml")
     assert go_workflow.startswith("name: Go EXE")
     assert 'go-version: "1.27.x"' in go_workflow
+    assert "fetch-depth: 0" in go_workflow
+    assert "変更したGo fileのgofmtを確認" in go_workflow
+    assert "変更したPython fileのRuffを確認" in go_workflow
     assert '"go/**"' in go_workflow
     assert '"parser-backends/go/**"' in go_workflow
     assert '"parser-backends/python/**"' in go_workflow
@@ -195,6 +230,8 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert '"parser-backends/csharp/**"' in go_workflow
     assert '"parser-backends/manifest.json"' in go_workflow
     assert "go test ./..." in go_workflow
+    assert ".build/dist/tomiya-code-atlas-cli.exe" in go_workflow
+    assert 'tools\\go_cli_smoke.py ".build\\dist\\tomiya-code-atlas-cli.exe"' in go_workflow
     go_builder = read_repo_file("scripts/build/build_go_parser_backend.bat")
     assert 'copy /y "parser-backends\\go\\NOTICE.txt" ".build\\dist\\backends\\go\\NOTICE.txt"' in go_builder
     assert 'if not exist ".build\\dist\\backends\\go\\NOTICE.txt"' in go_builder
@@ -223,4 +260,3 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert not (ROOT / ".github/workflows/python-exe.yml").exists()
     assert not (ROOT / ".github/workflows/build.yml").exists()
     assert not (ROOT / ".github/workflows/release.yml").exists()
-

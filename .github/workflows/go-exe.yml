@@ -24,6 +24,8 @@ on:
       - "tests/fixtures/static_specification/**"
       - "internal/**"
       - "scripts/build/build_go.bat"
+      - "scripts/build/format_go.bat"
+      - "scripts/build/format_python.bat"
       - "scripts/build/build_go_parser_backend.bat"
       - "scripts/build/build_python_backend.bat"
       - "scripts/build/build_csharp_backend.bat"
@@ -80,6 +82,8 @@ on:
       - "tests/fixtures/static_specification/**"
       - "internal/**"
       - "scripts/build/build_go.bat"
+      - "scripts/build/format_go.bat"
+      - "scripts/build/format_python.bat"
       - "scripts/build/build_go_parser_backend.bat"
       - "scripts/build/build_python_backend.bat"
       - "scripts/build/build_csharp_backend.bat"
@@ -123,12 +127,49 @@ jobs:
     steps:
       - name: ソースを取得
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Goを準備
         uses: actions/setup-go@v7
         with:
           go-version: "1.27.x"
           cache-dependency-path: go/go.mod
+
+      - name: 変更したGo fileのgofmtを確認
+        shell: pwsh
+        run: |
+          $base = "${{ github.event.pull_request.base.sha || github.event.before }}"
+          $hasBase = $false
+          if ($base -and $base -notmatch '^0+$') {
+            git cat-file -e "$base^{commit}" 2>$null
+            $hasBase = $LASTEXITCODE -eq 0
+          }
+          if (-not $hasBase) {
+            git rev-parse --verify origin/main 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              $base = (git merge-base origin/main HEAD).Trim()
+              $hasBase = $LASTEXITCODE -eq 0
+            }
+          }
+          if ($hasBase) {
+            $changedGoFiles = git -c core.quotepath=false diff --name-only --diff-filter=ACMR "$base...HEAD" -- '*.go'
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            $changedGoFiles = git ls-files -- '*.go'
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          $unformatted = @()
+          foreach ($file in $changedGoFiles) {
+            $result = gofmt -l $file
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            if ($result) { $unformatted += $result }
+          }
+          if ($unformatted.Count -gt 0) {
+            $unformatted | ForEach-Object { Write-Error "gofmt未適用: $_" }
+            exit 1
+          }
+          Write-Host "変更したGo fileはgofmt適用済みです。"
 
       - name: .NET 10 SDKを準備
         uses: actions/setup-dotnet@v6
@@ -150,6 +191,36 @@ jobs:
         shell: cmd
         run: call scripts\build\setup.bat
 
+      - name: 変更したPython fileのRuffを確認
+        shell: pwsh
+        run: |
+          $base = "${{ github.event.pull_request.base.sha || github.event.before }}"
+          $hasBase = $false
+          if ($base -and $base -notmatch '^0+$') {
+            git cat-file -e "$base^{commit}" 2>$null
+            $hasBase = $LASTEXITCODE -eq 0
+          }
+          if (-not $hasBase) {
+            git rev-parse --verify origin/main 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              $base = (git merge-base origin/main HEAD).Trim()
+              $hasBase = $LASTEXITCODE -eq 0
+            }
+          }
+          if ($hasBase) {
+            $changedPythonFiles = git -c core.quotepath=false diff --name-only --diff-filter=ACMR "$base...HEAD" -- '*.py'
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            $changedPythonFiles = git ls-files -- '*.py'
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          $ruff = ".\.venv\Scripts\ruff.exe"
+          foreach ($file in $changedPythonFiles) {
+            & $ruff format --check --no-cache $file
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          Write-Host "変更したPython fileはRuffで整形済みです。"
+
       - name: Go testを実行
         working-directory: go
         run: go test ./...
@@ -164,6 +235,7 @@ jobs:
           name: tomiya-code-atlas-go-windows-x64
           path: |
             .build/dist/tomiya-code-atlas.exe
+            .build/dist/tomiya-code-atlas-cli.exe
             .build/dist/backends/tomiya-python-backend/
             .build/dist/backends/csharp/
             .build/dist/backends/cpp/
@@ -174,7 +246,7 @@ jobs:
       - name: 配布EXEのhelpとversionをsmoke test
         shell: pwsh
         run: |
-          $exe = ".\.build\dist\tomiya-code-atlas.exe"
+          $exe = ".\.build\dist\tomiya-code-atlas-cli.exe"
           if (-not (Test-Path $exe)) {
             Write-Error "Go版のEXEが見つかりません: $exe"
             exit 1
@@ -208,6 +280,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & .\.venv\Scripts\python.exe tools\go_backend_smoke.py ".build\dist\backends\go\tomiya-go-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & .\.venv\Scripts\python.exe tools\go_cli_smoke.py ".build\dist\tomiya-code-atlas.exe"
+          & .\.venv\Scripts\python.exe tools\go_cli_smoke.py ".build\dist\tomiya-code-atlas-cli.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
