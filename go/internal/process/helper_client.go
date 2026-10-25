@@ -22,6 +22,8 @@ const (
 	// }
 	ParserBackendContractVersion = "1"
 	defaultHelperTimeout         = 30 * time.Second
+	defaultHelperStdoutLimit     = 8 * 1024 * 1024
+	defaultHelperStderrLimit     = 64 * 1024
 )
 
 //	{
@@ -45,11 +47,64 @@ type BackendError struct {
 
 //	{
 //	  責務: [HelperClient: versioned JSON requestをhelper processへ送りCommon IR responseを検証する]
-//	  状態: [timeout: helper一回あたりの実行時間上限, createCommand: shellを介さずhelper processを起動する関数]
+//	  状態: [timeout: helper一回あたりの実行時間上限, maxStdoutBytes/maxStderrBytes: helper出力のmemory上限, createCommand: shellを介さずhelper processを起動する関数]
 //	}
 type HelperClient struct {
-	timeout       time.Duration
-	createCommand func(context.Context, string) *exec.Cmd
+	timeout         time.Duration
+	maxStdoutBytes  int
+	maxStderrBytes  int
+	createCommand   func(context.Context, string) *exec.Cmd
+}
+
+//	{
+//	  責務: [boundedOutputBuffer: helper出力を上限まで保持し、超過を記録しながらpipe自体はdrainする]
+//	  状態: [buffer: 保持済みbytes, limit: 最大保持byte数, exceeded: 上限超過の有無]
+//	}
+type boundedOutputBuffer struct {
+	buffer   bytes.Buffer
+	limit    int
+	exceeded bool
+}
+
+//	{
+//	  責務: [Write: helper出力のうち上限内だけを保持し、callerには全byte受理として返してprocessをblockさせない]
+//	  処理: [1: 残容量だけbufferへ書く, 2: 超過分があればexceededを立てる, 3: 入力全長を返す]
+//	  引数: [data: helper processから受け取ったbytes]
+//	  戻り値: [count: 受理した入力全長, error: 常にnil]
+//	}
+func (output *boundedOutputBuffer) Write(data []byte) (int, error) {
+	remaining := output.limit - output.buffer.Len()
+	if remaining > 0 {
+		keep := len(data)
+		if keep > remaining {
+			keep = remaining
+		}
+		_, _ = output.buffer.Write(data[:keep])
+	}
+	if len(data) > remaining {
+		output.exceeded = true
+	}
+	return len(data), nil
+}
+
+//	{
+//	  責務: [Bytes: 上限内で保持したhelper出力を返す]
+//	  処理: [1: 内部bufferのbytesを返す]
+//	  引数: []
+//	  戻り値: [bytes: 保持済み出力]
+//	}
+func (output *boundedOutputBuffer) Bytes() []byte {
+	return output.buffer.Bytes()
+}
+
+//	{
+//	  責務: [String: 上限内で保持したhelper出力を文字列として返す]
+//	  処理: [1: 内部bufferを文字列化する]
+//	  引数: []
+//	  戻り値: [text: 保持済み出力]
+//	}
+func (output *boundedOutputBuffer) String() string {
+	return output.buffer.String()
 }
 
 //	{
@@ -138,7 +193,9 @@ func NewHelperClient(timeout time.Duration) HelperClient {
 		timeout = defaultHelperTimeout
 	}
 	return HelperClient{
-		timeout: timeout,
+		timeout:        timeout,
+		maxStdoutBytes: defaultHelperStdoutLimit,
+		maxStderrBytes: defaultHelperStderrLimit,
 		createCommand: func(ctx context.Context, executablePath string) *exec.Cmd {
 			return exec.CommandContext(ctx, executablePath)
 		},
@@ -184,12 +241,28 @@ func (client HelperClient) Parse(parentContext context.Context, executablePath s
 	defer cancel()
 	command := createCommand(runContext, executablePath)
 	command.Stdin = bytes.NewReader(append(requestBytes, '\n'))
-	var standardOutput bytes.Buffer
-	var standardError bytes.Buffer
+	stdoutLimit := client.maxStdoutBytes
+	if stdoutLimit <= 0 {
+		stdoutLimit = defaultHelperStdoutLimit
+	}
+	stderrLimit := client.maxStderrBytes
+	if stderrLimit <= 0 {
+		stderrLimit = defaultHelperStderrLimit
+	}
+	standardOutput := boundedOutputBuffer{limit: stdoutLimit}
+	standardError := boundedOutputBuffer{limit: stderrLimit}
 	command.Stdout = &standardOutput
 	command.Stderr = &standardError
 	if err := command.Run(); err != nil {
 		return commonir.Payload{}, classifyProcessError(runContext, err, standardError.String(), backendID)
+	}
+	if standardOutput.exceeded {
+		return commonir.Payload{}, newBackendError(
+			"protocol_error",
+			fmt.Sprintf("Parser helper stdout exceeded the %d-byte limit.", stdoutLimit),
+			backendID,
+			false,
+		)
 	}
 
 	response, err := decodeHelperResponse(standardOutput.Bytes(), requestID, backendID)
