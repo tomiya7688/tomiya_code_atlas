@@ -10,8 +10,8 @@ import (
 )
 
 //	{
-//	  責務: [ProjectFileScanner: supported source extensionと除外directory規則を所有してproject内の解析対象fileを列挙する]
-//	  状態: [extensionLanguages: extensionからlanguage IDへの対応, ignoredDirectoryNames: recursive scanから除くdirectory名]
+//	  責務: [ProjectFileScanner: 対応するソース拡張子と除外ルールを管理し、解析対象のファイルを探す,],
+//	  状態: [extensionLanguages: 拡張子と解析言語の対応表, ignoredDirectoryNames: 探索対象から除くフォルダー名,],
 //	}
 type ProjectFileScanner struct {
 	extensionLanguages    map[string]string
@@ -19,8 +19,8 @@ type ProjectFileScanner struct {
 }
 
 //	{
-//	  責務: [ProjectSourceFile: recursive scanで見つけたsourceのpathと言語IDをProcessへ渡す]
-//	  状態: [Path: project root基準または指定rootのsource path, Language: extensionから決定したlanguage ID]
+//	  責務: [ProjectSourceFile: 探索で見つけたソースのパスと言語IDをProcessへ渡す,],
+//	  状態: [Path: 指定された起点から見つかったソースのパス, Language: 拡張子から決定した言語ID,],
 //	}
 type ProjectSourceFile struct {
 	Path     string
@@ -28,10 +28,9 @@ type ProjectSourceFile struct {
 }
 
 //	{
-//	  責務: [NewProjectFileScanner: Python版と同じsource extensionと生成directory除外規則を持つscannerを作る]
-//	  処理: [1: 対象extensionと言語IDの対応を作る, 2: 除外directory名を作る, 3: scannerを返す]
-//	  引数: []
-//	  戻り値: [scanner: project file探索を行うscanner]
+//	  責務: [NewProjectFileScanner: 対応言語の拡張子と除外ルールを備えた探索器を作る,],
+//	  処理: [1: 拡張子と言語IDの対応表を作る, 2: 探索から除くフォルダー名を設定する, 3: 設定済みの探索器を返す,],
+//	  戻り値: [scanner: ソースファイルを探す探索器,],
 //	}
 func NewProjectFileScanner() ProjectFileScanner {
 	return ProjectFileScanner{
@@ -48,10 +47,23 @@ func NewProjectFileScanner() ProjectFileScanner {
 }
 
 //	{
-//	  責務: [DetectLanguage: file extensionから安定したlanguage IDを返す]
-//	  処理: [1: extensionを小文字化する, 2: 登録済みlanguage IDを返し、未対応ならunknownを返す]
-//	  引数: [filePath: 言語を判定するsource path]
-//	  戻り値: [languageID: extensionに対応するlanguage IDまたはunknown]
+//	  責務: [SupportedFileExtensions: ファイル選択画面で使う拡張子を昇順で返す,],
+//	  戻り値: [extensions: 探索器が対応する拡張子の複製,],
+//	}
+func (scanner ProjectFileScanner) SupportedFileExtensions() []string {
+	extensions := make([]string, 0, len(scanner.extensionLanguages))
+	for extension := range scanner.extensionLanguages {
+		extensions = append(extensions, extension)
+	}
+	sort.Strings(extensions)
+	return extensions
+}
+
+//	{
+//	  責務: [DetectLanguage: ファイルの拡張子から解析言語を決める,],
+//	  処理: [1: 拡張子を小文字にそろえる, 2: 対応する言語IDを返し、未対応ならunknownを返す,],
+//	  引数: [filePath: 言語を判定するソースのパス,],
+//	  戻り値: [languageID: 拡張子に対応する言語IDまたはunknown,],
 //	}
 func (scanner ProjectFileScanner) DetectLanguage(filePath string) string {
 	languageID := scanner.extensionLanguages[strings.ToLower(filepath.Ext(filePath))]
@@ -62,10 +74,10 @@ func (scanner ProjectFileScanner) DetectLanguage(filePath string) string {
 }
 
 //	{
-//	  責務: [DiscoverSupportedFiles: fileまたはproject directoryから対応言語のsourceを列挙する]
-//	  処理: [1: root配下のfileを安全に列挙する, 2: supported extensionだけをlanguage ID付きで残す, 3: path順を固定して返す]
-//	  引数: [rootPath: source fileまたはrecursive scanするproject directory]
-//	  戻り値: [files: pathと言語IDを含む解析対象, error: rootのstatまたはdirectory走査に失敗した場合の内容]
+//	  責務: [DiscoverSupportedFiles: ファイルまたはプロジェクトフォルダーから対応言語のソースを探す,],
+//	  処理: [1: 起点のファイルまたは配下のファイルを列挙する, 2: 対応拡張子のファイルに言語IDを付ける, 3: パス順に並べて返す,],
+//	  引数: [rootPath: ソースファイルまたは再帰探索するプロジェクトフォルダー,],
+//	  戻り値: [files: パスと言語IDを含む解析対象, error: 起点の確認またはフォルダー走査に失敗した理由,],
 //	}
 func (scanner ProjectFileScanner) DiscoverSupportedFiles(rootPath string) ([]ProjectSourceFile, error) {
 	filePaths, err := scanner.walkProjectFiles(rootPath)
@@ -74,7 +86,7 @@ func (scanner ProjectFileScanner) DiscoverSupportedFiles(rootPath string) ([]Pro
 	}
 
 	supportedFiles := make([]ProjectSourceFile, 0, len(filePaths))
-	// 未対応extensionはCLIが解析backendを選べないため結果から除外する。
+	// 未対応の拡張子はCLIで解析器を選べないため、結果から除外する。
 	for _, filePath := range filePaths {
 		languageID := scanner.DetectLanguage(filePath)
 		if languageID == "unknown" {
@@ -86,29 +98,29 @@ func (scanner ProjectFileScanner) DiscoverSupportedFiles(rootPath string) ([]Pro
 }
 
 //	{
-//	  責務: [IsDirectory: 指定pathがdirectoryか判定する]
-//	  処理: [1: pathのfile情報を取得する, 2: directoryかどうかを返す]
-//	  引数: [path: file種別を確認するpath]
-//	  戻り値: [bool: directoryならtrue, error: pathを確認できない場合の説明]
+//	  責務: [IsDirectory: 指定されたパスがフォルダーか判定する,],
+//	  処理: [1: パスの情報を取得する, 2: フォルダーかどうかを返す,],
+//	  引数: [path: 種類を確認するパス,],
+//	  戻り値: [bool: フォルダーならtrue, error: パスの情報を取得できない場合の説明,],
 //	}
 func IsDirectory(path string) (bool, error) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return false, fmt.Errorf("pathを確認できません (%s): %w", path, err)
+		return false, fmt.Errorf("パスを確認できません (%s): %w", path, err)
 	}
 	return fileInfo.IsDir(), nil
 }
 
 //	{
-//	  責務: [DiscoverDeploymentFiles: project directoryからDocker・Compose・Kubernetes設定候補を列挙する]
-//	  処理: [1: directory root以外を空結果にする, 2: 共通除外規則で配下fileを列挙する, 3: 設定名またはYAML extensionで候補を選び順序を固定する]
-//	  引数: [rootPath: deployment設定を探索するproject directory]
-//	  戻り値: [filePaths: deployment解析候補のpath, error: directory走査に失敗した場合の内容]
+//	  責務: [DiscoverDeploymentFiles: プロジェクトフォルダーからDocker・Compose・Kubernetes設定の候補を探す,],
+//	  処理: [1: フォルダー以外の起点には空結果を返す, 2: 共通の除外ルールを守って配下を列挙する, 3: 設定名またはYAML拡張子で候補を選び、順序を固定する,],
+//	  引数: [rootPath: deployment設定を探すプロジェクトフォルダー,],
+//	  戻り値: [filePaths: deployment解析候補のパス, error: フォルダー走査に失敗した理由,],
 //	}
 func (scanner ProjectFileScanner) DiscoverDeploymentFiles(rootPath string) ([]string, error) {
 	rootInfo, err := os.Stat(rootPath)
 	if err != nil {
-		return nil, fmt.Errorf("inspect project root %q: %w", rootPath, err)
+		return nil, fmt.Errorf("プロジェクトの起点を確認できません (%q): %w", rootPath, err)
 	}
 	if !rootInfo.IsDir() {
 		return []string{}, nil
@@ -119,7 +131,7 @@ func (scanner ProjectFileScanner) DiscoverDeploymentFiles(rootPath string) ([]st
 		return nil, err
 	}
 	deploymentPaths := make([]string, 0)
-	// deployment候補は通常source fileと別operationで処理するため、設定fileだけを選ぶ。
+	// デプロイ設定は通常のソース解析と別に扱うため、設定ファイルだけを選ぶ。
 	for _, filePath := range filePaths {
 		if isDeploymentConfiguration(filePath) {
 			deploymentPaths = append(deploymentPaths, filePath)
@@ -129,28 +141,28 @@ func (scanner ProjectFileScanner) DiscoverDeploymentFiles(rootPath string) ([]st
 }
 
 //	{
-//	  責務: [walkProjectFiles: root fileまたはdirectoryからregular fileを再帰列挙し、生成・tooling directoryを除外する]
-//	  処理: [1: rootの種類を検証する, 2: ignored directoryへ入らずregular fileを収集する, 3: 大文字小文字に依存しないpath順で返す]
-//	  引数: [rootPath: 単一fileまたはproject directory]
-//	  戻り値: [filePaths: 列挙したfile path, error: rootやdirectoryの読込に失敗した場合の内容]
+//	  責務: [walkProjectFiles: 指定された起点からファイルを再帰的に探し、生成物やツール用フォルダーを除外する,],
+//	  処理: [1: 起点の種類を確認する, 2: 除外対象へ入らずファイルを収集する, 3: 大文字小文字に依存しない順序で返す,],
+//	  引数: [rootPath: 単一ファイルまたはプロジェクトフォルダー,],
+//	  戻り値: [filePaths: 見つかったファイルのパス, error: 起点またはフォルダーの読込に失敗した理由,],
 //	}
 func (scanner ProjectFileScanner) walkProjectFiles(rootPath string) ([]string, error) {
 	rootInfo, err := os.Stat(rootPath)
 	if err != nil {
-		return nil, fmt.Errorf("inspect project root %q: %w", rootPath, err)
+		return nil, fmt.Errorf("プロジェクトの起点を確認できません (%q): %w", rootPath, err)
 	}
 	if !rootInfo.IsDir() {
 		if rootInfo.Mode().IsRegular() {
 			return []string{rootPath}, nil
 		}
-		return nil, fmt.Errorf("project root is not a regular file or directory: %q", rootPath)
+		return nil, fmt.Errorf("プロジェクトの起点は通常ファイルまたはフォルダーではありません: %q", rootPath)
 	}
 
 	filePaths := make([]string, 0)
-	// WalkDirはdirectoryを決定順で巡回し、ignored treeは潜らずfile system symlinkも追跡しない。
+	// WalkDirはフォルダーを決定順で巡回し、除外対象へ入らず、ファイルシステムのシンボリックリンクも追跡しない。
 	err = filepath.WalkDir(rootPath, func(filePath string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
-			return fmt.Errorf("scan project path %q: %w", filePath, walkErr)
+			return fmt.Errorf("プロジェクト内のパスを走査できません (%q): %w", filePath, walkErr)
 		}
 		if filePath == rootPath {
 			return nil
@@ -163,7 +175,7 @@ func (scanner ProjectFileScanner) walkProjectFiles(rootPath string) ([]string, e
 		}
 		fileInfo, err := entry.Info()
 		if err != nil {
-			return fmt.Errorf("inspect project file %q: %w", filePath, err)
+			return fmt.Errorf("プロジェクト内のファイルを確認できません (%q): %w", filePath, err)
 		}
 		if fileInfo.Mode().IsRegular() {
 			filePaths = append(filePaths, filePath)
@@ -173,7 +185,7 @@ func (scanner ProjectFileScanner) walkProjectFiles(rootPath string) ([]string, e
 	if err != nil {
 		return nil, err
 	}
-	// 結果順をfilesystem依存から切り離し、CLIの再現可能な出力順を保証する。
+	// ファイルシステムに依存しない順序にそろえ、CLIの再現可能な出力を保証する。
 	sort.Slice(filePaths, func(left int, right int) bool {
 		leftPath := strings.ToLower(filepath.ToSlash(filePaths[left]))
 		rightPath := strings.ToLower(filepath.ToSlash(filePaths[right]))
@@ -186,10 +198,10 @@ func (scanner ProjectFileScanner) walkProjectFiles(rootPath string) ([]string, e
 }
 
 //	{
-//	  責務: [isDeploymentConfiguration: file名またはYAML extensionからdeployment設定候補を判定する]
-//	  処理: [1: basenameを小文字化する, 2: DockerfileとCompose固定名を確認する, 3: YAML extensionを確認する]
-//	  引数: [filePath: 判定対象のproject file]
-//	  戻り値: [isConfiguration: deployment解析候補ならtrue]
+//	  責務: [isDeploymentConfiguration: ファイル名やYAML拡張子からdeployment設定の候補か判定する,],
+//	  処理: [1: ファイル名を小文字にそろえる, 2: DockerfileとComposeの固定名を確認する, 3: YAML拡張子を確認する,],
+//	  引数: [filePath: 判定するプロジェクトファイル,],
+//	  戻り値: [isConfiguration: deployment解析の候補ならtrue,],
 //	}
 func isDeploymentConfiguration(filePath string) bool {
 	baseName := strings.ToLower(filepath.Base(filePath))

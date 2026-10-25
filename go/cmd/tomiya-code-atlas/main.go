@@ -15,7 +15,7 @@ import (
 var version = "dev"
 
 //	{
-//	  責務: [exit status contract: CLI成功・実行失敗・引数誤りのprocess exit codeを固定する]
+//	  責務: [終了状態の契約: CLIの成功・実行失敗・引数誤りを異なる終了コードで表す,],
 //	}
 const (
 	exitSuccess       = 0
@@ -24,17 +24,21 @@ const (
 )
 
 //	{
-//	  責務: [main: 標準CLI引数と標準streamでcommand dispatcherを起動する]
+//	  責務: [main: 標準CLI引数と入出力先を使ってコマンドを振り分ける,],
 //	}
 func main() {
+	if desktopGUIEnabled && (len(os.Args) == 1 || (len(os.Args) == 2 && os.Args[1] == "gui")) {
+		runDesktopGUI()
+		return
+	}
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
 
 //	{
-//	  責務: [run: top-level commandを検証しhelp・version・analyzeの処理先へ振り分ける]
-//	  処理: [1: command名を判定する, 2: 各commandを呼び出す, 3: versioned CLI exit codeを返す]
-//	  引数: [args: command line引数, stdout: 利用者向け正常出力, stderr: 利用者向けerror出力]
-//	  戻り値: [int: 成功0、解析失敗1、引数誤り2のprocess exit status]
+//	  責務: [run: 最上位のコマンドを検証し、ヘルプ・バージョン表示・解析へ振り分ける,],
+//	  処理: [1: コマンド名を判定する, 2: 該当する処理を呼び出す, 3: 結果に応じた終了コードを返す,],
+//	  引数: [args: CLIで指定されたコマンドライン引数, stdout: 正常時の出力先, stderr: エラー時の出力先,],
+//	  戻り値: [int: 成功時0・解析失敗時1・引数誤り時2のプロセス終了コード,],
 //	}
 func run(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
@@ -57,7 +61,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		options, err := parseAnalyzeArguments(args[1:])
 		if err != nil {
 			fmt.Fprintf(stderr, "[エラー] %s\n", err)
-			fmt.Fprintln(stderr, "使い方は `tomiya-code-atlas analyze --help` で確認してください。")
+			fmt.Fprintln(stderr, "使い方は `tomiya-code-atlas-cli.exe analyze --help` で確認してください。")
 			return exitUsageError
 		}
 		if err := runAnalyze(options); err != nil {
@@ -74,25 +78,28 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 //	{
-//	  責務: [writeHelp: 利用可能commandと詳細helpの開き方を日本語で表示する]
-//	  引数: [w: help本文を書き出すstream]
+//	  責務: [writeHelp: 利用できるコマンドと詳しい案内の表示方法を説明する,],
+//	  引数: [w: 案内を書き出す出力先,],
 //	}
 func writeHelp(w io.Writer) {
 	fmt.Fprintln(w, "Tomiya Code Atlas (Go)")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "使用方法: tomiya-code-atlas [コマンド]")
+	fmt.Fprintln(w, "使用方法: tomiya-code-atlas-cli.exe [コマンド]")
+	if desktopGUIEnabled {
+		fmt.Fprintln(w, "Windows版GUI: tomiya-code-atlas.exe（引数なしで起動）")
+	}
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "コマンド:")
 	fmt.Fprintln(w, "  --help, -h     この案内を表示")
 	fmt.Fprintln(w, "  --version, -V  バージョンを表示")
 	fmt.Fprintln(w, "  analyze        ソースを解析して図を保存")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "詳しい使い方: tomiya-code-atlas analyze --help")
+	fmt.Fprintln(w, "詳しい使い方は、tomiya-code-atlas-cli.exe analyze --help で確認してください。")
 }
 
 //	{
-//	  責務: [analyzeOptions: analyze commandの入力source、operation、出力先を保持する]
-//	  状態: [sourcePath: 解析するsource file, operations: 実行する図生成operation, outputDirectory: 生成fileの保存先]
+//	  責務: [analyzeOptions: analyzeコマンドの入力・生成する図・保存先を保持する,],
+//	  状態: [sourcePath: 解析するソースファイルまたはフォルダー, operations: 生成する図の処理ID, outputDirectory: 生成ファイルの保存先,],
 //	}
 type analyzeOptions struct {
 	sourcePath      string
@@ -101,15 +108,28 @@ type analyzeOptions struct {
 }
 
 //	{
-//	  責務: [supportedOperations: Go CLIで生成できるdiagram operationを列挙する]
+//	  責務: [supportedOperations: Go CLIで生成できる図の処理IDを列挙する,],
 //	}
-var supportedOperations = map[string]struct{}{"call-graph": {}, "class-diagram": {}}
+var supportedOperations = loadSupportedOperations()
 
 //	{
-//	  責務: [parseAnalyzeArguments: analyze commandの引数を検証してCLI契約へ変換する]
-//	  処理: [1: positional sourceとoperation/output optionを読む, 2: 必須値と重複を検証する, 3: 検証済みoptionを返す]
-//	  引数: [arguments: analyze command名の後に指定された引数]
-//	  戻り値: [options: 実行option, error: 未知option・不足値・重複・不正operationの説明]
+//	  責務: [loadSupportedOperations: Processの対応一覧をCLI引数の検証に使う集合へ変換する,],
+//	  処理: [1: Processから対応する処理IDを取得する, 2: IDをキーとする集合を作る,],
+//	  戻り値: [map[string]struct{}: 対応する処理IDをキーに持つ集合,],
+//	}
+func loadSupportedOperations() map[string]struct{} {
+	operations := make(map[string]struct{})
+	for _, operation := range process.SupportedDiagramOperations() {
+		operations[operation] = struct{}{}
+	}
+	return operations
+}
+
+//	{
+//	  責務: [parseAnalyzeArguments: analyzeコマンドの引数を検証し、実行用の設定へ変換する,],
+//	  処理: [1: ソースと図の種類・保存先を読み取る, 2: 必須値・重複・未対応の値を検証する, 3: 検証済みの設定を返す,],
+//	  引数: [arguments: analyzeの後に指定された引数,],
+//	  戻り値: [options: 検証済みの実行設定, error: 不明な指定・不足・重複・未対応の値の説明,],
 //	}
 func parseAnalyzeArguments(arguments []string) (analyzeOptions, error) {
 	options := analyzeOptions{}
@@ -120,15 +140,16 @@ func parseAnalyzeArguments(arguments []string) (analyzeOptions, error) {
 		switch argument {
 		case "--operation":
 			if index+1 >= len(arguments) || strings.HasPrefix(arguments[index+1], "--") {
-				return analyzeOptions{}, fmt.Errorf("--operation の値を指定してください")
+				return analyzeOptions{}, fmt.Errorf("--operation に図の種類を指定してください")
 			}
 			index++
 			operation := arguments[index]
 			if _, supported := supportedOperations[operation]; !supported {
-				return analyzeOptions{}, fmt.Errorf("未対応のoperationです: %s（選択可能: call-graph, class-diagram）", operation)
+				availableOperations := strings.Join(process.SupportedDiagramOperations(), ", ")
+				return analyzeOptions{}, fmt.Errorf("未対応の図です: %s（選択可能: %s）", operation, availableOperations)
 			}
 			if _, duplicate := seenOperations[operation]; duplicate {
-				return analyzeOptions{}, fmt.Errorf("operationを重複して指定しています: %s", operation)
+				return analyzeOptions{}, fmt.Errorf("同じ図を重複して指定しています: %s", operation)
 			}
 			seenOperations[operation] = struct{}{}
 			options.operations = append(options.operations, operation)
@@ -137,7 +158,7 @@ func parseAnalyzeArguments(arguments []string) (analyzeOptions, error) {
 				return analyzeOptions{}, fmt.Errorf("--output-dir は一度だけ指定してください")
 			}
 			if index+1 >= len(arguments) || strings.HasPrefix(arguments[index+1], "--") {
-				return analyzeOptions{}, fmt.Errorf("--output-dir の保存先を指定してください")
+				return analyzeOptions{}, fmt.Errorf("--output-dir に保存先フォルダーを指定してください")
 			}
 			index++
 			options.outputDirectory = arguments[index]
@@ -147,16 +168,16 @@ func parseAnalyzeArguments(arguments []string) (analyzeOptions, error) {
 				return analyzeOptions{}, fmt.Errorf("認識できないオプションです: %s", argument)
 			}
 			if options.sourcePath != "" {
-				return analyzeOptions{}, fmt.Errorf("解析するsource fileまたはproject folderは一つだけ指定してください")
+				return analyzeOptions{}, fmt.Errorf("解析するソースファイルまたはプロジェクトフォルダーは一つだけ指定してください")
 			}
 			options.sourcePath = argument
 		}
 	}
 	if options.sourcePath == "" {
-		return analyzeOptions{}, fmt.Errorf("解析するsource fileまたはproject folderを指定してください")
+		return analyzeOptions{}, fmt.Errorf("解析するソースファイルまたはプロジェクトフォルダーを指定してください")
 	}
 	if len(options.operations) == 0 {
-		return analyzeOptions{}, fmt.Errorf("--operation を1つ以上指定してください")
+		return analyzeOptions{}, fmt.Errorf("--operation で図を1つ以上指定してください")
 	}
 	if options.outputDirectory == "" {
 		return analyzeOptions{}, fmt.Errorf("--output-dir で保存先フォルダーを指定してください")
@@ -165,27 +186,15 @@ func parseAnalyzeArguments(arguments []string) (analyzeOptions, error) {
 }
 
 //	{
-//	  責務: [runAnalyze: 指定source fileまたはproject folderをparserで解析し、複数の図を出力先へ保存する]
-//	  処理: [1: parser hostを解決する, 2: Process serviceへ解析とCommon IR統合を依頼する, 3: operationごとにMermaidを生成しMarkdown outputを保存する]
-//	  引数: [options: 検証済みsource・operation・output directory]
-//	  戻り値: [error: source読込・parser・generator・renderer・file保存に失敗した場合の内容]
+//	  責務: [runAnalyze: 指定されたソースを解析し、選んだ図を保存先へ出力する,],
+//	  処理: [1: 解析補助プログラムを含むサービスを準備する, 2: Processへ解析とIRの統合を依頼する, 3: 選んだ図をMermaid形式で生成して保存する,],
+//	  引数: [options: 検証済みの入力・図の種類・保存先,],
+//	  戻り値: [error: ソース読込・構文解析・図の生成・保存に失敗した場合の説明,],
 //	}
 func runAnalyze(options analyzeOptions) error {
-	executablePath, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("実行fileのpathを確認できません: %w", err)
-	}
-	workingDirectory, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("実行directoryを確認できません: %w", err)
-	}
-	applicationRoot, err := data.FindApplicationRoot(executablePath, workingDirectory)
+	service, err := newDiagramService()
 	if err != nil {
 		return err
-	}
-	service, err := process.NewDiagramService(applicationRoot, 30*time.Second)
-	if err != nil {
-		return fmt.Errorf("parser helperを準備できません: %w", err)
 	}
 	_, err = service.Generate(context.Background(), process.DiagramRequest{
 		SourcePath: options.sourcePath, Operations: options.operations, OutputDirectory: options.outputDirectory,
@@ -194,16 +203,41 @@ func runAnalyze(options analyzeOptions) error {
 }
 
 //	{
-//	  責務: [writeAnalyzeHelp: analyzeの入力・operation複数指定・出力先を日本語で案内する]
+//	  責務: [newDiagramService: 配布ファイルの場所を特定し、図生成を担うProcessサービスを作る,],
+//	  処理: [1: 実行ファイルと起動フォルダーを調べる, 2: 配布ルートを特定する, 3: 解析補助プログラムを含むサービスを返す,],
+//	  戻り値: [service: 図生成を調整するProcessサービス, error: 実行場所や解析補助プログラムを解決できない場合の説明,],
+//	}
+func newDiagramService() (process.DiagramService, error) {
+	executablePath, err := os.Executable()
+	if err != nil {
+		return process.DiagramService{}, fmt.Errorf("実行ファイルの場所を確認できません: %w", err)
+	}
+	workingDirectory, err := os.Getwd()
+	if err != nil {
+		return process.DiagramService{}, fmt.Errorf("実行時のフォルダーを確認できません: %w", err)
+	}
+	applicationRoot, err := data.FindApplicationRoot(executablePath, workingDirectory)
+	if err != nil {
+		return process.DiagramService{}, err
+	}
+	service, err := process.NewDiagramService(applicationRoot, 30*time.Second)
+	if err != nil {
+		return process.DiagramService{}, fmt.Errorf("解析補助プログラムを準備できません: %w", err)
+	}
+	return service, nil
+}
+
+//	{
+//	  責務: [writeAnalyzeHelp: analyzeの入力・図の複数指定・保存先を日本語で案内する,],
 //	}
 func writeAnalyzeHelp(w io.Writer) {
-	fmt.Fprintln(w, "使用方法: tomiya-code-atlas analyze <source file or project folder> --operation <operation> [--operation <operation> ...] --output-dir <folder>")
+	fmt.Fprintln(w, "使用方法: tomiya-code-atlas-cli.exe analyze <ソースファイルまたはプロジェクトフォルダー> --operation <図> [--operation <図> ...] --output-dir <保存先フォルダー>")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "operationは複数回指定できます。")
-	fmt.Fprintln(w, "入力がfolderの場合、対応するsource fileを下位folderも含めて解析します。")
-	fmt.Fprintln(w, "各source fileは拡張子に対応するparserで個別に解析し、結果をまとめて図を生成します。")
+	fmt.Fprintln(w, "--operationは作成する図ごとに繰り返し指定できます。")
+	fmt.Fprintln(w, "入力にフォルダーを指定すると、対応するソースファイルを配下から再帰的に探します。")
+	fmt.Fprintln(w, "各ファイルを拡張子に対応する解析補助プログラムで調べ、結果をまとめて図を作成します。")
 	fmt.Fprintln(w, "  call-graph    呼び出し図を生成")
 	fmt.Fprintln(w, "  class-diagram クラス図を生成")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "例: tomiya-code-atlas analyze src --operation call-graph --operation class-diagram --output-dir atlas-output")
+	fmt.Fprintln(w, "例: tomiya-code-atlas-cli.exe analyze src --operation call-graph --operation class-diagram --output-dir atlas-output")
 }

@@ -1,6 +1,6 @@
 # Command-line reference
 
-The Go distribution supports recursive project scanning and call-graph and class-diagram generation. Each discovered source file is parsed independently and its Common IR facts are combined; cross-file name and type resolution is not available yet. Other operations and the GUI are still being ported. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) for the canonical instructions.
+The Go Windows distribution includes a desktop GUI and a separate console CLI. Both support recursive project scanning and call-graph and class-diagram generation. Each discovered source file is parsed independently and its Common IR facts are combined; cross-file name and type resolution is not available yet. Other operations remain in progress. See the [GUI guide](GUI-Usage.md) and the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) for canonical instructions.
 
 Japanese source: [README](../../README.md). This guide documents the commands currently exposed by `Src.app`; run `python -m Src.app <command> --help` for the live option list.
 
@@ -13,7 +13,7 @@ python -m Src.app --help
 python -m Src.app --version
 ```
 
-The Go CLI command is available through `run_dist.bat` or the packaged executable:
+The Go CLI command is available through `run_dist.bat` or `tomiya-code-atlas-cli.exe`:
 
 ```bat
 run_dist.bat analyze sample.py --operation call-graph --operation class-diagram --output-dir atlas-output
@@ -30,7 +30,7 @@ python -m Src.app --help
 python -m Src.app comment sample.py
 ```
 
-With no command, the application opens the desktop GUI. `python -m Src.app gui` opens it explicitly.
+The Go desktop GUI opens when `tomiya-code-atlas.exe` is launched without arguments. `run_dist.bat` also opens it without arguments; CLI arguments launch the console sidecar. The legacy Python source application remains available through `python -m Src.app gui`.
 
 ## Commands
 

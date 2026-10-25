@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/tomiya7688/tomiya_code_atlas/internal/process"
 )
 
 func TestRunHelp(t *testing.T) {
@@ -45,7 +47,7 @@ func TestRunUnknownCommand(t *testing.T) {
 }
 
 //	{
-//	  責務: [TestRunAnalyzeReportsStableUsageAndRuntimeExitCodes: command引数誤りと実行環境失敗のexit codeを検証する]
+//	  責務: [TestRunAnalyzeReportsStableUsageAndRuntimeExitCodes: 引数誤りと解析開始時の失敗で終了コードが分かれることを検証する,],
 //	}
 func TestRunAnalyzeReportsStableUsageAndRuntimeExitCodes(t *testing.T) {
 	var stdout, stderr bytes.Buffer
@@ -67,7 +69,7 @@ func TestRunAnalyzeReportsStableUsageAndRuntimeExitCodes(t *testing.T) {
 }
 
 //	{
-//	  責務: [cliContractFixture: versioned CLI契約fixtureのcommand・option・exit codeを受け取る]
+//	  責務: [cliContractFixture: CLI契約に記録されたコマンド・指定値・終了コードを保持する,],
 //	}
 type cliContractFixture struct {
 	SchemaVersion string `json:"schema_version"`
@@ -85,7 +87,7 @@ type cliContractFixture struct {
 }
 
 //	{
-//	  責務: [TestCLIContractFixtureMatchesCommandAndExitCodes: versioned CLI contract fixtureを実装のoperation・exit codeと照合する]
+//	  責務: [TestCLIContractFixtureMatchesCommandAndExitCodes: CLI契約の入力・処理ID・終了コードが実装と一致することを検証する,],
 //	}
 func TestCLIContractFixtureMatchesCommandAndExitCodes(t *testing.T) {
 	contents, err := os.ReadFile("cli_contract_v1.json")
@@ -126,10 +128,30 @@ func TestCLIContractFixtureMatchesCommandAndExitCodes(t *testing.T) {
 }
 
 //	{
-//	  責務: [containsString: string sliceが指定値を含むか確認する]
-//	  処理: [1: sliceの要素を順に比較する, 2: 一致有無を返す]
-//	  引数: [values: 検索対象, expected: 探す文字列]
-//	  戻り値: [bool: 一致すればtrue]
+//	  責務: [TestCLIUsesProcessDiagramOperationCatalog: CLIがProcessの対応する図一覧を検証とエラー表示に使うことを確認する,],
+//	  処理: [1: CLIの対応一覧とProcessの一覧を比べる, 2: 未対応値のエラーに最新一覧が含まれることを確認する,],
+//	}
+func TestCLIUsesProcessDiagramOperationCatalog(t *testing.T) {
+	operations := process.SupportedDiagramOperations()
+	if len(supportedOperations) != len(operations) {
+		t.Fatalf("CLI operations = %#v, Process operations = %#v", supportedOperations, operations)
+	}
+	for _, operation := range operations {
+		if _, supported := supportedOperations[operation]; !supported {
+			t.Errorf("Process operation %q is missing from CLI validation", operation)
+		}
+	}
+	_, err := parseAnalyzeArguments([]string{"main.py", "--operation", "unsupported", "--output-dir", "out"})
+	if err == nil || !strings.Contains(err.Error(), strings.Join(operations, ", ")) {
+		t.Fatalf("unsupported operation error = %v, want Process operation list %q", err, strings.Join(operations, ", "))
+	}
+}
+
+//	{
+//	  責務: [containsString: 文字列一覧に指定した値があるか調べる,],
+//	  処理: [1: 一覧の要素を順に比較する, 2: 一致した時点でtrueを返す,],
+//	  引数: [values: 検索する文字列の一覧, expected: 探す文字列,],
+//	  戻り値: [bool: 一致した場合はtrue,],
 //	}
 func containsString(values []string, expected string) bool {
 	for _, value := range values {
@@ -141,7 +163,7 @@ func containsString(values []string, expected string) bool {
 }
 
 //	{
-//	  責務: [TestParseAnalyzeArgumentsSupportsMultipleOperations: 一つのanalyze commandで複数operationを選べる契約を検証する]
+//	  責務: [TestParseAnalyzeArgumentsSupportsMultipleOperations: analyzeコマンドで複数の図を指定できることを検証する,],
 //	}
 func TestParseAnalyzeArgumentsSupportsMultipleOperations(t *testing.T) {
 	options, err := parseAnalyzeArguments([]string{
@@ -162,7 +184,7 @@ func TestParseAnalyzeArgumentsSupportsMultipleOperations(t *testing.T) {
 }
 
 //	{
-//	  責務: [TestParseAnalyzeArgumentsRejectsIncompleteOrUnsafeSelection: 必須値・未対応operation・重複operationを利用者へ拒否する]
+//	  責務: [TestParseAnalyzeArgumentsRejectsIncompleteOrUnsafeSelection: 必須値の不足・未対応の図・重複指定を拒否する,],
 //	}
 func TestParseAnalyzeArgumentsRejectsIncompleteOrUnsafeSelection(t *testing.T) {
 	testCases := []struct {
@@ -170,7 +192,7 @@ func TestParseAnalyzeArgumentsRejectsIncompleteOrUnsafeSelection(t *testing.T) {
 		arguments []string
 		wantError string
 	}{
-		{name: "missing source", arguments: []string{"--operation", "call-graph", "--output-dir", "out"}, wantError: "source file"},
+		{name: "missing source", arguments: []string{"--operation", "call-graph", "--output-dir", "out"}, wantError: "ソースファイル"},
 		{name: "missing operation", arguments: []string{"main.py", "--output-dir", "out"}, wantError: "--operation"},
 		{name: "missing output directory", arguments: []string{"main.py", "--operation", "call-graph"}, wantError: "--output-dir"},
 		{name: "unsupported operation", arguments: []string{"main.py", "--operation", "use-cases", "--output-dir", "out"}, wantError: "未対応"},

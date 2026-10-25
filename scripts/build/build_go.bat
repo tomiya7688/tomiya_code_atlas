@@ -30,7 +30,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-go build -trimpath -ldflags "-s -w -X main.version=0.1.0-dev" -o "..\.build\dist\tomiya-code-atlas.exe" "./cmd/tomiya-code-atlas"
+go build -trimpath -ldflags "-s -w -H=windowsgui -X main.version=0.1.0-dev" -o "..\.build\dist\tomiya-code-atlas.exe" "./cmd/tomiya-code-atlas"
+set "BUILD_RESULT=%errorlevel%"
+if not "%BUILD_RESULT%"=="0" (
+    popd
+    exit /b %BUILD_RESULT%
+)
+go build -trimpath -tags console -ldflags "-s -w -X main.version=0.1.0-dev" -o "..\.build\dist\tomiya-code-atlas-cli.exe" "./cmd/tomiya-code-atlas"
 set "BUILD_RESULT=%errorlevel%"
 if not "%BUILD_RESULT%"=="0" (
     popd
@@ -72,7 +78,11 @@ if not exist ".build\dist\backends\go\tomiya-go-backend.exe" (
 )
 
 if not exist ".build\dist\tomiya-code-atlas.exe" (
-    echo [エラー] Go版の配布EXEが生成されませんでした。
+    echo [エラー] Go版のGUI EXEが生成されませんでした。
+    exit /b 1
+)
+if not exist ".build\dist\tomiya-code-atlas-cli.exe" (
+    echo [エラー] Go版のCLI EXEが生成されませんでした。
     exit /b 1
 )
 echo.
