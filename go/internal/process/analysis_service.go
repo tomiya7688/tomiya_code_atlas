@@ -80,10 +80,26 @@ func (service AnalysisService) Generate(ctx context.Context, request AnalysisReq
 		return nil, err
 	}
 	commentOutputPaths := make([]string, 0, len(sourceFiles))
+	var sourceFileIdentities *data.SourceFileIdentitySet
 	var afterParse func(data.ProjectSourceFile, string, commonir.Module) error
 	if _, generateComments := seenOperations["comments"]; generateComments {
+		//	{
+		//	  処理: [全source pathのfile identityをparser実行前に捕捉する,]
+		//	}
+		sourcePaths := make([]string, len(sourceFiles))
+		for index, sourceFile := range sourceFiles {
+			sourcePaths[index] = sourceFile.Path
+		}
+		identities, err := data.NewSourceFileIdentitySet(sourcePaths)
+		if err != nil {
+			return nil, err
+		}
+		sourceFileIdentities = &identities
 		commentWriter := CommentedSourceWriter{
-			sourceRoot: request.SourcePath, outputDirectory: request.OutputDirectory, sourceIsDirectory: isDirectory,
+			sourceRoot:           request.SourcePath,
+			outputDirectory:      request.OutputDirectory,
+			sourceIsDirectory:    isDirectory,
+			sourceFileIdentities: identities,
 		}
 		afterParse = func(sourceFile data.ProjectSourceFile, source string, module commonir.Module) error {
 			outputPath, err := commentWriter.WriteCommentedCopy(sourceFile, source, module)
@@ -94,7 +110,7 @@ func (service AnalysisService) Generate(ctx context.Context, request AnalysisReq
 			return nil
 		}
 	}
-	module, err := service.parseProjectModules(ctx, sourceFiles, afterParse)
+	module, err := service.parseProjectModules(ctx, sourceFiles, sourceFileIdentities, afterParse)
 	if err != nil {
 		return nil, err
 	}
@@ -123,17 +139,27 @@ func (service AnalysisService) Generate(ctx context.Context, request AnalysisReq
 
 //	{
 //	  責務: [parseProjectModules: 発見した各sourceを適切なparser helperで解析してCommon IRを統合する]
-//	  処理: [1: sourceをpath順に読み込む, 2: language別helperで解析する, 3: 各file callbackを実行してからIRを統合する]
-//	  引数: [ctx: parser実行のcancel・deadline, sourceFiles: path順の解析対象, afterParse: fileごとの追加処理。未指定ならnil]
+//	  処理: [1: source内容を取得する, 2: language別helperで解析する, 3: 各file callbackを実行してからIRを統合する]
+//	  引数: [ctx: parser実行のcancel・deadline, sourceFiles: path順の解析対象, sourceFileIdentities: コメント出力時に捕捉したfile identity。未指定ならnil, afterParse: fileごとの追加処理。未指定ならnil]
 //	  戻り値: [commonir.Module: 全sourceの宣言・関係をまとめたIR, error: 読込・path解決・parserに失敗した場合の説明]
 //	}
-func (service AnalysisService) parseProjectModules(ctx context.Context, sourceFiles []data.ProjectSourceFile, afterParse func(data.ProjectSourceFile, string, commonir.Module) error) (commonir.Module, error) {
+func (service AnalysisService) parseProjectModules(ctx context.Context, sourceFiles []data.ProjectSourceFile, sourceFileIdentities *data.SourceFileIdentitySet, afterParse func(data.ProjectSourceFile, string, commonir.Module) error) (commonir.Module, error) {
 	combined := commonir.Module{}
 	languages := map[string]struct{}{}
 	for _, sourceFile := range sourceFiles {
-		source, err := data.ReadSourceFile(sourceFile.Path)
-		if err != nil {
-			return commonir.Module{}, err
+		var source string
+		if sourceFileIdentities != nil {
+			var err error
+			source, err = sourceFileIdentities.ReadSourceFileMatchingIdentity(sourceFile.Path)
+			if err != nil {
+				return commonir.Module{}, err
+			}
+		} else {
+			var err error
+			source, err = data.ReadSourceFile(sourceFile.Path)
+			if err != nil {
+				return commonir.Module{}, err
+			}
 		}
 		if sourceFile.Language == "unknown" {
 			return commonir.Module{}, fmt.Errorf("拡張子から解析言語を判定できません: %s", filepath.Ext(sourceFile.Path))

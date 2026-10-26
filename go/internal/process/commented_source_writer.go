@@ -12,20 +12,21 @@ import (
 )
 
 //	{
-//	  責務: [CommentedSourceWriter: 言語別comment候補をsource copyへ適用して保存する]
-//	  状態: [sourceRoot: 元source fileまたはproject folder, outputDirectory: copyの保存先, sourceIsDirectory: 入力がproject folderか]
+//	  責務: [CommentedSourceWriter: 言語別comment候補をsource copyへ適用して保存する,]
+//	  状態: [sourceRoot: 元source fileまたはproject folder, outputDirectory: copyの保存先, sourceIsDirectory: 入力がproject folderか, sourceFileIdentities: 全入力sourceのidentity,]
 //	}
 type CommentedSourceWriter struct {
-	sourceRoot        string
-	outputDirectory   string
-	sourceIsDirectory bool
+	sourceRoot           string
+	outputDirectory      string
+	sourceIsDirectory    bool
+	sourceFileIdentities data.SourceFileIdentitySet
 }
 
 //	{
-//	  責務: [WriteCommentedCopy: 一つのsource fileからcommented copyを生成して保存する]
-//	  処理: [1: 言語別comment候補を生成する, 2: source copyへ適用する, 3: 元のfolder構成を保って保存する]
-//	  引数: [sourceFile: scannerが検出したfileと言語, source: 読み込み済みの元text, module: file単位のCommon IR]
-//	  戻り値: [string: 保存したcopyのabsolute path, error: 候補・構文・path・保存に失敗した場合の説明]
+//	  責務: [WriteCommentedCopy: 一つのsource fileからcommented copyを生成して保存する,]
+//	  処理: [1: 言語別comment候補を生成する, 2: source copyへ適用する, 3: 元のfolder構成を保って保存する,]
+//	  引数: [sourceFile: scannerが検出したfileと言語, source: 読み込み済みの元text, module: file単位のCommon IR,]
+//	  戻り値: [string: 保存したcopyのabsolute path, error: 候補・構文・path・同一file・保存に失敗した場合の説明,]
 //	}
 func (writer CommentedSourceWriter) WriteCommentedCopy(sourceFile data.ProjectSourceFile, source string, module commonir.Module) (string, error) {
 	candidates, err := generators.GenerateCommentCandidates(module)
@@ -44,7 +45,7 @@ func (writer CommentedSourceWriter) WriteCommentedCopy(sourceFile data.ProjectSo
 	if err != nil {
 		return "", err
 	}
-	return data.WriteTextFileAtRelativePath(writer.outputDirectory, relativePath, commentedSource)
+	return data.WriteTextFileAtRelativePathProtectingSources(writer.outputDirectory, relativePath, commentedSource, writer.sourceFileIdentities)
 }
 
 //	{

@@ -70,13 +70,20 @@ func TestWriteTextFileCreatesDirectoryAndRejectsTraversal(t *testing.T) {
 }
 
 //	{
-//	  責務: [TestWriteTextFileAtRelativePathCreatesNestedOutput: root内のnested pathへ保存しroot外pathを拒否する]
+//	  責務: [TestWriteTextFileAtRelativePathCreatesNestedOutput: 相対root内へ保存して絶対pathを返しroot外pathを拒否する]
 //	}
 func TestWriteTextFileAtRelativePathCreatesNestedOutput(t *testing.T) {
-	root := t.TempDir()
+	root, err := os.MkdirTemp(".", "text-output-root-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(root) })
 	outputPath, err := WriteTextFileAtRelativePath(root, filepath.Join("comments", "app", "main.go"), "// 説明します。\n")
 	if err != nil {
 		t.Fatalf("WriteTextFileAtRelativePath returned error: %v", err)
+	}
+	if !filepath.IsAbs(outputPath) {
+		t.Fatalf("output path = %q, want an absolute path", outputPath)
 	}
 	contents, err := os.ReadFile(outputPath)
 	if err != nil {
