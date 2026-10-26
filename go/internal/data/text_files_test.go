@@ -68,3 +68,26 @@ func TestWriteTextFileCreatesDirectoryAndRejectsTraversal(t *testing.T) {
 		t.Fatalf("directory traversal error = %v", err)
 	}
 }
+
+//	{
+//	  責務: [TestWriteTextFileAtRelativePathCreatesNestedOutput: root内のnested pathへ保存しroot外pathを拒否する]
+//	}
+func TestWriteTextFileAtRelativePathCreatesNestedOutput(t *testing.T) {
+	root := t.TempDir()
+	outputPath, err := WriteTextFileAtRelativePath(root, filepath.Join("comments", "app", "main.go"), "// 説明します。\n")
+	if err != nil {
+		t.Fatalf("WriteTextFileAtRelativePath returned error: %v", err)
+	}
+	contents, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatalf("nested output was not created: %v", err)
+	}
+	if string(contents) != "// 説明します。\n" {
+		t.Fatalf("nested output = %q", contents)
+	}
+	for _, unsafePath := range []string{"../outside.go", "comments/../../outside.go", "."} {
+		if _, err := WriteTextFileAtRelativePath(root, unsafePath, "unsafe"); err == nil {
+			t.Errorf("WriteTextFileAtRelativePath accepted unsafe path %q", unsafePath)
+		}
+	}
+}

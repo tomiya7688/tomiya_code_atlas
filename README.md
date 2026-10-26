@@ -4,7 +4,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 目的は、コードを読む前に「何があるか」「どこから呼ばれるか」「何に依存するか」「どこが複雑か」を短時間で把握できる状態を作ることです。
 
-製品本体はGoへ移行中です。Go CLIはsource fileまたはproject folderを再帰解析し、呼び出し図・クラス図を生成します。各fileは個別解析され、file間の名前・型解決、GUI、その他のoperationは未移植です。具体的な実行方法は[CLI利用ガイド](docs/jp/CLI利用ガイド.md)を参照してください。既存機能の説明は移行中のPython source版を含み、移行完了までは [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで進捗を管理します。
+製品本体はGoへ移行中です。Go CLIはsource fileまたはproject folderを再帰解析し、呼び出し図・クラス図・コメント付きsource copy・静的仕様書・設計品質レポートを生成します。各fileは個別解析され、file間の名前・型解決、その他の図、GUIは未移植です。コメント生成では入力sourceを変更せず、言語別のcommentを加えたcopyを出力します。具体的な実行方法は[CLI利用ガイド](docs/jp/CLI利用ガイド.md)を参照してください。既存機能の説明は移行中のPython source版を含み、移行完了までは [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで進捗を管理します。
 
 ## 主な機能
 
@@ -36,7 +36,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 ## Windows配布アプリをビルドする
 
-Go版への移行を進めています。ルートで `build_exe.bat` を実行すると、Go CLIと各言語のparser helper・必要runtimeを含むone-dir配布物を作成します。Go CLIではsource fileまたはproject folderから呼び出し図・クラス図を生成できます。[CLI利用ガイド](docs/jp/CLI利用ガイド.md)を参照してください。GitHub Actionsの `Go EXE` workflowからWindows配布artifactを取得できます。
+Go版への移行を進めています。ルートで `build_exe.bat` を実行すると、Go CLIと各言語のparser helper・必要runtimeを含むone-dir配布物を作成します。Go CLIではsource fileまたはproject folderから5種類の解析結果を生成できます。[CLI利用ガイド](docs/jp/CLI利用ガイド.md)を参照してください。GitHub Actionsの `Go EXE` workflowからWindows配布artifactを取得できます。
 
 Python版は移行期間中の参照用ソースとして残します。Python parser helperはCPython標準ASTで文法を解析し、配布時はPyInstaller one-dir内へ対応するCPython runtimeを同梱します。アーキテクチャ規則として、全言語の構造解析backendで対象言語の実文法parserまたはcompiler ASTを使います。
 
@@ -120,7 +120,7 @@ build_exe.bat
 run_dist.bat
 ```
 
-`build_exe.bat` はGo CLI、CPython/GDScript、Roslyn C#、Clang C++、JavaParser helperを作り、`run_dist.bat` はGo CLIを起動します。Java helperはjlinkで作成したprivate runtimeを同梱します。Go CLIの現在の対応機能と使い方は[CLI利用ガイド](docs/jp/CLI利用ガイド.md)を確認してください。GitHub Actionsの `Go EXE` workflowは配布物をbuildし、helper呼出しと図の出力を確認してからartifactとして公開します。
+`build_exe.bat` はGo CLI、CPython/GDScript、Roslyn C#、Clang C++、JavaParser helperを作り、`run_dist.bat` はGo CLIを起動します。Java helperはjlinkで作成したprivate runtimeを同梱します。Go CLIの現在の対応機能と使い方は[CLI利用ガイド](docs/jp/CLI利用ガイド.md)を確認してください。GitHub Actionsの `Go EXE` workflowは配布物をbuildし、helper呼出しと5種類の解析結果を確認してからartifactとして公開します。
 
 `scripts\build\verify.bat` はGo EXEと全parser helperのbuild・起動smoke、Python source test、policy checkを実行します。v1.0.0のrelease workflowはGo移行が完了するまで用意しません。
 

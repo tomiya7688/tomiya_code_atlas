@@ -9,9 +9,9 @@ import (
 )
 
 //	{
-//	  責務: [TestRenderDiagramProducesMermaidForSelectedDiagrams: Common IRから選択operation別のMermaid Markdownを生成する]
+//	  責務: [TestRenderAnalysisOutputProducesSelectedDiagrams: Common IRから選択diagram別のMermaid Markdownを生成する]
 //	}
-func TestRenderDiagramProducesMermaidForSelectedDiagrams(t *testing.T) {
+func TestRenderAnalysisOutputProducesSelectedDiagrams(t *testing.T) {
 	module := commonir.Module{
 		Language: "python",
 		Entities: []commonir.Entity{
@@ -29,12 +29,46 @@ func TestRenderDiagramProducesMermaidForSelectedDiagrams(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.operation, func(t *testing.T) {
-			output, err := renderDiagram(module, testCase.operation)
+			output, err := renderAnalysisOutput(module, testCase.operation, "sample")
 			if err != nil {
-				t.Fatalf("renderDiagram returned error: %v", err)
+				t.Fatalf("renderAnalysisOutput returned error: %v", err)
 			}
 			if !strings.Contains(output, testCase.contains) || !strings.Contains(output, "```mermaid") {
 				t.Fatalf("rendered output does not contain %q Mermaid block: %q", testCase.contains, output)
+			}
+		})
+	}
+}
+
+//	{
+//	  責務: [TestRenderAnalysisOutputProducesStaticSpecificationAndDesignQualityDocuments: Common IRから静的仕様書・設計品質のMarkdownを生成する]
+//	}
+func TestRenderAnalysisOutputProducesStaticSpecificationAndDesignQualityDocuments(t *testing.T) {
+	module := commonir.Module{
+		Language: "go",
+		Entities: []commonir.Entity{
+			{Kind: "class", Name: "Runner", SourceLocation: commonir.SourceLocation{Line: 1, EndLine: 4}},
+			{Kind: "function", Name: "Run", Calls: []string{"execute"}, SourceLocation: commonir.SourceLocation{Line: 6, EndLine: 8}},
+			{Kind: "function", Name: "execute", SourceLocation: commonir.SourceLocation{Line: 10, EndLine: 12}},
+		},
+	}
+	testCases := []struct {
+		operation string
+		contains  []string
+	}{
+		{operation: "static-spec", contains: []string{"# sample", "## 宣言一覧", "Runner"}},
+		{operation: "design-quality", contains: []string{"# 設計品質レポート", "## 指標", "## 指摘"}},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.operation, func(t *testing.T) {
+			output, err := renderAnalysisOutput(module, testCase.operation, "sample")
+			if err != nil {
+				t.Fatalf("renderAnalysisOutput returned error: %v", err)
+			}
+			for _, marker := range testCase.contains {
+				if !strings.Contains(output, marker) {
+					t.Errorf("%s output does not contain %q: %q", testCase.operation, marker, output)
+				}
 			}
 		})
 	}
@@ -64,9 +98,9 @@ func TestAppendModuleCombinesFactsAndMarksMixedLanguages(t *testing.T) {
 }
 
 //	{
-//	  責務: [TestDiagramServiceRejectsDuplicateOrUnsupportedOperations: 不正operationをparse前に拒否する]
+//	  責務: [TestAnalysisServiceRejectsDuplicateOrUnsupportedOperations: 不正operationをparse前に拒否する]
 //	}
-func TestDiagramServiceRejectsDuplicateOrUnsupportedOperations(t *testing.T) {
+func TestAnalysisServiceRejectsDuplicateOrUnsupportedOperations(t *testing.T) {
 	testCases := []struct {
 		name       string
 		operations []string
@@ -77,8 +111,8 @@ func TestDiagramServiceRejectsDuplicateOrUnsupportedOperations(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			service := DiagramService{}
-			_, err := service.Generate(context.Background(), DiagramRequest{
+			service := AnalysisService{}
+			_, err := service.Generate(context.Background(), AnalysisRequest{
 				SourcePath: "unused.py", Operations: testCase.operations, OutputDirectory: "unused-output",
 			})
 			if err == nil || !strings.Contains(err.Error(), testCase.wantError) {

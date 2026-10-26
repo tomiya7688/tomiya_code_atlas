@@ -154,6 +154,30 @@ jobs:
         working-directory: go
         run: go test ./...
 
+      - name: GoとPythonのformat check
+        shell: pwsh
+        run: |
+          $goSources = @(
+            "go\cmd\tomiya-code-atlas\main.go",
+            "go\cmd\tomiya-code-atlas\main_test.go",
+            "go\internal\data\text_files.go",
+            "go\internal\data\text_files_test.go",
+            "go\internal\languages\comment_syntax.go",
+            "go\internal\languages\comment_syntax_test.go",
+            "go\internal\process\analysis_service.go",
+            "go\internal\process\analysis_service_test.go",
+            "go\internal\process\commented_source_writer.go",
+            "go\internal\process\commented_source_writer_test.go"
+          )
+          $unformattedGo = @(gofmt -l $goSources)
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($unformattedGo) {
+            Write-Error "gofmtが必要なGo file: $($unformattedGo -join ', ')"
+            exit 1
+          }
+          & ".\.venv\Scripts\python.exe" -m ruff format --check tools\go_cli_smoke.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Windows EXEをbuild
         shell: cmd
         run: call build_exe.bat

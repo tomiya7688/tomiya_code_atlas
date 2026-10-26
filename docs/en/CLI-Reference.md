@@ -1,6 +1,6 @@
 # Command-line reference
 
-The Go distribution supports recursive project scanning and call-graph and class-diagram generation. Each discovered source file is parsed independently and its Common IR facts are combined; cross-file name and type resolution is not available yet. Other operations and the GUI are still being ported. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) for the canonical instructions.
+The Go distribution supports recursive project scanning, call-graph and class-diagram generation, commented source copies, static specifications, and design-quality reports. Each discovered source file is parsed independently and its Common IR facts are combined; cross-file name and type resolution is not available yet. Other operations and the GUI are still being ported. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) for the canonical instructions.
 
 Japanese source: [README](../../README.md). This guide documents the commands currently exposed by `Src.app`; run `python -m Src.app <command> --help` for the live option list.
 
@@ -16,14 +16,14 @@ python -m Src.app --version
 The Go CLI command is available through `run_dist.bat` or the packaged executable:
 
 ```bat
-run_dist.bat analyze sample.py --operation call-graph --operation class-diagram --output-dir atlas-output
+run_dist.bat analyze sample.py --operation call-graph --operation class-diagram --operation comments --operation static-spec --operation design-quality --output-dir atlas-output
 ```
 
-The current Go command accepts one source file or project folder and requires at least one `--operation` and an `--output-dir`. A folder is scanned recursively. Each selected operation creates one Markdown file in that folder. The parser helper and `backends/manifest.json` must be next to the executable. Run `run_dist.bat analyze --help` for the option list.
+The current Go command accepts one source file or project folder and requires at least one `--operation` and an `--output-dir`. A folder is scanned recursively. Diagram, specification, and quality outputs are Markdown files in the output folder. The `comments` operation writes language-specific comments into copies under `comments/`; directory inputs keep their relative paths, and a single file is named `<file>_commented.<extension>`. The input files are not modified. The parser helper and `backends/manifest.json` must be next to the executable. Run `run_dist.bat analyze --help` for the option list.
 
 When a parser fails, the CLI shows a Japanese cause and a suggested next step. The `Details:` portion preserves the parser's technical message.
 
-The following broader commands remain available only in the legacy Python source implementation:
+The following legacy command forms remain available only in the Python source implementation. The Go equivalents for comment generation and static specifications use `analyze --operation comments` and `analyze --operation static-spec`:
 
 ```bat
 python -m Src.app --help

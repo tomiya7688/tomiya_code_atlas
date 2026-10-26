@@ -15,7 +15,7 @@ def test_python_environment_installs_the_parser_helper_build_dependency() -> Non
     assert "sys.version_info >= (3, 11)" in setup
     assert ".venv\\Scripts\\python.exe" in setup
     assert "-m ensurepip --upgrade --default-pip" in setup
-    assert 'pip install -e ".[test,parser-build,cpp-parser]"' in setup
+    assert 'pip install -e ".[test,parser-build,cpp-parser,format]"' in setup
     assert "PyInstaller" in read_repo_file("pyproject.toml")
     assert "JDK 25" not in setup
     assert "where mvn" not in setup
@@ -216,6 +216,9 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert "java_backend_smoke.py" in go_workflow
     assert "go_backend_smoke.py" in go_workflow
     assert "go_cli_smoke.py" in go_workflow
+    assert "GoとPythonのformat check" in go_workflow
+    assert "gofmt -l $goSources" in go_workflow
+    assert "ruff format --check tools\\go_cli_smoke.py" in go_workflow
     assert ".build/dist/backends/go/" in go_workflow
     assert "setup-java@v5" in go_workflow
     assert ".build/dist/backends/java/" in go_workflow

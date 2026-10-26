@@ -9,55 +9,57 @@ import (
 
 	"github.com/tomiya7688/tomiya_code_atlas/internal/commonir"
 	"github.com/tomiya7688/tomiya_code_atlas/internal/data"
+	"github.com/tomiya7688/tomiya_code_atlas/internal/evaluators"
 	"github.com/tomiya7688/tomiya_code_atlas/internal/generators"
 	"github.com/tomiya7688/tomiya_code_atlas/internal/renderers"
+	"github.com/tomiya7688/tomiya_code_atlas/internal/staticdoc"
 )
 
 //	{
-//	  責務: [DiagramRequest: 一回のsource解析で生成するoperationと入出力pathを保持する]
-//	  状態: [SourcePath: 解析するsource fileまたはproject directory, Operations: 実行するdiagram operation, OutputDirectory: 生成fileの保存先]
+//	  責務: [AnalysisRequest: 一回のsource解析で生成するoperationと入出力pathを保持する]
+//	  状態: [SourcePath: 解析するsource fileまたはproject directory, Operations: 実行するanalysis operation, OutputDirectory: 生成fileの保存先]
 //	}
-type DiagramRequest struct {
+type AnalysisRequest struct {
 	SourcePath      string
 	Operations      []string
 	OutputDirectory string
 }
 
 //	{
-//	  責務: [DiagramService: parser helperと共通Generator/Rendererを調整して図を保存する]
+//	  責務: [AnalysisService: parser helperと共通Generator/Evaluator/Rendererを調整して選択結果を保存する]
 //	  状態: [parserHost: manifestからparser helperを選択するProcess service]
 //	}
-type DiagramService struct {
+type AnalysisService struct {
 	parserHost ParserHost
 }
 
 //	{
-//	  責務: [NewDiagramService: 配布manifestからparser helper hostを検証してserviceを作る]
-//	  処理: [1: ParserHostを初期化する, 2: diagram serviceを返す]
+//	  責務: [NewAnalysisService: 配布manifestからparser helper hostを検証してserviceを作る]
+//	  処理: [1: ParserHostを初期化する, 2: analysis serviceを返す]
 //	  引数: [applicationRoot: backends manifestとhelper assetのroot, timeout: helper一回の実行時間上限]
-//	  戻り値: [service: source解析と図出力のProcess service, error: manifest・契約違反の説明]
+//	  戻り値: [service: source解析と製品出力のProcess service, error: manifest・契約違反の説明]
 //	}
-func NewDiagramService(applicationRoot string, timeout time.Duration) (DiagramService, error) {
+func NewAnalysisService(applicationRoot string, timeout time.Duration) (AnalysisService, error) {
 	parserHost, err := NewParserHost(applicationRoot, timeout)
 	if err != nil {
-		return DiagramService{}, err
+		return AnalysisService{}, err
 	}
-	return DiagramService{parserHost: parserHost}, nil
+	return AnalysisService{parserHost: parserHost}, nil
 }
 
 //	{
-//	  責務: [Generate: fileまたはproject directory内のsourceを解析し、選択diagramをMarkdown fileへ保存する]
-//	  処理: [1: requestの必須pathとoperationを検証する, 2: Dataで対応sourceを探索する, 3: 各fileをmanifest helperでCommon IRへparseして統合する, 4: 各diagramを生成してDataへ保存する]
+//	  責務: [Generate: fileまたはproject directory内のsourceを解析し、選択結果をoutput folderへ保存する]
+//	  処理: [1: requestの必須pathとoperationを検証する, 2: Dataで対応sourceを探索する, 3: 各fileをmanifest helperでCommon IRへparseして統合する, 4: diagram/spec/reportまたはcommented source copyを保存する]
 //	  引数: [ctx: 呼出元のcancel・deadline, request: source・operation・outputの指定]
 //	  戻り値: [outputPaths: 保存したfile path, error: 入力・parser・Generator・保存に失敗した場合の説明]
 //	}
-func (service DiagramService) Generate(ctx context.Context, request DiagramRequest) ([]string, error) {
+func (service AnalysisService) Generate(ctx context.Context, request AnalysisRequest) ([]string, error) {
 	if request.SourcePath == "" || request.OutputDirectory == "" || len(request.Operations) == 0 {
 		return nil, fmt.Errorf("source fileまたはproject folder、operation、出力folderを指定してください")
 	}
 	seenOperations := make(map[string]struct{}, len(request.Operations))
 	for _, operation := range request.Operations {
-		if operation != "call-graph" && operation != "class-diagram" {
+		if !IsSupportedOperation(operation) {
 			return nil, fmt.Errorf("未対応のoperationです: %s", operation)
 		}
 		if _, duplicate := seenOperations[operation]; duplicate {
@@ -73,11 +75,26 @@ func (service DiagramService) Generate(ctx context.Context, request DiagramReque
 	if len(sourceFiles) == 0 {
 		return nil, fmt.Errorf("対応するsource fileが見つかりません: %s", request.SourcePath)
 	}
-	module, err := service.parseProjectModules(ctx, scanner, sourceFiles)
+	isDirectory, err := data.IsDirectory(request.SourcePath)
 	if err != nil {
 		return nil, err
 	}
-	isDirectory, err := data.IsDirectory(request.SourcePath)
+	commentOutputPaths := make([]string, 0, len(sourceFiles))
+	var afterParse func(data.ProjectSourceFile, string, commonir.Module) error
+	if _, generateComments := seenOperations["comments"]; generateComments {
+		commentWriter := CommentedSourceWriter{
+			sourceRoot: request.SourcePath, outputDirectory: request.OutputDirectory, sourceIsDirectory: isDirectory,
+		}
+		afterParse = func(sourceFile data.ProjectSourceFile, source string, module commonir.Module) error {
+			outputPath, err := commentWriter.WriteCommentedCopy(sourceFile, source, module)
+			if err != nil {
+				return err
+			}
+			commentOutputPaths = append(commentOutputPaths, outputPath)
+			return nil
+		}
+	}
+	module, err := service.parseProjectModules(ctx, sourceFiles, afterParse)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +104,11 @@ func (service DiagramService) Generate(ctx context.Context, request DiagramReque
 	}
 	outputPaths := make([]string, 0, len(request.Operations))
 	for _, operation := range request.Operations {
-		contents, err := renderDiagram(module, operation)
+		if operation == "comments" {
+			outputPaths = append(outputPaths, commentOutputPaths...)
+			continue
+		}
+		contents, err := renderAnalysisOutput(module, operation, baseName)
 		if err != nil {
 			return nil, err
 		}
@@ -102,11 +123,11 @@ func (service DiagramService) Generate(ctx context.Context, request DiagramReque
 
 //	{
 //	  責務: [parseProjectModules: 発見した各sourceを適切なparser helperで解析してCommon IRを統合する]
-//	  処理: [1: sourceをpath順に読み込む, 2: language別helperで解析する, 3: 各IRの事実を一つのmoduleへ追加する]
-//	  引数: [ctx: parser実行のcancel・deadline, scanner: extension languageの判定器, sourceFiles: path順の解析対象]
+//	  処理: [1: sourceをpath順に読み込む, 2: language別helperで解析する, 3: 各file callbackを実行してからIRを統合する]
+//	  引数: [ctx: parser実行のcancel・deadline, sourceFiles: path順の解析対象, afterParse: fileごとの追加処理。未指定ならnil]
 //	  戻り値: [commonir.Module: 全sourceの宣言・関係をまとめたIR, error: 読込・path解決・parserに失敗した場合の説明]
 //	}
-func (service DiagramService) parseProjectModules(ctx context.Context, scanner data.ProjectFileScanner, sourceFiles []data.ProjectSourceFile) (commonir.Module, error) {
+func (service AnalysisService) parseProjectModules(ctx context.Context, sourceFiles []data.ProjectSourceFile, afterParse func(data.ProjectSourceFile, string, commonir.Module) error) (commonir.Module, error) {
 	combined := commonir.Module{}
 	languages := map[string]struct{}{}
 	for _, sourceFile := range sourceFiles {
@@ -124,6 +145,11 @@ func (service DiagramService) parseProjectModules(ctx context.Context, scanner d
 		payload, err := service.parserHost.ParseLanguage(ctx, sourceFile.Language, source, &sourcePath)
 		if err != nil {
 			return commonir.Module{}, fmt.Errorf("sourceを解析できません (%s): %w", sourceFile.Path, err)
+		}
+		if afterParse != nil {
+			if err := afterParse(sourceFile, source, payload.Module); err != nil {
+				return commonir.Module{}, err
+			}
 		}
 		appendModule(&combined, payload.Module)
 		languages[sourceFile.Language] = struct{}{}
@@ -157,12 +183,12 @@ func appendModule(target *commonir.Module, source commonir.Module) {
 }
 
 //	{
-//	  責務: [renderDiagram: Common IRから選択diagramをMermaid Markdownへ変換する]
-//	  処理: [1: operationに対応するlogical modelを生成する, 2: Rendererを呼びMarkdown fenceへ包む]
-//	  引数: [module: helperが返したlanguage-neutral Common IR, operation: diagram ID]
-//	  戻り値: [string: 保存可能なMermaid Markdown, error: Generatorが失敗した場合の説明]
+//	  責務: [renderAnalysisOutput: Common IRから選択operationの日本語Markdownを生成する]
+//	  処理: [1: operationに対応するGenerator/Evaluatorを呼び出す, 2: logical resultをRendererへ渡す]
+//	  引数: [module: helperが返したlanguage-neutral Common IR, operation: 配布CLI operation ID, sourceName: 入力fileまたはfolder名]
+//	  戻り値: [1: string: 保存可能なMarkdown, 2: error: GeneratorまたはEvaluatorが失敗した場合の説明]
 //	}
-func renderDiagram(module commonir.Module, operation string) (string, error) {
+func renderAnalysisOutput(module commonir.Module, operation, sourceName string) (string, error) {
 	switch operation {
 	case "call-graph":
 		graph, err := generators.BuildCallGraph(module, nil, nil)
@@ -183,6 +209,14 @@ func renderDiagram(module commonir.Module, operation string) (string, error) {
 			output.WriteString("```\n")
 		}
 		return output.String(), nil
+	case "static-spec":
+		return staticdoc.Render(module, sourceName), nil
+	case "design-quality":
+		report, err := evaluators.EvaluateDesignQuality(module, nil)
+		if err != nil {
+			return "", fmt.Errorf("設計品質を評価できません: %w", err)
+		}
+		return renderers.RenderDesignQualityMarkdown(report), nil
 	default:
 		return "", fmt.Errorf("未対応のoperationです: %s", operation)
 	}

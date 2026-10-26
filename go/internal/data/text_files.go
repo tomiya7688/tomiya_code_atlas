@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 //	{
@@ -65,6 +66,70 @@ func WriteTextFile(directory string, fileName string, contents string) (string, 
 		return "", fmt.Errorf("出力folderを作成できません (%s): %w", directory, err)
 	}
 	outputPath := filepath.Join(directory, fileName)
+	if err := os.WriteFile(outputPath, []byte(contents), 0o644); err != nil {
+		return "", fmt.Errorf("出力fileを書き込めません (%s): %w", outputPath, err)
+	}
+	absPath, err := filepath.Abs(outputPath)
+	if err != nil {
+		return "", fmt.Errorf("出力fileのabsolute pathを解決できません: %w", err)
+	}
+	return absPath, nil
+}
+
+//	{
+//	  責務: [WriteTextFileAtRelativePath: root配下の相対pathを検証してtext fileを保存する]
+//	  処理: [1: traversalとsymlink directoryを拒否する, 2: 親folderを作りfileを書き込む]
+//	  引数: [root: 出力を許可するroot folder, relativePath: root基準のlocal path, contents: 保存するtext]
+//	  戻り値: [outputPath: 保存したfileのabsolute path, error: path・directory・書込みに失敗した場合の説明]
+//	}
+func WriteTextFileAtRelativePath(root string, relativePath string, contents string) (string, error) {
+	//	{
+	//	  処理: [Clean後もroot外を指すrelative pathを拒否する]
+	//	}
+	if !filepath.IsLocal(relativePath) || relativePath == "." {
+		return "", fmt.Errorf("出力relative pathが不正です: %q", relativePath)
+	}
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		return "", fmt.Errorf("出力folderを作成できません (%s): %w", root, err)
+	}
+	rootPath, err := filepath.Abs(root)
+	if err != nil {
+		return "", fmt.Errorf("出力rootのabsolute pathを解決できません: %w", err)
+	}
+	rootPath, err = filepath.EvalSymlinks(rootPath)
+	if err != nil {
+		return "", fmt.Errorf("出力rootを解決できません (%s): %w", root, err)
+	}
+	cleanPath := filepath.Clean(relativePath)
+	pathParts := strings.Split(cleanPath, string(filepath.Separator))
+	currentDirectory := rootPath
+	//	{
+	//	  処理: [親directoryを個別に作り、既存symlinkをたどらない]
+	//	}
+	for _, directoryName := range pathParts[:len(pathParts)-1] {
+		currentDirectory = filepath.Join(currentDirectory, directoryName)
+		info, err := os.Lstat(currentDirectory)
+		if err != nil && !os.IsNotExist(err) {
+			return "", fmt.Errorf("出力folderを確認できません (%s): %w", currentDirectory, err)
+		}
+		if err == nil && (!info.IsDir() || info.Mode()&os.ModeSymlink != 0) {
+			return "", fmt.Errorf("出力pathにdirectoryではない要素があります: %s", currentDirectory)
+		}
+		if os.IsNotExist(err) {
+			if err := os.Mkdir(currentDirectory, 0o755); err != nil {
+				return "", fmt.Errorf("出力folderを作成できません (%s): %w", currentDirectory, err)
+			}
+		}
+	}
+	outputPath := filepath.Join(rootPath, cleanPath)
+	//	{
+	//	  処理: [同名のsymlinkやdirectoryをregular fileとして上書きしない]
+	//	}
+	if info, err := os.Lstat(outputPath); err != nil && !os.IsNotExist(err) {
+		return "", fmt.Errorf("出力fileを確認できません (%s): %w", outputPath, err)
+	} else if err == nil && (!info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0) {
+		return "", fmt.Errorf("出力先がregular fileではありません: %s", outputPath)
+	}
 	if err := os.WriteFile(outputPath, []byte(contents), 0o644); err != nil {
 		return "", fmt.Errorf("出力fileを書き込めません (%s): %w", outputPath, err)
 	}
