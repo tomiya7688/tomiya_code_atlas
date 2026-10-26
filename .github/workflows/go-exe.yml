@@ -157,22 +157,39 @@ jobs:
       - name: GoとPythonのformat check
         shell: pwsh
         run: |
-          $goSources = @(
-            "go\cmd\tomiya-code-atlas\main.go",
-            "go\cmd\tomiya-code-atlas\main_test.go",
-            "go\internal\data\text_files.go",
-            "go\internal\data\text_files_test.go",
-            "go\internal\languages\comment_syntax.go",
-            "go\internal\languages\comment_syntax_test.go",
-            "go\internal\process\analysis_service.go",
-            "go\internal\process\analysis_service_test.go",
-            "go\internal\process\commented_source_writer.go",
-            "go\internal\process\commented_source_writer_test.go"
-          )
+          $goSourceRoots = @("go", "parser-backends\go")
+          $goSourceFiles = @()
+          foreach ($goSourceRoot in $goSourceRoots) {
+            $goSourceFiles += @(Get-ChildItem -LiteralPath $goSourceRoot -Recurse -File -Filter "*.go")
+          }
+          if (-not $goSourceFiles) {
+            Write-Error "Go source files were not found under go\."
+            exit 1
+          }
+          $formatRoot = Join-Path $PWD ".build\gofmt-check"
+          if (Test-Path -LiteralPath $formatRoot) {
+            Remove-Item -LiteralPath $formatRoot -Recurse -Force
+          }
+          $goSources = @()
+          $carriageReturn = [string][char]13
+          $lineFeed = [string][char]10
+          foreach ($goSource in $goSourceFiles) {
+            $relativePath = [System.IO.Path]::GetRelativePath($PWD.Path, $goSource.FullName)
+            $normalizedPath = Join-Path $formatRoot $relativePath
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $normalizedPath) | Out-Null
+            $sourceText = [System.IO.File]::ReadAllText($goSource.FullName)
+            $sourceText = $sourceText.Replace($carriageReturn + $lineFeed, $lineFeed).Replace($carriageReturn, $lineFeed)
+            [System.IO.File]::WriteAllText($normalizedPath, $sourceText, [System.Text.UTF8Encoding]::new($false))
+            $goSources += $normalizedPath
+          }
           $unformattedGo = @(gofmt -l $goSources)
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $gofmtExitCode = $LASTEXITCODE
+          if ($gofmtExitCode -ne 0) {
+            Write-Output "gofmt execution failed with exit code $gofmtExitCode."
+            exit $gofmtExitCode
+          }
           if ($unformattedGo) {
-            Write-Error "gofmtが必要なGo file: $($unformattedGo -join ', ')"
+            Write-Error "gofmt required files: $($unformattedGo -join ', ')"
             exit 1
           }
           & ".\.venv\Scripts\python.exe" -m ruff format --check tools\go_cli_smoke.py
