@@ -2,8 +2,8 @@ import sys
 import tomllib
 from pathlib import Path
 
-import app
-from app import _default_config_path, main
+from Src import app
+from Src.app import _default_config_path, main
 from Src.version import __version__
 
 
@@ -55,13 +55,16 @@ def test_cli_integer_option_errors_are_japanese(capsys):
 
 def test_package_version_comes_from_canonical_source():
     pyproject = tomllib.loads((Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8"))
+    assert pyproject["project"]["name"] == "tomiya-code-atlas-python-reference"
+    assert pyproject["project"]["scripts"]["tomiya-code-atlas-python"] == "Src.app:main"
     assert "version" in pyproject["project"]["dynamic"]
     assert pyproject["tool"]["setuptools"]["dynamic"]["version"]["attr"] == "Src.version.__version__"
     assert app.PROJECT_VERSION == __version__
 
 
 def test_source_config_lives_under_config_directory():
-    assert _default_config_path() == Path(app.__file__).resolve().parent / "config" / "tomiya-code-atlas.json"
+    repository_root = Path(__file__).resolve().parents[1]
+    assert _default_config_path() == repository_root / "config" / "tomiya-code-atlas.json"
 
 
 def test_frozen_config_is_resolved_beside_exe_under_config(monkeypatch, tmp_path):

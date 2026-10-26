@@ -10,21 +10,21 @@ on:
       - "go.mod"
       - "go.sum"
       - "go/**"
-      - "backends/go/**"
-      - "backends/python/**"
-      - "backends/cpp/**"
-      - "backend-src/java/**"
-      - "backends/licenses/javaparser-NOTICE.txt"
+      - "parser-backends/go/**"
+      - "parser-backends/python/**"
+      - "parser-backends/cpp/**"
+      - "parser-backends/java/**"
+      - "parser-backends/licenses/javaparser-NOTICE.txt"
       - "Src/languages/java_backend.py"
       - "Src/languages/cpp_backend.py"
       - "Src/analyzers/ir.py"
       - "Src/languages/gdscript_backend.py"
       - "tests/test_gdscript_tree_sitter_backend.py"
       - "tests/fixtures/backend_conformance/gdscript.gd"
-      - "backend-src/csharp/**"
-      - "backends/licenses/**"
+      - "parser-backends/csharp/**"
+      - "parser-backends/licenses/**"
       - "pyproject.toml"
-      - "backends/manifest.json"
+      - "parser-backends/manifest.json"
       - "tests/fixtures/static_specification/**"
       - "internal/**"
       - "scripts/build/build_go.bat"
@@ -44,6 +44,7 @@ on:
       - "run_dist.bat"
       - ".github/workflows/go-exe.yml"
       - "tests/test_windows_build_entrypoints.py"
+      - "tests/test_go_artifact_contents.py"
       - "tests/test_python_parser_helper.py"
       - "tests/test_gdscript_tree_sitter_backend.py"
       - "tests/test_csharp_roslyn_backend.py"
@@ -66,21 +67,21 @@ on:
       - "go.mod"
       - "go.sum"
       - "go/**"
-      - "backends/go/**"
-      - "backends/python/**"
-      - "backends/cpp/**"
-      - "backend-src/java/**"
-      - "backends/licenses/javaparser-NOTICE.txt"
+      - "parser-backends/go/**"
+      - "parser-backends/python/**"
+      - "parser-backends/cpp/**"
+      - "parser-backends/java/**"
+      - "parser-backends/licenses/javaparser-NOTICE.txt"
       - "Src/languages/java_backend.py"
       - "Src/languages/cpp_backend.py"
       - "Src/analyzers/ir.py"
       - "Src/languages/gdscript_backend.py"
       - "tests/test_gdscript_tree_sitter_backend.py"
       - "tests/fixtures/backend_conformance/gdscript.gd"
-      - "backend-src/csharp/**"
-      - "backends/licenses/**"
+      - "parser-backends/csharp/**"
+      - "parser-backends/licenses/**"
       - "pyproject.toml"
-      - "backends/manifest.json"
+      - "parser-backends/manifest.json"
       - "tests/fixtures/static_specification/**"
       - "internal/**"
       - "scripts/build/build_go.bat"
@@ -100,6 +101,7 @@ on:
       - "run_dist.bat"
       - ".github/workflows/go-exe.yml"
       - "tests/test_windows_build_entrypoints.py"
+      - "tests/test_go_artifact_contents.py"
       - "tests/test_python_parser_helper.py"
       - "tests/test_gdscript_tree_sitter_backend.py"
       - "tests/test_csharp_roslyn_backend.py"
@@ -127,6 +129,8 @@ jobs:
     steps:
       - name: ソースを取得
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Goを準備
         uses: actions/setup-go@v7
@@ -157,6 +161,89 @@ jobs:
       - name: Go testを実行
         working-directory: go
         run: go test ./...
+
+      - name: GoとPythonのformat check
+        shell: pwsh
+        env:
+          GO_FORMAT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          GO_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          $formatBase = $env:GO_FORMAT_BASE
+          $formatRange = $null
+          if ($env:GITHUB_EVENT_NAME -eq "pull_request") {
+            if (-not $formatBase) {
+              Write-Output "Pull request base SHA is missing."
+              exit 1
+            }
+            $formatRange = "${formatBase}...HEAD"
+          } elseif ($formatBase -and $formatBase -notmatch "^0+$") {
+            $resolvedBase = git rev-parse --verify --quiet "${formatBase}^{commit}"
+            if ($LASTEXITCODE -eq 0) {
+              $formatRange = "${resolvedBase}..HEAD"
+            }
+          }
+          if (-not $formatRange) {
+            if (-not $env:GO_DEFAULT_BRANCH) {
+              Write-Output "Default branch name is missing."
+              exit 1
+            }
+            $defaultBranchRef = "refs/remotes/origin/$env:GO_DEFAULT_BRANCH"
+            $resolvedDefaultBranch = git rev-parse --verify --quiet $defaultBranchRef
+            if ($LASTEXITCODE -ne 0 -or -not $resolvedDefaultBranch) {
+              Write-Output "Default branch ref $defaultBranchRef is unavailable."
+              exit 1
+            }
+            $mergeBase = git merge-base HEAD $resolvedDefaultBranch
+            $mergeBaseExitCode = $LASTEXITCODE
+            if ($mergeBaseExitCode -ne 0 -or -not $mergeBase) {
+              Write-Output "Unable to find a comparison base against $defaultBranchRef."
+              exit 1
+            }
+            $formatRange = "${mergeBase}..HEAD"
+          }
+          $changedGoPaths = @(git diff --name-only $formatRange -- go/ parser-backends/go/)
+          $gitDiffExitCode = $LASTEXITCODE
+          if ($gitDiffExitCode -ne 0) {
+            Write-Output "Unable to find changed Go sources (git diff exit code $gitDiffExitCode)."
+            exit $gitDiffExitCode
+          }
+          $goSourceFiles = @(
+            $changedGoPaths |
+              Where-Object { $_.EndsWith(".go", [System.StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $_) } |
+              ForEach-Object { Get-Item -LiteralPath $_ }
+          )
+          if ($goSourceFiles) {
+            $formatRoot = Join-Path $PWD ".build\gofmt-check"
+            if (Test-Path -LiteralPath $formatRoot) {
+              Remove-Item -LiteralPath $formatRoot -Recurse -Force
+            }
+            $goSources = @()
+            $carriageReturn = [string][char]13
+            $lineFeed = [string][char]10
+            foreach ($goSource in $goSourceFiles) {
+              $relativePath = [System.IO.Path]::GetRelativePath($PWD.Path, $goSource.FullName)
+              $normalizedPath = Join-Path $formatRoot $relativePath
+              New-Item -ItemType Directory -Force -Path (Split-Path -Parent $normalizedPath) | Out-Null
+              $sourceText = [System.IO.File]::ReadAllText($goSource.FullName)
+              $sourceText = $sourceText.Replace($carriageReturn + $lineFeed, $lineFeed).Replace($carriageReturn, $lineFeed)
+              [System.IO.File]::WriteAllText($normalizedPath, $sourceText, [System.Text.UTF8Encoding]::new($false))
+              $goSources += $normalizedPath
+            }
+            $unformattedGo = @(gofmt -l $goSources)
+            $gofmtExitCode = $LASTEXITCODE
+            if ($gofmtExitCode -ne 0) {
+              Write-Output "gofmt execution failed with exit code $gofmtExitCode."
+              exit $gofmtExitCode
+            }
+            if ($unformattedGo) {
+              Write-Error "gofmt required files: $($unformattedGo -join ', ')"
+              exit 1
+            }
+          } else {
+            Write-Output "No changed Go source files; skipping gofmt."
+          }
+          & ".\.venv\Scripts\python.exe" -m ruff format --check tools\go_cli_smoke.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Windows EXEをbuild
         shell: cmd
@@ -254,6 +341,7 @@ jobs:
           name: tomiya-code-atlas-go-windows-x64
           path: |
             .build/dist/tomiya-code-atlas.exe
+            .build/dist/backends/manifest.json
             .build/dist/backends/tomiya-python-backend/
             .build/dist/backends/csharp/
             .build/dist/backends/cpp/

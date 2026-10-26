@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/tomiya7688/tomiya_code_atlas/internal/process"
 )
 
 func TestRunHelp(t *testing.T) {
@@ -15,6 +17,9 @@ func TestRunHelp(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "使用方法:") {
 		t.Fatalf("help output is missing usage: %q", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "コマンドを指定せずに起動するとGUIが開きます。") {
+		t.Fatalf("help is missing the GUI entry: %q", stdout.String())
 	}
 	if stderr.Len() != 0 {
 		t.Fatalf("help wrote to stderr: %q", stderr.String())
@@ -93,6 +98,25 @@ func TestRunAnalyzeReportsStableUsageAndRuntimeExitCodes(t *testing.T) {
 }
 
 //	{
+//	  責務: [TestWriteAnalyzeHelpListsEverySupportedOperation: helpに各operationの用途を日本語で表示する]
+//	}
+func TestWriteAnalyzeHelpListsEverySupportedOperation(t *testing.T) {
+	var output bytes.Buffer
+	writeAnalyzeHelp(&output)
+	for _, operation := range process.SupportedOperationIDs() {
+		if !strings.Contains(output.String(), operation) {
+			t.Errorf("analyze help does not list %q: %q", operation, output.String())
+		}
+		if strings.Contains(analysisOperationDescription(operation), "未対応") {
+			t.Errorf("operation %q has no Japanese description", operation)
+		}
+	}
+	if !strings.Contains(output.String(), "元ソースを変更せず") || !strings.Contains(output.String(), "設計品質レポート") {
+		t.Fatalf("analyze help omits user-facing operation details: %q", output.String())
+	}
+}
+
+//	{
 //	  責務: [cliContractFixture: versioned CLI契約fixtureのcommand・option・exit codeを受け取る]
 //	}
 type cliContractFixture struct {
@@ -135,11 +159,11 @@ func TestCLIContractFixtureMatchesCommandAndExitCodes(t *testing.T) {
 	if len(command.RepeatableOptions) != 1 || command.RepeatableOptions[0] != "--operation" {
 		t.Fatalf("repeatable options = %#v", command.RepeatableOptions)
 	}
-	if len(command.SupportedOperation) != len(supportedOperations) {
-		t.Fatalf("fixture operations = %#v, implementation operations = %#v", command.SupportedOperation, supportedOperations)
+	if len(command.SupportedOperation) != len(process.SupportedOperationIDs()) {
+		t.Fatalf("fixture operations = %#v, implementation operations = %#v", command.SupportedOperation, process.SupportedOperationIDs())
 	}
 	for _, operation := range command.SupportedOperation {
-		if _, supported := supportedOperations[operation]; !supported {
+		if !process.IsSupportedOperation(operation) {
 			t.Fatalf("fixture operation %q has no implementation", operation)
 		}
 	}
@@ -174,6 +198,9 @@ func TestParseAnalyzeArgumentsSupportsMultipleOperations(t *testing.T) {
 		"src/main.py",
 		"--operation", "call-graph",
 		"--operation", "class-diagram",
+		"--operation", "comments",
+		"--operation", "static-spec",
+		"--operation", "design-quality",
 		"--output-dir", "atlas-output",
 	})
 	if err != nil {
@@ -182,8 +209,13 @@ func TestParseAnalyzeArgumentsSupportsMultipleOperations(t *testing.T) {
 	if options.sourcePath != "src/main.py" || options.outputDirectory != "atlas-output" {
 		t.Fatalf("parsed paths = (%q, %q)", options.sourcePath, options.outputDirectory)
 	}
-	if len(options.operations) != 2 || options.operations[0] != "call-graph" || options.operations[1] != "class-diagram" {
+	if len(options.operations) != len(process.SupportedOperationIDs()) {
 		t.Fatalf("parsed operations = %#v", options.operations)
+	}
+	for index, operation := range process.SupportedOperationIDs() {
+		if options.operations[index] != operation {
+			t.Fatalf("parsed operations = %#v, want %#v", options.operations, process.SupportedOperationIDs())
+		}
 	}
 }
 

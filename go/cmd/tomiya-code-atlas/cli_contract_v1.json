@@ -6,7 +6,7 @@
       "input_path": {"accepts": ["file", "directory"], "directory_scan": "recursive"},
       "required_options": ["--operation", "--output-dir"],
       "repeatable_options": ["--operation"],
-      "supported_operations": ["call-graph", "class-diagram"]
+      "supported_operations": ["call-graph", "class-diagram", "comments", "static-spec", "design-quality"]
     }
   ],
   "exit_codes": {

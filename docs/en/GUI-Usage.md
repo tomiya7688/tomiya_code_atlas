@@ -27,3 +27,7 @@ tomiya-code-atlas.exe analyze sample.py --operation call-graph --operation class
 ```
 
 See the [CLI reference](CLI-Reference.md) for details.
+
+## Python reference implementation
+
+Developers can prepare the Python environment and run `python -m Src.app gui` to use the reference implementation. It is separate from the Go distribution.

@@ -2,7 +2,7 @@
 
 ## 背景と目的
 
-Tomiya Code AtlasはPython版からGo版へ移行しています。Go版CLIは言語別parser helperを起動し、共通IRから図を生成します。このガイドでは、Go CLIでsource fileまたはproject folderを解析して複数の図を保存する方法を説明します。
+Tomiya Code AtlasはPython版からGo版へ移行しています。Go版CLIは言語別parser helperを起動し、共通IRから図、コメント付きsource copy、静的仕様書、設計品質レポートを生成します。このガイドでは、Go CLIでsource fileまたはproject folderを解析して複数の結果を保存する方法を説明します。
 
 ## 使い始める
 
@@ -11,20 +11,22 @@ Windows配布物またはGitHub Actionsが公開するGo配布artifactを展開�
 コマンドプロンプトで次のように実行します。
 
 ```bat
-tomiya-code-atlas.exe analyze path\to\project --operation call-graph --operation class-diagram --output-dir atlas-output
+tomiya-code-atlas.exe analyze path\to\project --operation call-graph --operation class-diagram --operation comments --operation static-spec --operation design-quality --output-dir atlas-output
 ```
 
 リポジトリ内でbuildした配布物は、rootからlauncherを使って実行できます。
 
 ```bat
-run_dist.bat analyze path\to\source.go --operation call-graph --operation class-diagram --output-dir atlas-output
+run_dist.bat analyze path\to\source.go --operation call-graph --operation class-diagram --operation comments --operation static-spec --operation design-quality --output-dir atlas-output
 ```
 
-`--operation`を必要な図ごとに繰り返し、`--output-dir`へ保存folderを指定してください。入力には一つのsource fileまたはproject folderを指定できます。folderを指定すると対応するsourceを下位folderまで再帰的に探索し、各fileを拡張子に対応するmanifest上のparser helperで個別に解析して結果を統合します。複数file間の型解決やpackage単位の意味解析はまだ行いません。
+`--operation`を必要な結果ごとに繰り返し、`--output-dir`へ保存folderを指定してください。入力には一つのsource fileまたはproject folderを指定できます。folderを指定すると対応するsourceを下位folderまで再帰的に探索し、各fileを拡張子に対応するmanifest上のparser helperで個別に解析してCommon IRを統合します。複数file間の型解決やpackage単位の意味解析はまだ行いません。
+
+folder入力で`comments`を選ぶ場合、`--output-dir/comments`は入力folderと重ならないpathを指定してください。両者が同じpath、親子関係になるpathは指定できません。CLIはrecursive scanの前に重複を拒否し、入力内に作ったcomment copyの再検出と入出力folderの重なりを防ぎます。入力folderと別の出力先（例: `atlas-output`）を指定してください。
 
 ## 結果とエラー
 
-成功すると、入力file名またはfolder名とoperation名を組み合わせたMarkdown fileを一つずつ保存します。上の例では`project_call-graph.md`と`project_class-diagram.md`が`atlas-output/`に作成されます。各fileにはMermaid図が含まれます。
+図、静的仕様書、設計品質レポートは`atlas-output/`直下へMarkdown fileとして保存します。上の例では`project_call-graph.md`、`project_class-diagram.md`、`project_static-spec.md`、`project_design-quality.md`を作成します。`comments`は言語のcomment記法を使って候補をsourceへ挿入し、`atlas-output/comments/`へ保存します。folder入力では元の相対folder構成を保ち、単一file入力では`<file名>_commented.<拡張子>`として保存します。元のsource fileは変更しません。
 
 入力file、出力folder、operation、配布assetに問題があると、日本語のエラーと原因を表示します。`tomiya-code-atlas.exe analyze --help`は引数の説明を、`tomiya-code-atlas.exe --help`はcommand一覧を表示します。
 
@@ -32,4 +34,4 @@ parserが失敗した場合も、原因と次の確認手順を日本語で案�
 
 ## 現在の範囲
 
-現在のGo版が対応するoperationは`call-graph`と`class-diagram`です。GUIはGo配布版EXEを引数なしで起動すると開きます。project folderを指定した場合も各fileを独立して解析し、宣言などのCommon IR情報を集約します。fileをまたぐ名前・型解決、その他の図やコメント生成は後続の移行Issueで対応します。画面の使い方は[GUI操作ガイド](GUI操作ガイド.md)を参照してください。
+現在のGo CLIは `call-graph`、`class-diagram`、`comments`、`static-spec`、`design-quality` に対応します。GUIでは呼び出し図とクラス図を選べます。プロジェクトフォルダー内の各ファイルは個別に解析してCommon IRを集約します。コメント付きコピーは元のソースを変更しません。ファイル間の名前・型解決、その他の図、GitHub Actions解析は移行中です。GUIの使い方は[GUI操作ガイド](GUI操作ガイド.md)を参照してください。

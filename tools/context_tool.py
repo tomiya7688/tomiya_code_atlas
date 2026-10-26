@@ -193,7 +193,7 @@ def source_of_truth_candidates(root: Path = ROOT) -> list[dict]:
         "AI_CONTEXT.md": "AI routing index",
         "AGENTS.md": "agent/coding rules",
         "README.md": "human overview",
-        "pyproject.toml": "Python package/build configuration",
+        "pyproject.toml": "Python reference and parser-helper build configuration",
     }
     for name, role in priority_names.items():
         if (root / name).exists():
@@ -310,10 +310,10 @@ def validation_plan(paths: Iterable[str]) -> list[str]:
         plan.append("python -m pytest -k 'call_graph or generator or renderer'")
     if any(path.startswith(("specification/", "docs/jp/構成/", "Src/")) for path in files):
         plan.append("python tools/context_tool.py policy-check")
-    if any(path in {"app.py", "scripts/build/run_source.bat"} for path in files):
-        plan.append("python app.py")
+    if any(path in {"Src/app.py", "scripts/build/run_source.bat"} for path in files):
+        plan.append("python -m Src.app")
     if any(path == "pyproject.toml" or path.startswith(".github/workflows/") for path in files):
-        plan.extend(["python app.py", "python -m build"])
+        plan.extend(["python -m Src.app --version", "python -m build"])
     if not docs_only:
         plan.append("python -m pytest")
     if not plan:

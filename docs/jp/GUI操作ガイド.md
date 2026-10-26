@@ -27,3 +27,7 @@ tomiya-code-atlas.exe analyze sample.py --operation call-graph --operation class
 ```
 
 詳細は[CLI利用ガイド](CLI利用ガイド.md)を参照してください。
+
+## 参照用のPython版
+
+移行中のPythonソース版GUIを使う開発者は、環境を準備してから `python -m Src.app gui` を実行してください。これはGo配布物とは別の参照実装です。

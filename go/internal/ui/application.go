@@ -15,6 +15,11 @@ import (
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+//	{
+//	  責務: [sourceFileFilterPattern: GUIで選択できる解析対象の拡張子を表す,],
+//	}
+const sourceFileFilterPattern = "*.py;*.gd;*.cs;*.cpp;*.cc;*.cxx;*.hpp;*.hxx;*.java;*.go"
+
 //go:embed web/*
 var embeddedWebFiles embed.FS
 
@@ -24,7 +29,7 @@ var embeddedWebFiles embed.FS
 //	  ],
 //	}
 type DiagramGenerator interface {
-	Generate(context.Context, process.DiagramRequest) ([]string, error)
+	Generate(context.Context, process.AnalysisRequest) ([]string, error)
 }
 
 //	{
@@ -107,22 +112,34 @@ func (application *Application) domReady(runtimeContext context.Context) {
 	})
 }
 
+//	{
+//	  責務: [OpenSourceFile: 対応するソースを選ぶダイアログを開く,],
+//	  戻り値: [path: 選択されたファイル、キャンセル時は空文字, error: ダイアログの失敗,],
+//	}
 func (application *Application) OpenSourceFile() (string, error) {
 	return wailsruntime.OpenFileDialog(application.runtimeContext(), wailsruntime.OpenDialogOptions{
 		Title: "解析するソースファイルを選択",
 		Filters: []wailsruntime.FileFilter{{
 			DisplayName: "対応するソースファイル",
-			Pattern:     "*.py;*.gd;*.cs;*.cpp;*.cc;*.cxx;*.h;*.hpp;*.java;*.go",
+			Pattern:     sourceFileFilterPattern,
 		}},
 	})
 }
 
+//	{
+//	  責務: [OpenProjectFolder: 解析対象のプロジェクトフォルダーを選ぶダイアログを開く,],
+//	  戻り値: [path: 選択されたフォルダー、キャンセル時は空文字, error: ダイアログの失敗,],
+//	}
 func (application *Application) OpenProjectFolder() (string, error) {
 	return wailsruntime.OpenDirectoryDialog(application.runtimeContext(), wailsruntime.OpenDialogOptions{
 		Title: "解析するプロジェクトフォルダーを選択",
 	})
 }
 
+//	{
+//	  責務: [ChooseOutputFolder: 解析結果の保存先を選ぶダイアログを開く,],
+//	  戻り値: [path: 選択されたフォルダー、キャンセル時は空文字, error: ダイアログの失敗,],
+//	}
 func (application *Application) ChooseOutputFolder() (string, error) {
 	return wailsruntime.OpenDirectoryDialog(application.runtimeContext(), wailsruntime.OpenDialogOptions{
 		Title: "解析結果の保存フォルダーを選択",
@@ -167,7 +184,7 @@ func (application *Application) Analyze(sourcePath string, operations []string, 
 		return AnalysisResult{}, fmt.Errorf("結果の保存フォルダーを選んでください")
 	}
 
-	outputPaths, err := application.generator.Generate(application.runtimeContext(), process.DiagramRequest{
+	outputPaths, err := application.generator.Generate(application.runtimeContext(), process.AnalysisRequest{
 		SourcePath:      sourcePath,
 		Operations:      operations,
 		OutputDirectory: outputDirectory,
@@ -181,6 +198,10 @@ func (application *Application) Analyze(sourcePath string, operations []string, 
 	}, nil
 }
 
+//	{
+//	  責務: [runtimeContext: 起動済みの画面操作には保存したcontextを渡し、単体テスト時は背景contextを返す,],
+//	  戻り値: [context: 画面操作または解析に渡すcontext,],
+//	}
 func (application *Application) runtimeContext() context.Context {
 	if application.context == nil {
 		return context.Background()

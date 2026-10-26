@@ -68,7 +68,7 @@ def _runtime_root() -> Path:
     """Return the source/package root or the PyInstaller onedir root."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
-    return Path(__file__).resolve().parent
+    return Path(__file__).resolve().parent.parent
 
 
 def _default_config_path() -> Path:

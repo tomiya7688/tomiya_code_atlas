@@ -40,7 +40,7 @@ popd
 call scripts\build\build_go_parser_backend.bat
 if errorlevel 1 exit /b 1
 if not exist ".build\dist\backends" mkdir ".build\dist\backends"
-copy /y "backends\manifest.json" ".build\dist\backends\manifest.json" >nul
+copy /y "parser-backends\manifest.json" ".build\dist\backends\manifest.json" >nul
 if errorlevel 1 (
     echo [エラー] parser helper manifestを配布先へ配置できませんでした。
     exit /b 1

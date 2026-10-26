@@ -80,7 +80,7 @@
   "integration": {
     "python_host": "Src/languages/csharp_backend.py",
     "shared_helper_host": "Src/languages/helper_backend.py",
-    "helper_source": "backend-src/csharp/",
+    "helper_source": "parser-backends/csharp/",
     "manifest_path": "csharp/tomiya-csharp-backend.exe",
     "windows_delivery": "self-contained win-x64 folder copied into PyInstaller onedir",
     "ci_smoke": "tools/csharp_backend_smoke.py",

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app import main
+from Src.app import main
 from Src.languages import (
     FilesystemGDScriptProjectResolver,
     GDScriptHelperBackend,
@@ -96,7 +96,7 @@ def test_gdscript_project_resolver_resolves_res_paths_and_class_names(tmp_path: 
 
 
 def test_backend_manifest_registers_gdscript_tree_sitter() -> None:
-    manifest = json.loads(Path("backends/manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads(Path("parser-backends/manifest.json").read_text(encoding="utf-8"))
     backend = next(
         item
         for item in manifest["backends"]

@@ -13,7 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_java_backend_descriptor_and_manifest_match_contract() -> None:
     descriptor = JavaParserSymbolSolverBackend.descriptor
-    manifest = json.loads((ROOT / "backends" / "manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads(
+        (ROOT / "parser-backends" / "manifest.json").read_text(encoding="utf-8")
+    )
     entry = next(item for item in manifest["backends"] if item["backend_id"] == descriptor.backend_id)
 
     assert descriptor.backend_id == "java-javaparser-symbol-solver-helper"

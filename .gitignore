@@ -15,8 +15,11 @@ dist/
 *.egg-info/
 *.spec
 
-# Generated mixed-language backend publish outputs
-backends/csharp/
+# Generated parser backend intermediates stay outside the source tree.
+/parser-backends/csharp/bin/
+/parser-backends/csharp/obj/
+/parser-backends/java/target/
+/parser-backends/go/*.exe
 
 # Test / tooling caches
 .pytest_cache/
@@ -38,7 +41,3 @@ htmlcov/
 Thumbs.db
 
 # Local compiler and bundled runtime outputs
-/backend-src/csharp/bin/
-/backend-src/csharp/obj/
-/backend-src/java/target/
-/backends/java/

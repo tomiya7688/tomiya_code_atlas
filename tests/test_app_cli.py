@@ -6,14 +6,14 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from app import main
+from Src.app import main
 
 
 def test_cli_help_uses_utf8_under_legacy_windows_encoding():
     environment = os.environ.copy()
     environment["PYTHONIOENCODING"] = "cp1252"
     result = subprocess.run(
-        [sys.executable, "app.py", "--help"],
+        [sys.executable, "-m", "Src.app", "--help"],
         capture_output=True,
         text=True,
         encoding="utf-8",

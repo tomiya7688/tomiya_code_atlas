@@ -110,7 +110,7 @@ dotnet publish -c Release -r win-x64 --self-contained true
 
 Roslyn helperは旧Python host向けに#150で実装され、#189でGo配布物向けに拡張しました。
 
-- helper source: `backend-src/csharp/`
+- helper source: `parser-backends/csharp/`
 - Python host: `Src/languages/csharp_backend.py`
 - 共通subprocess protocol host: `Src/languages/helper_backend.py`
 - runtime path: `backends/csharp/tomiya-csharp-backend.exe`
