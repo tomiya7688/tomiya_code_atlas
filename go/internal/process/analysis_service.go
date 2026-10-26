@@ -48,24 +48,15 @@ func NewAnalysisService(applicationRoot string, timeout time.Duration) (Analysis
 }
 
 //	{
-//	  責務: [Generate: fileまたはproject directory内のsourceを解析し、選択結果をoutput folderへ保存する]
-//	  処理: [1: requestの必須pathとoperationを検証する, 2: Dataで対応sourceを探索する, 3: 各fileをmanifest helperでCommon IRへparseして統合する, 4: diagram/spec/reportまたはcommented source copyを保存する]
-//	  引数: [ctx: 呼出元のcancel・deadline, request: source・operation・outputの指定]
-//	  戻り値: [outputPaths: 保存したfile path, error: 入力・parser・Generator・保存に失敗した場合の説明]
+//	  責務: [Generate: fileまたはproject directory内のsourceを解析し、選択結果をoutput folderへ保存する,]
+//	  処理: [1: requestを検証する, 2: Dataで対応sourceを探索する, 3: parser helperでCommon IRへ解析する, 4: 選択されたoutputを保存する,]
+//	  引数: [ctx: 呼出元のcancel・deadline, request: source・operation・outputの指定,]
+//	  戻り値: [outputPaths: 保存したfile path, error: 入力・parser・Generator・保存に失敗した場合の説明,]
 //	}
 func (service AnalysisService) Generate(ctx context.Context, request AnalysisRequest) ([]string, error) {
-	if request.SourcePath == "" || request.OutputDirectory == "" || len(request.Operations) == 0 {
-		return nil, fmt.Errorf("source fileまたはproject folder、operation、出力folderを指定してください")
-	}
-	seenOperations := make(map[string]struct{}, len(request.Operations))
-	for _, operation := range request.Operations {
-		if !IsSupportedOperation(operation) {
-			return nil, fmt.Errorf("未対応のoperationです: %s", operation)
-		}
-		if _, duplicate := seenOperations[operation]; duplicate {
-			return nil, fmt.Errorf("operationを重複して指定しています: %s", operation)
-		}
-		seenOperations[operation] = struct{}{}
+	seenOperations, isDirectory, err := validateAnalysisRequest(request)
+	if err != nil {
+		return nil, err
 	}
 	scanner := data.NewProjectFileScanner()
 	sourceFiles, err := scanner.DiscoverSupportedFiles(request.SourcePath)
@@ -74,10 +65,6 @@ func (service AnalysisService) Generate(ctx context.Context, request AnalysisReq
 	}
 	if len(sourceFiles) == 0 {
 		return nil, fmt.Errorf("対応するsource fileが見つかりません: %s", request.SourcePath)
-	}
-	isDirectory, err := data.IsDirectory(request.SourcePath)
-	if err != nil {
-		return nil, err
 	}
 	commentOutputPaths := make([]string, 0, len(sourceFiles))
 	var sourceFileIdentities *data.SourceFileIdentitySet
@@ -114,6 +101,57 @@ func (service AnalysisService) Generate(ctx context.Context, request AnalysisReq
 	if err != nil {
 		return nil, err
 	}
+	return writeAnalysisOutputs(request, isDirectory, commentOutputPaths, module)
+}
+
+//	{
+//	  責務: [validateAnalysisRequest: 入力pathとoperationを検証して解析に必要な状態を返す,]
+//	  処理: [1: 必須入力とoperationを確認する, 2: source folderを判定する, 3: comments出力先がsource folderと重ならないか確認する,]
+//	  引数: [request: source・operation・outputの指定,]
+//	  戻り値: [seenOperations: 重複を除いたoperation一覧, isDirectory: sourceがfolderならtrue, error: requestが不正またはコメント出力先がproject内にある場合の説明,]
+//	}
+func validateAnalysisRequest(request AnalysisRequest) (map[string]struct{}, bool, error) {
+	if request.SourcePath == "" || request.OutputDirectory == "" || len(request.Operations) == 0 {
+		return nil, false, fmt.Errorf("source fileまたはproject folder、operation、出力folderを指定してください")
+	}
+	seenOperations := make(map[string]struct{}, len(request.Operations))
+	for _, operation := range request.Operations {
+		if !IsSupportedOperation(operation) {
+			return nil, false, fmt.Errorf("未対応のoperationです: %s", operation)
+		}
+		if _, duplicate := seenOperations[operation]; duplicate {
+			return nil, false, fmt.Errorf("operationを重複して指定しています: %s", operation)
+		}
+		seenOperations[operation] = struct{}{}
+	}
+	isDirectory, err := data.IsDirectory(request.SourcePath)
+	if err != nil {
+		return nil, false, err
+	}
+	if _, generateComments := seenOperations["comments"]; generateComments && isDirectory {
+		commentsDirectory := filepath.Join(request.OutputDirectory, "comments")
+		commentsInsideSource, err := data.IsPathWithinOrEqual(request.SourcePath, commentsDirectory)
+		if err != nil {
+			return nil, false, err
+		}
+		sourceInsideComments, err := data.IsPathWithinOrEqual(commentsDirectory, request.SourcePath)
+		if err != nil {
+			return nil, false, err
+		}
+		if commentsInsideSource || sourceInsideComments {
+			return nil, false, fmt.Errorf("コメント付きsourceの保存先は入力project folderと重ならない場所を指定してください")
+		}
+	}
+	return seenOperations, isDirectory, nil
+}
+
+//	{
+//	  責務: [writeAnalysisOutputs: 選択された解析結果をfolderへ保存する,]
+//	  処理: [1: outputの基準名を決める, 2: comments pathを加える, 3: 他operationをMarkdownへrenderして保存する,]
+//	  引数: [request: output folderとoperationの指定, isDirectory: sourceがfolderならtrue, commentOutputPaths: 保存済みcomment copy path, module: 解析結果のCommon IR,]
+//	  戻り値: [outputPaths: 保存したfile path, error: renderまたは保存に失敗した場合の説明,]
+//	}
+func writeAnalysisOutputs(request AnalysisRequest, isDirectory bool, commentOutputPaths []string, module commonir.Module) ([]string, error) {
 	baseName := filepath.Base(request.SourcePath)
 	if !isDirectory {
 		baseName = strings.TrimSuffix(baseName, filepath.Ext(baseName))

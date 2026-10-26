@@ -2,6 +2,8 @@ package process
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -120,4 +122,93 @@ func TestAnalysisServiceRejectsDuplicateOrUnsupportedOperations(t *testing.T) {
 			}
 		})
 	}
+}
+
+//	{
+//	  責務: [TestValidateAnalysisRequestAllowsSiblingCommentOutput: 入力projectと重ならない兄弟folderをcomment出力先として許可する,]
+//	  処理: [1: projectと兄弟output folderのpathを作る, 2: directory入力とcomments operationを検証する, 3: errorなくdirectory requestとして受理されることを確認する,]
+//	  引数: [t: Go test runner,]
+//	  戻り値: []
+//	}
+func TestValidateAnalysisRequestAllowsSiblingCommentOutput(t *testing.T) {
+	parentPath := t.TempDir()
+	projectPath := filepath.Join(parentPath, "project")
+	outputPath := filepath.Join(parentPath, "atlas-output")
+	if err := os.MkdirAll(projectPath, 0o755); err != nil {
+		t.Fatalf("create project folder: %v", err)
+	}
+	operations, isDirectory, err := validateAnalysisRequest(AnalysisRequest{
+		SourcePath: projectPath, Operations: []string{"comments"}, OutputDirectory: outputPath,
+	})
+	if err != nil {
+		t.Fatalf("validateAnalysisRequest() error = %v", err)
+	}
+	if !isDirectory {
+		t.Fatal("validateAnalysisRequest() isDirectory = false, want true")
+	}
+	if _, found := operations["comments"]; !found {
+		t.Fatal("validateAnalysisRequest() did not retain the comments operation")
+	}
+}
+
+//	{
+//	  責務: [TestAnalysisServiceRejectsCommentOutputInsideProject: 入出力が重なり生成済みcomment copyを再走査する配置を拒否する,]
+//	  処理: [1: projectと既存のcomments copyを作る, 2: 同じfolder・配下folder・包含folder・symlink経由の出力を指定する, 3: parser起動前に拒否されることを確認する,]
+//	  引数: [t: Go test runner,]
+//	  戻り値: []
+//	}
+func TestAnalysisServiceRejectsCommentOutputInsideProject(t *testing.T) {
+	projectPath := filepath.Join(t.TempDir(), "project")
+	generatedCommentPath := filepath.Join(projectPath, "comments", "sample.py")
+	if err := os.MkdirAll(filepath.Dir(generatedCommentPath), 0o755); err != nil {
+		t.Fatalf("create generated comments folder: %v", err)
+	}
+	if err := os.WriteFile(generatedCommentPath, []byte("# generated comment copy\n"), 0o600); err != nil {
+		t.Fatalf("create generated comment copy: %v", err)
+	}
+	testCases := []struct {
+		name            string
+		outputDirectory string
+	}{
+		{name: "same folder", outputDirectory: projectPath},
+		{name: "nested folder", outputDirectory: filepath.Join(projectPath, "atlas-output")},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, err := (AnalysisService{}).Generate(context.Background(), AnalysisRequest{
+				SourcePath: projectPath, Operations: []string{"comments"}, OutputDirectory: testCase.outputDirectory,
+			})
+			if err == nil || !strings.Contains(err.Error(), "入力project folderと重ならない") {
+				t.Fatalf("Generate error = %v, want source/output overlap error", err)
+			}
+		})
+	}
+	t.Run("source nested under comments destination", func(t *testing.T) {
+		outputPath := t.TempDir()
+		nestedProjectPath := filepath.Join(outputPath, "comments", "project")
+		if err := os.MkdirAll(nestedProjectPath, 0o755); err != nil {
+			t.Fatalf("create project nested under output: %v", err)
+		}
+		_, err := (AnalysisService{}).Generate(context.Background(), AnalysisRequest{
+			SourcePath: nestedProjectPath, Operations: []string{"comments"}, OutputDirectory: outputPath,
+		})
+		if err == nil || !strings.Contains(err.Error(), "入力project folderと重ならない") {
+			t.Fatalf("Generate error = %v, want source/output overlap error", err)
+		}
+	})
+	t.Run("comments symlink into project", func(t *testing.T) {
+		outputPath := filepath.Join(t.TempDir(), "output")
+		if err := os.MkdirAll(outputPath, 0o755); err != nil {
+			t.Fatalf("create external output folder: %v", err)
+		}
+		if err := os.Symlink(projectPath, filepath.Join(outputPath, "comments")); err != nil {
+			t.Skipf("directory symlink is unavailable: %v", err)
+		}
+		_, err := (AnalysisService{}).Generate(context.Background(), AnalysisRequest{
+			SourcePath: projectPath, Operations: []string{"comments"}, OutputDirectory: outputPath,
+		})
+		if err == nil || !strings.Contains(err.Error(), "入力project folderと重ならない") {
+			t.Fatalf("Generate error = %v, want source/output overlap error", err)
+		}
+	})
 }
