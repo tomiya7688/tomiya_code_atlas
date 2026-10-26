@@ -32,9 +32,9 @@ assignees: ''
 - Language:
 
 ## Priority
-<!-- Prefer a priority label. Until labels are normalized, title prefixes [P0]-[P3] are supported. -->
+<!-- P0 is reserved for emergencies. Normal work defaults to P2. Prefer one P0-P4 label; title prefixes are fallback. -->
 
-- P0 / P1 / P2 / P3:
+- P0 (emergency) / P1 (high) / P2 (normal, default) / P3 (low) / P4 (backlog): P2
 
 ## Validation Notes
 <!-- Optional. Evidence that is not obvious from Acceptance Criteria. -->
