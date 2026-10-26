@@ -67,7 +67,7 @@ if errorlevel 1 (
     echo [エラー] pipを更新できませんでした。ネットワーク接続と一時フォルダーへの書き込み権限を確認してください。
     exit /b 1
 )
-".venv\Scripts\python.exe" -m pip install -e ".[test,parser-build,cpp-parser]"
+".venv\Scripts\python.exe" -m pip install -e ".[test,parser-build,cpp-parser,format]"
 if errorlevel 1 (
     echo [エラー] Python依存パッケージを準備できませんでした。ネットワーク接続と一時フォルダーへの書き込み権限を確認してください。
     exit /b 1
