@@ -1,6 +1,6 @@
 # Command-line reference
 
-The Go distribution supports recursive project scanning, call-graph and class-diagram generation, commented source copies, static specifications, and design-quality reports. Each discovered source file is parsed independently and its Common IR facts are combined; cross-file name and type resolution is not available yet. Other operations and the GUI are still being ported. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) for the canonical instructions.
+The Go distribution supports recursive project scanning, call-graph and class-diagram generation, commented source copies, static specifications, and design-quality reports. Each discovered source file is parsed independently and its Common IR facts are combined; cross-file name and type resolution is not available yet. YAML configuration is excluded from source parsing; a YAML-only input reports that no supported source was found. Internal deployment configuration discovery continues to recognize YAML. Other operations and the GUI are still being ported. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) for the canonical instructions.
 
 Japanese source: [README](../../README.md). This guide documents the commands currently exposed by `Src.app`; run `python -m Src.app <command> --help` for the live option list.
 

@@ -146,6 +146,60 @@ func TestProjectFileScannerReportsMissingRoot(t *testing.T) {
 }
 
 //	{
+//	  責務: [TestProjectFileScannerSeparatesYAMLFromSources: YAML設定をソース解析から除き、デプロイメント探索には残すことを確認する,],
+//	}
+func TestProjectFileScannerSeparatesYAMLFromSources(t *testing.T) {
+	rootPath := t.TempDir()
+	sourcePath := writeProjectTestFile(t, rootPath, "src/main.go")
+	pythonPath := writeProjectTestFile(t, rootPath, "src/app.py")
+	gdscriptPath := writeProjectTestFile(t, rootPath, "src/player.gd")
+	csharpPath := writeProjectTestFile(t, rootPath, "src/Game.cs")
+	cppPath := writeProjectTestFile(t, rootPath, "src/engine.cpp")
+	javaPath := writeProjectTestFile(t, rootPath, "src/Main.java")
+	yamlPath := writeProjectTestFile(t, rootPath, "settings.yaml")
+	ymlPath := writeProjectTestFile(t, rootPath, "deploy/config.YML")
+	lowerYMLPath := writeProjectTestFile(t, rootPath, "compose.yml")
+	scanner := NewProjectFileScanner()
+
+	sourceFiles, err := scanner.DiscoverSupportedFiles(rootPath)
+	if err != nil {
+		t.Fatalf("DiscoverSupportedFiles() error = %v", err)
+	}
+	wantSources := []ProjectSourceFile{
+		{Path: pythonPath, Language: "python"},
+		{Path: cppPath, Language: "cpp"},
+		{Path: csharpPath, Language: "csharp"},
+		{Path: sourcePath, Language: "go"},
+		{Path: javaPath, Language: "java"},
+		{Path: gdscriptPath, Language: "gdscript"},
+	}
+	if !reflect.DeepEqual(sourceFiles, wantSources) {
+		t.Fatalf("source files = %#v, want %#v", sourceFiles, wantSources)
+	}
+
+	deploymentFiles, err := scanner.DiscoverDeploymentFiles(rootPath)
+	if err != nil {
+		t.Fatalf("DiscoverDeploymentFiles() error = %v", err)
+	}
+	wantDeployment := []string{lowerYMLPath, ymlPath, yamlPath}
+	if !reflect.DeepEqual(deploymentFiles, wantDeployment) {
+		t.Fatalf("deployment files = %#v, want %#v", deploymentFiles, wantDeployment)
+	}
+
+	yamlAsSource, err := scanner.DiscoverSupportedFiles(yamlPath)
+	if err != nil || len(yamlAsSource) != 0 {
+		t.Fatalf("YAML source scan = (%#v, %v), want no sources and no error", yamlAsSource, err)
+	}
+
+	yamlOnlyRoot := t.TempDir()
+	writeProjectTestFile(t, yamlOnlyRoot, "config.yaml")
+	yamlOnlySources, err := scanner.DiscoverSupportedFiles(yamlOnlyRoot)
+	if err != nil || len(yamlOnlySources) != 0 {
+		t.Fatalf("YAML-only folder scan = (%#v, %v), want no sources and no error", yamlOnlySources, err)
+	}
+}
+
+//	{
 //	  責務: [writeProjectTestFile: project scan fixtureを親directory込みで作成する]
 //	  処理: [1: 親directoryを作る, 2: fixture fileを書き込む, 3: 作成したpathを返す]
 //	  引数: [t: Go test runner, rootPath: fixture root, relativePath: rootからのfixture path]
