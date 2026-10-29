@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from uuid import uuid4
@@ -25,8 +26,12 @@ def main() -> int:
         )
         return 1
 
-    source = ROOT / "tests/fixtures/backend_conformance/go_project"
+    fixture = ROOT / "tests/fixtures/backend_conformance/go_project"
     smoke_directory = ROOT / ".build" / f"go-cli-smoke-{uuid4().hex}"
+    source = smoke_directory / "go_project"
+    shutil.copytree(fixture, source)
+    yaml_marker = "atlas-yaml-configuration-sentinel"
+    (source / "settings.yaml").write_text(f"name: {yaml_marker}\n", encoding="utf-8")
     output_directory = smoke_directory / "output"
     output_directory.mkdir(parents=True, exist_ok=False)
     command = [
@@ -65,7 +70,11 @@ def main() -> int:
         return 1
 
     expectations = {
-        "go_project_call-graph.md": ("flowchart LR", "Runner"),
+        "go_project_call-graph.md": (
+            "flowchart LR",
+            "Runner",
+            "n_Runner --> n_Normalize",
+        ),
         "go_project_class-diagram.md": ("classDiagram", "Result"),
         "go_project_static-spec.md": ("## 宣言一覧", "Runner"),
         "go_project_design-quality.md": ("# 設計品質レポート", "## 指標"),
@@ -78,12 +87,23 @@ def main() -> int:
             )
             return 1
         contents = output_path.read_text(encoding="utf-8")
+        if "settings.yaml" in contents or yaml_marker in contents:
+            print(f"[エラー] {file_name} にYAML設定が含まれています。", file=sys.stderr)
+            return 1
         if any(marker not in contents for marker in markers):
             print(
                 f"[エラー] {file_name} に期待した図の内容がありません。",
                 file=sys.stderr,
             )
             return 1
+
+    if list(output_directory.rglob("settings.yaml")):
+        print("[エラー] YAML設定がコメント付き出力に含まれています。", file=sys.stderr)
+        return 1
+
+    if not list((output_directory / "comments").rglob("*.go")):
+        print("[エラー] Go sourceのコメント付きコピーがありません。", file=sys.stderr)
+        return 1
 
     comment_source = smoke_directory / "comment_input.go"
     original_source = b"package sample\n\nfunc Unannotated() {}\n"
@@ -139,7 +159,7 @@ def main() -> int:
         return 1
 
     print(
-        "Go CLI smoke testに成功しました。recursive project scan、4種類のMarkdown出力、コメント付きsource copyを確認しました。"
+        "Go CLI smoke testに成功しました。YAML混在のrecursive project scan、4種類のMarkdown出力、コメント付きsource copyを確認しました。"
     )
     return 0
 
