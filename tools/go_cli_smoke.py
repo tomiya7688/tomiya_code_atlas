@@ -70,7 +70,11 @@ def main() -> int:
         return 1
 
     expectations = {
-        "go_project_call-graph.md": ("flowchart LR", "Runner"),
+        "go_project_call-graph.md": (
+            "flowchart LR",
+            "Runner",
+            "n_Runner --> n_Normalize",
+        ),
         "go_project_class-diagram.md": ("classDiagram", "Result"),
         "go_project_static-spec.md": ("## 宣言一覧", "Runner"),
         "go_project_design-quality.md": ("# 設計品質レポート", "## 指標"),
