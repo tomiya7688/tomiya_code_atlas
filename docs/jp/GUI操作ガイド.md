@@ -31,3 +31,7 @@ tomiya-code-atlas.exe analyze sample.py --operation call-graph --operation class
 ## 参照用のPython版
 
 移行中のPythonソース版GUIを使う開発者は、環境を準備してから `python -m Src.app gui` を実行してください。これはGo配布物とは別の参照実装です。
+
+## 開発時のCSS整形
+
+Node.js 24を用意し、リポジトリのルートで `npm ci --prefix tools/web-format --ignore-scripts` を実行して、固定版のPrettierを準備してください。`npm --prefix tools/web-format run format` でGUIのCSSを整形し、`npm --prefix tools/web-format run check` で整形状態を確認できます。

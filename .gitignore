@@ -41,3 +41,6 @@ htmlcov/
 Thumbs.db
 
 # Local compiler and bundled runtime outputs
+
+# GUI formatter dependency
+tools/web-format/node_modules/

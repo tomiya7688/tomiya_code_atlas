@@ -162,6 +162,16 @@ jobs:
         working-directory: go
         run: go test ./...
 
+      - name: Node.jsを準備
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: GUI CSSのformat check
+        run: |
+          npm ci --prefix tools/web-format --ignore-scripts --no-audit --no-fund
+          npm --prefix tools/web-format run check
+
       - name: GoとPythonのformat check
         shell: pwsh
         env:
