@@ -20,7 +20,7 @@ tomiya-code-atlas.exe analyze path\to\project --operation call-graph --operation
 run_dist.bat analyze path\to\source.go --operation call-graph --operation class-diagram --operation comments --operation static-spec --operation design-quality --output-dir atlas-output
 ```
 
-`--operation`を必要な結果ごとに繰り返し、`--output-dir`へ保存folderを指定してください。入力には一つのsource fileまたはproject folderを指定できます。folderを指定すると対応するsourceを下位folderまで再帰的に探索し、各fileを拡張子に対応するmanifest上のparser helperで個別に解析してCommon IRを統合します。複数file間の型解決やpackage単位の意味解析はまだ行いません。
+`--operation`を必要な結果ごとに繰り返し、`--output-dir`へ保存folderを指定してください。入力には一つのsource fileまたはproject folderを指定できます。folderを指定すると対応するsourceを下位folderまで再帰的に探索し、各fileを拡張子に対応するmanifest上のparser helperで個別に解析してCommon IRを統合します。複数file間の型解決やpackage単位の意味解析はまだ行いません。通常のソース解析ではYAML設定を対象外にします。YAMLだけを指定すると、対応ソースがないことを案内します。デプロイメント設定の内部探索ではYAMLを引き続き扱います。
 
 folder入力で`comments`を選ぶ場合、`--output-dir/comments`は入力folderと重ならないpathを指定してください。両者が同じpath、親子関係になるpathは指定できません。CLIはrecursive scanの前に重複を拒否し、入力内に作ったcomment copyの再検出と入出力folderの重なりを防ぎます。入力folderと別の出力先（例: `atlas-output`）を指定してください。
 

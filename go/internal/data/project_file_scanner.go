@@ -28,7 +28,7 @@ type ProjectSourceFile struct {
 }
 
 //	{
-//	  責務: [NewProjectFileScanner: Python版と同じsource extensionと生成directory除外規則を持つscannerを作る]
+//	  責務: [NewProjectFileScanner: sourceと設定のextensionおよび生成directory除外規則を持つscannerを作る]
 //	  処理: [1: 対象extensionと言語IDの対応を作る, 2: 除外directory名を作る, 3: scannerを返す]
 //	  引数: []
 //	  戻り値: [scanner: project file探索を行うscanner]
@@ -48,7 +48,7 @@ func NewProjectFileScanner() ProjectFileScanner {
 }
 
 //	{
-//	  責務: [DetectLanguage: file extensionから安定したlanguage IDを返す]
+//	  責務: [DetectLanguage: sourceまたは設定のextensionを分類し安定したlanguage IDを返す]
 //	  処理: [1: extensionを小文字化する, 2: 登録済みlanguage IDを返し、未対応ならunknownを返す]
 //	  引数: [filePath: 言語を判定するsource path]
 //	  戻り値: [languageID: extensionに対応するlanguage IDまたはunknown]
@@ -62,7 +62,7 @@ func (scanner ProjectFileScanner) DetectLanguage(filePath string) string {
 }
 
 //	{
-//	  責務: [DiscoverSupportedFiles: fileまたはproject directoryから対応言語のsourceを列挙する]
+//	  責務: [DiscoverSupportedFiles: YAML設定を除き、fileまたはproject directoryから対応言語のsourceを列挙する]
 //	  処理: [1: root配下のfileを安全に列挙する, 2: supported extensionだけをlanguage ID付きで残す, 3: path順を固定して返す]
 //	  引数: [rootPath: source fileまたはrecursive scanするproject directory]
 //	  戻り値: [files: pathと言語IDを含む解析対象, error: rootのstatまたはdirectory走査に失敗した場合の内容]
@@ -74,10 +74,10 @@ func (scanner ProjectFileScanner) DiscoverSupportedFiles(rootPath string) ([]Pro
 	}
 
 	supportedFiles := make([]ProjectSourceFile, 0, len(filePaths))
-	// 未対応extensionはCLIが解析backendを選べないため結果から除外する。
+	// YAMLはデプロイメント設定の探索で扱い、ソース言語parserには渡さない。
 	for _, filePath := range filePaths {
 		languageID := scanner.DetectLanguage(filePath)
-		if languageID == "unknown" {
+		if languageID == "unknown" || languageID == "yaml" {
 			continue
 		}
 		supportedFiles = append(supportedFiles, ProjectSourceFile{Path: filePath, Language: languageID})
