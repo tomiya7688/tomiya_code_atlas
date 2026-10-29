@@ -447,4 +447,3 @@ func main() {
 	}
 	_ = json.NewEncoder(os.Stdout).Encode(parse(req))
 }
-

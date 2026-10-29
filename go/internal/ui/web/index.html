@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Tomiya Code Atlas</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div class="brand-mark" aria-hidden="true">A</div>
+      <div><p class="eyebrow">SOURCE CODE ATLAS</p><h1>Tomiya Code Atlas</h1>
+        <p class="intro">ソースコードを解析して、構造を図にします。</p></div>
+    </header>
+    <section class="card">
+      <h2><span>1</span> 解析する範囲</h2>
+      <p class="hint">ファイル一つ、またはプロジェクト全体を選べます。</p>
+      <div class="choice-row"><label><input type="radio" name="input-kind" value="file" checked> ファイル</label><label><input type="radio" name="input-kind" value="folder"> プロジェクトフォルダー</label></div>
+      <div class="path-row"><div id="source-path" class="path empty">まだ選択されていません</div><button id="choose-source" class="secondary">ファイルを選ぶ <kbd>Alt+O</kbd></button></div>
+    </section>
+    <section class="card">
+      <h2><span>2</span> 作る図</h2>
+      <p class="hint">必要な図を複数選べます。</p>
+      <div class="diagram-grid">
+        <label class="diagram"><input type="checkbox" value="call-graph"><span><strong>呼び出し図</strong><small>関数やメソッドの呼び出し関係</small></span></label>
+        <label class="diagram"><input type="checkbox" value="class-diagram"><span><strong>クラス図</strong><small>クラスとメンバーの構造</small></span></label>
+      </div>
+    </section>
+    <section class="card">
+      <h2><span>3</span> 保存先</h2>
+      <p class="hint">生成したMarkdownファイルを保存するフォルダーです。</p>
+      <div class="path-row"><div id="output-path" class="path empty">まだ選択されていません</div><button id="choose-output" class="secondary">保存先を選ぶ <kbd>Alt+P</kbd></button></div>
+    </section>
+    <div class="actions"><button id="run-analysis" class="primary">解析して図を作る <kbd>Alt+R</kbd></button></div>
+    <section id="result" class="result" role="status" aria-live="polite"><p>入力・図・保存先を選んで「解析して図を作る」を押してください。</p></section>
+    <footer>解析はこのアプリ内で実行します。選んだソースは外部サービスへ送信しません。</footer>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

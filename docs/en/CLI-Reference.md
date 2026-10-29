@@ -1,17 +1,10 @@
 # Command-line reference
 
-The Go distribution supports recursive project scanning, call-graph and class-diagram generation, commented source copies, static specifications, and design-quality reports. Each discovered source file is parsed independently and its Common IR facts are combined; cross-file name and type resolution is not available yet. YAML configuration is excluded from source parsing; a YAML-only input reports that no supported source was found. Internal deployment configuration discovery continues to recognize YAML. Other operations and the GUI are still being ported. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) for the canonical instructions.
+The Go CLI supports recursive project scanning, call graphs, class diagrams, commented source copies, static specifications, and design-quality reports. Each file is parsed independently; cross-file name and type resolution is not available yet. YAML configuration is excluded from source parsing; a YAML-only input reports that no supported source was found. Internal deployment configuration discovery continues to recognize YAML. The Windows executable opens a GUI for call graphs and class diagrams without arguments. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) and the [GUI guide](GUI-Usage.md).
 
-Japanese source: [README](../../README.md). This guide documents the commands currently exposed by `Src.app`; run `python -m Src.app <command> --help` for the live option list.
+The [Japanese Go CLI guide](../jp/CLI利用ガイド.md) is the canonical guide for the Go CLI. The Python reference implementation has separate commands described below.
 
 ## Start here
-
-From the repository root, use Python:
-
-```text
-python -m Src.app --help
-python -m Src.app --version
-```
 
 The Go CLI command is available through `run_dist.bat` or the packaged executable:
 

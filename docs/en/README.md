@@ -10,7 +10,7 @@ The Japanese documents are the source of truth. Start with the [Japanese README]
 
 The tool currently targets Python, GDScript, C#, C++, Java, and Go. Feature support varies by command and language. See the [Japanese current-status document](../jp/現状.md) for the authoritative capability and limitation list.
 
-The product is being ported to Go. The Go CLI recursively scans project folders and generates call graphs, class diagrams, commented source copies, static specifications, and design-quality reports from per-file parser results. The `comments` operation writes language-specific comments into copies and leaves input files unchanged. Cross-file name and type resolution, other diagrams, and the GUI remain in progress. See the [CLI reference](CLI-Reference.md) for the current command and the [Japanese guide](../jp/CLI利用ガイド.md) for canonical instructions. Track migration progress in [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) and its child issues.
+The product is being ported to Go. The Windows executable opens a GUI for call graphs and class diagrams when started without arguments. The Go CLI also generates commented source copies, static specifications, and design-quality reports. Each file is parsed independently; cross-file name and type resolution and other operations are still in progress. Comments are written to copies without changing inputs. See the [CLI reference](CLI-Reference.md), [GUI guide](GUI-Usage.md), and canonical [Japanese CLI guide](../jp/CLI利用ガイド.md). Migration progress is tracked in [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27).
 
 ## Architecture
 

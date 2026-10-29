@@ -30,7 +30,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-go build -trimpath -ldflags "-s -w -X main.version=0.1.0-dev" -o "..\.build\dist\tomiya-code-atlas.exe" "./cmd/tomiya-code-atlas"
+go build -tags production -trimpath -ldflags "-s -w -X main.version=0.1.0-dev" -o "..\.build\dist\tomiya-code-atlas.exe" "./cmd/tomiya-code-atlas"
 set "BUILD_RESULT=%errorlevel%"
 if not "%BUILD_RESULT%"=="0" (
     popd

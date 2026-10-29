@@ -2,30 +2,32 @@
 
 Japanese source: [GUI operation guide](../jp/GUI操作ガイド.md).
 
-The existing Python source implementation opens its desktop GUI when you start `Src.app` without arguments. The Go Windows executable currently has no GUI. Its CLI can generate call graphs and class diagrams from a source file or recursively scanned project folder; each source file is parsed independently. See the [CLI reference](CLI-Reference.md).
+Start the Windows `tomiya-code-atlas.exe` without arguments to open the desktop GUI. The Go GUI generates call graphs and class diagrams from one source file or a project folder. You can select both diagrams in one run. The `analyze` CLI command remains available.
 
-The current GUI can:
+## Generate diagrams
 
-- Select supported files or a project folder.
-- Show discovered files and detected languages.
-- Generate source comments.
-- Generate a Mermaid call graph for Python.
-- Generate a Markdown class-responsibility table for Python.
-- Generate a CI graph from a GitHub Actions YAML file.
-- Preview the generated source and save the result.
+1. Choose **File** or **Project folder**, then click the matching selection button. `Alt+O` opens the current input picker.
+2. Select one or both diagrams: **Call graph** and **Class diagram**.
+3. Choose an output folder with **Choose output folder**. `Alt+P` opens its picker.
+4. Click **Analyze and create diagrams**. `Alt+R` starts the analysis.
+5. After completion, check the displayed Markdown output paths.
 
-The Mermaid preview currently displays Mermaid source text. It does not render the diagram as an image or embedded HTML.
+Errors appear in the GUI. Native dialogs select input and output paths. The Go application and its bundled parser helpers process source files locally; the application does not send selected source to an external service.
 
-CLI commands remain available alongside the GUI. For example:
+## Requirements and current scope
+
+The GUI targets Windows 10/11 and uses the Microsoft Edge WebView2 Runtime. It is included in Windows 11 and many Windows 10 installations; install the WebView2 Runtime where it is missing. The Go GUI does not require Python or Tk at runtime. Language-specific parser helpers are included in the distribution.
+
+The current Go GUI offers `call-graph` and `class-diagram`. Comment generation, editable preview, and other diagram types are tracked in later migration issues. Download the EXE from a successful [Go EXE workflow run](https://github.com/tomiya7688/tomiya_code_atlas/actions/workflows/go-exe.yml).
+
+The CLI remains available:
 
 ```text
-python -m Src.app comment sample.py
-python -m Src.app ci .github/workflows/ci.yml
-python -m Src.app --version
-python -m Src.app gui
+tomiya-code-atlas.exe analyze sample.py --operation call-graph --operation class-diagram --output-dir atlas-output
 ```
 
-See the [CLI reference](CLI-Reference.md) for command options. The Japanese guide is the source of truth for GUI capabilities and limitations.
-# Migration status
+See the [CLI reference](CLI-Reference.md) for details.
 
-This guide describes the existing Python source GUI. The Go Windows executable does not include analysis features or a GUI yet.
+## Python reference implementation
+
+Developers can prepare the Python environment and run `python -m Src.app gui` to use the reference implementation. It is separate from the Go distribution.
