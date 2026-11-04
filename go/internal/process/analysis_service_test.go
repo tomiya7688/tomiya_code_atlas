@@ -28,6 +28,7 @@ func TestRenderAnalysisOutputProducesSelectedDiagrams(t *testing.T) {
 	}{
 		{operation: "call-graph", contains: "flowchart LR"},
 		{operation: "class-diagram", contains: "classDiagram"},
+		{operation: "sequence-diagram", contains: "sequenceDiagram"},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.operation, func(t *testing.T) {

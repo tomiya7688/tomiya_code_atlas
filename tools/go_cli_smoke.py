@@ -43,6 +43,8 @@ def main() -> int:
         "--operation",
         "class-diagram",
         "--operation",
+        "sequence-diagram",
+        "--operation",
         "comments",
         "--operation",
         "static-spec",
@@ -76,6 +78,7 @@ def main() -> int:
             "n_Runner --> n_Normalize",
         ),
         "go_project_class-diagram.md": ("classDiagram", "Result"),
+        "go_project_sequence-diagram.md": ("sequenceDiagram", "Runner"),
         "go_project_static-spec.md": ("## 宣言一覧", "Runner"),
         "go_project_design-quality.md": ("# 設計品質レポート", "## 指標"),
     }
@@ -158,8 +161,63 @@ def main() -> int:
         )
         return 1
 
+    recursion_fixture = ROOT / "tests/fixtures/distribution_e2e/sequence_recursion.go"
+    recursion_source = smoke_directory / recursion_fixture.name
+    shutil.copyfile(recursion_fixture, recursion_source)
+    recursion_output = smoke_directory / "sequence-recursion-output"
+    recursion_output.mkdir(parents=True, exist_ok=False)
+    recursion_command = [
+        str(executable),
+        "analyze",
+        str(recursion_source),
+        "--operation",
+        "sequence-diagram",
+        "--output-dir",
+        str(recursion_output),
+    ]
+    try:
+        recursion_result = subprocess.run(
+            recursion_command,
+            cwd=executable.parent,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=90,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        print(
+            "[エラー] 再帰sequenceの解析が90秒以内に完了しませんでした。",
+            file=sys.stderr,
+        )
+        return 1
+    if recursion_result.returncode != 0:
+        print("[エラー] 再帰sequenceの解析に失敗しました。", file=sys.stderr)
+        print(recursion_result.stderr, file=sys.stderr)
+        return 1
+    recursion_markdown = recursion_output / "sequence_recursion_sequence-diagram.md"
+    if not recursion_markdown.is_file():
+        print(
+            "[エラー] 再帰sequenceのMarkdown出力が一件ではありません。", file=sys.stderr
+        )
+        return 1
+    recursion_contents = recursion_markdown.read_text(encoding="utf-8")
+    for recursive_call in ("[recursive] alpha", "[recursive] self"):
+        if recursive_call not in recursion_contents:
+            print(
+                f"[エラー] 配布EXE出力に再帰呼び出しがありません: {recursive_call}",
+                file=sys.stderr,
+            )
+            return 1
+    if "sequenceDiagram" not in recursion_contents:
+        print(
+            "[エラー] 再帰sequence出力にMermaid sequenceDiagramがありません。",
+            file=sys.stderr,
+        )
+        return 1
+
     print(
-        "Go CLI smoke testに成功しました。YAML混在のrecursive project scan、4種類のMarkdown出力、コメント付きsource copyを確認しました。"
+        "Go CLI smoke testに成功しました。YAML混在project scan、5種類のMarkdown出力、自己・相互再帰sequence、コメント付きsource copyを確認しました。"
     )
     return 0
 
