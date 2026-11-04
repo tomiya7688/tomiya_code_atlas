@@ -10,16 +10,37 @@ import (
 func RenderSequenceDiagramMermaid(diagram generators.SequenceDiagram) string {
 	lines := []string{"sequenceDiagram"}
 	ids := map[string]string{}
-	for i, participant := range diagram.Participants {
+	participants := sequenceRenderingParticipants(diagram)
+	for i, participant := range participants {
 		ids[participant] = fmt.Sprintf("p%d", i)
 		lines = append(lines, fmt.Sprintf("    participant %s as %s", ids[participant], sequenceLabel(participant)))
 	}
 	for _, message := range diagram.Messages {
-		arrow := "->>"
-		if message.Kind == "return" {
-			arrow = "-->>"
+		if ids[message.Caller] == "" {
+			continue
 		}
-		lines = append(lines, fmt.Sprintf("    %s%s%s: %s", ids[message.Caller], arrow, ids[message.Callee], sequenceLabel(message.Label)))
+		if message.Kind == generators.SequenceDepthTruncated {
+			lines = append(lines, fmt.Sprintf("    Note over %s: %s", ids[message.Caller], sequenceLabel(message.Label)))
+			continue
+		}
+		if ids[message.Callee] == "" {
+			continue
+		}
+		arrow := "->>"
+		label := message.Label
+		switch message.Kind {
+		case generators.SequenceCallMessage:
+			// Synchronous calls use the default arrow.
+		case generators.SequenceReturnMessage:
+			arrow = "-->>"
+		case generators.SequenceAsyncCallMessage:
+			arrow = "-)"
+		case generators.SequenceRecursiveCall:
+			label = "[recursive] " + label
+		default:
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("    %s%s%s: %s", ids[message.Caller], arrow, ids[message.Callee], sequenceLabel(label)))
 	}
 	return strings.Join(lines, "\n") + "\n"
 }
@@ -33,15 +54,77 @@ func sequenceLabel(value string) string {
 func RenderCommunicationDiagramMermaid(diagram generators.CommunicationDiagram) string {
 	lines := []string{"flowchart LR"}
 	ids := map[string]string{}
-	for i, participant := range diagram.Participants {
+	for i, participant := range communicationRenderingParticipants(diagram) {
 		ids[participant] = fmt.Sprintf("p%d", i)
 		lines = append(lines, fmt.Sprintf("    %s[\"%s\"]", ids[participant], communicationLabel(participant)))
 	}
 	for _, message := range diagram.Messages {
-		text := communicationLabel(message.Order + ": " + message.Label)
+		if ids[message.Source] == "" || ids[message.Target] == "" {
+			continue
+		}
+		label := message.Label
+		switch message.Kind {
+		case generators.SequenceRecursiveCall:
+			label = "[recursive] " + label
+		case generators.SequenceDepthTruncated:
+			label = "[depth truncated] " + label
+		}
+		text := communicationLabel(message.Order + ": " + label)
 		lines = append(lines, fmt.Sprintf("    %s -->|\"%s\"| %s", ids[message.Source], text, ids[message.Target]))
 	}
 	return strings.Join(lines, "\n") + "\n"
+}
+
+//	{
+//	  責務: [sequenceRenderingParticipants: messageから省略対象を除いたparticipantを順序付きで収集する]
+//	}
+func sequenceRenderingParticipants(diagram generators.SequenceDiagram) []string {
+	participants := append([]string(nil), diagram.Participants...)
+	seen := make(map[string]struct{}, len(participants))
+	for _, participant := range participants {
+		seen[participant] = struct{}{}
+	}
+	for _, message := range diagram.Messages {
+		candidates := []string{message.Caller}
+		if message.Kind != generators.SequenceDepthTruncated {
+			candidates = append(candidates, message.Callee)
+		}
+		for _, participant := range candidates {
+			appendRendererParticipant(&participants, seen, participant)
+		}
+	}
+	return participants
+}
+
+//	{
+//	  責務: [communicationRenderingParticipants: messageに現れる全participantを順序付きで収集する]
+//	}
+func communicationRenderingParticipants(diagram generators.CommunicationDiagram) []string {
+	participants := append([]string(nil), diagram.Participants...)
+	seen := make(map[string]struct{}, len(participants))
+	for _, participant := range participants {
+		seen[participant] = struct{}{}
+	}
+	for _, message := range diagram.Messages {
+		for _, participant := range []string{message.Source, message.Target} {
+			appendRendererParticipant(&participants, seen, participant)
+		}
+	}
+	return participants
+}
+
+//	{
+//	  責務: [appendRendererParticipant: 空名と既出名を除外してparticipantを一件追加する]
+//	}
+func appendRendererParticipant(participants *[]string, seen map[string]struct{}, participant string) {
+	if participant == "" {
+		return
+	}
+	if _, exists := seen[participant]; exists {
+		return
+	}
+	seen[participant] = struct{}{}
+	*participants = append(*participants, participant)
 }
 
 func communicationLabel(value string) string {

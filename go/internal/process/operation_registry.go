@@ -6,6 +6,7 @@ package process
 var analysisOperationIDs = []string{
 	"call-graph",
 	"class-diagram",
+	"sequence-diagram",
 	"comments",
 	"static-spec",
 	"design-quality",

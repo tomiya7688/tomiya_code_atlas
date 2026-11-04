@@ -216,6 +216,8 @@ func analysisOperationDescription(operation string) string {
 		return "呼び出し図を生成"
 	case "class-diagram":
 		return "クラス図を生成"
+	case "sequence-diagram":
+		return "シーケンス図を生成"
 	case "comments":
 		return "コメントを追加したsource copyを保存"
 	case "static-spec":

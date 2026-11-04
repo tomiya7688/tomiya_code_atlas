@@ -3,6 +3,7 @@ package renderers
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/tomiya7688/tomiya_code_atlas/internal/generators"
@@ -11,6 +12,96 @@ import (
 const rendererFixturePath = "../../../tests/fixtures/generators/renderers_v1.json"
 
 func stringPointer(value string) *string { return &value }
+
+//	{
+//	  責務: [TestSequenceRenderersPreserveMessageKinds: call、async、return、recursion、depth noteをMermaidとPlantUMLで区別する]
+//	}
+func TestSequenceRenderersPreserveMessageKinds(t *testing.T) {
+	diagram := generators.SequenceDiagram{
+		Name:         "interaction",
+		Participants: []string{"alpha", "beta"},
+		Messages: []generators.SequenceMessage{
+			{Caller: "alpha", Callee: "beta", Label: "call", Kind: generators.SequenceCallMessage},
+			{Caller: "alpha", Callee: "beta", Label: "async", Kind: generators.SequenceAsyncCallMessage},
+			{Caller: "beta", Callee: "alpha", Label: "return", Kind: generators.SequenceReturnMessage},
+			{Caller: "beta", Callee: "alpha", Label: "recursive", Kind: generators.SequenceRecursiveCall},
+			{Caller: "alpha", Callee: "gamma", Label: "external", Kind: generators.SequenceCallMessage},
+			{Caller: "beta", Callee: "next", Label: "Further calls omitted: next", Kind: generators.SequenceDepthTruncated},
+		},
+	}
+
+	mermaid := RenderSequenceDiagramMermaid(diagram)
+	for _, expected := range []string{"p0->>p1: call", "p0-)p1: async", "p1-->>p0: return", "p1->>p0: [recursive] recursive", "participant p2 as gamma", "p0->>p2: external", "Note over p1: Further calls omitted- next"} {
+		if !strings.Contains(mermaid, expected) {
+			t.Errorf("Mermaid output does not contain %q:\n%s", expected, mermaid)
+		}
+	}
+	if strings.Contains(mermaid, "participant p2 as next") {
+		t.Errorf("Mermaid output declared an uncalled truncated target:\n%s", mermaid)
+	}
+
+	plantUML := RenderSequenceDiagramPlantUML(diagram)
+	alpha := hashedID("p_", "alpha")
+	beta := hashedID("p_", "beta")
+	for _, expected := range []string{
+		alpha + " -> " + beta + " : call",
+		alpha + " ->> " + beta + " : async",
+		beta + " --> " + alpha + " : return",
+		beta + " -> " + alpha + " : [recursive] recursive",
+		alpha + " -> " + hashedID("p_", "gamma") + " : external",
+		"note over " + beta + " : Further calls omitted: next",
+	} {
+		if !strings.Contains(plantUML, expected) {
+			t.Errorf("PlantUML output does not contain %q:\n%s", expected, plantUML)
+		}
+	}
+}
+
+//	{
+//	  責務: [TestCommunicationRendererLabelsRecursionAndTruncation: communication diagramでrecursionと省略理由を明示する]
+//	}
+func TestCommunicationRendererLabelsRecursionAndTruncation(t *testing.T) {
+	diagram := generators.CommunicationDiagram{
+		Name:         "interaction",
+		Participants: []string{"alpha", "beta"},
+		Messages: []generators.CommunicationMessage{
+			{Source: "alpha", Target: "beta", Order: "1", Label: "call", Kind: generators.SequenceRecursiveCall},
+			{Source: "beta", Target: "gamma", Order: "2", Label: "Further calls omitted: leaf", Kind: generators.SequenceDepthTruncated},
+		},
+	}
+
+	output := RenderCommunicationDiagramMermaid(diagram)
+	for _, expected := range []string{"p2[\"gamma\"]", "1: [recursive] call", "2: [depth truncated] Further calls omitted: leaf"} {
+		if !strings.Contains(output, expected) {
+			t.Errorf("communication output does not contain %q:\n%s", expected, output)
+		}
+	}
+}
+
+//	{
+//	  責務: [TestSequenceRenderersSkipMessagesWithoutRequiredParticipants: 空participantを含む不正messageを出力しない]
+//	}
+func TestSequenceRenderersSkipMessagesWithoutRequiredParticipants(t *testing.T) {
+	diagram := generators.SequenceDiagram{
+		Messages: []generators.SequenceMessage{
+			{Caller: "", Callee: "beta", Label: "missing caller", Kind: generators.SequenceCallMessage},
+			{Caller: "alpha", Callee: "", Label: "missing callee", Kind: generators.SequenceCallMessage},
+			{Caller: "", Callee: "alpha", Label: "missing truncation caller", Kind: generators.SequenceDepthTruncated},
+			{Caller: "alpha", Callee: "beta", Label: "unknown kind", Kind: "future-kind"},
+		},
+	}
+	for name, output := range map[string]string{
+		"Mermaid":  RenderSequenceDiagramMermaid(diagram),
+		"PlantUML": RenderSequenceDiagramPlantUML(diagram),
+	} {
+		if strings.Contains(output, "missing caller") || strings.Contains(output, "missing callee") || strings.Contains(output, "missing truncation caller") || strings.Contains(output, "unknown kind") {
+			t.Errorf("%s contains a message with an empty participant:\n%s", name, output)
+		}
+		if strings.Contains(output, "Note over :") || strings.Contains(output, "note over  :") {
+			t.Errorf("%s contains a truncation note without a caller:\n%s", name, output)
+		}
+	}
+}
 
 //	{
 //	  責務: [TestRenderersMatchSharedGolden: Pythonと共有するgoldenで全1.0 rendererの改行・順序・escapingを固定する]

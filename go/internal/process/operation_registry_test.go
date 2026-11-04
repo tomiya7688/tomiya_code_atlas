@@ -6,7 +6,7 @@ import "testing"
 //	  責務: [TestSupportedOperationIDsReturnsStableCopy: CLI operationの表示順と内部registryの保護を確認する]
 //	}
 func TestSupportedOperationIDsReturnsStableCopy(t *testing.T) {
-	expected := []string{"call-graph", "class-diagram", "comments", "static-spec", "design-quality"}
+	expected := []string{"call-graph", "class-diagram", "sequence-diagram", "comments", "static-spec", "design-quality"}
 	actual := SupportedOperationIDs()
 	if len(actual) != len(expected) {
 		t.Fatalf("SupportedOperationIDs = %#v, want %#v", actual, expected)

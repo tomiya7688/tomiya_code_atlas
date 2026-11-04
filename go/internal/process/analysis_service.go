@@ -273,6 +273,19 @@ func renderAnalysisOutput(module commonir.Module, operation, sourceName string) 
 			output.WriteString("```\n")
 		}
 		return output.String(), nil
+	case "sequence-diagram":
+		bundle, err := generators.BuildSequenceDiagramBundle(module, 3, 8, nil)
+		if err != nil {
+			return "", fmt.Errorf("シーケンス図を生成できません: %w", err)
+		}
+		var output strings.Builder
+		output.WriteString("# シーケンス図\n")
+		for _, diagram := range bundle.Diagrams {
+			fmt.Fprintf(&output, "\n## %s\n\n```mermaid\n", diagram.Name)
+			output.WriteString(renderers.RenderSequenceDiagramMermaid(diagram))
+			output.WriteString("```\n")
+		}
+		return output.String(), nil
 	case "static-spec":
 		return staticdoc.Render(module, sourceName), nil
 	case "design-quality":

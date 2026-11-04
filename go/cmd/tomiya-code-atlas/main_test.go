@@ -82,7 +82,7 @@ func TestWriteAnalyzeHelpListsEverySupportedOperation(t *testing.T) {
 			t.Errorf("operation %q has no Japanese description", operation)
 		}
 	}
-	if !strings.Contains(output.String(), "元ソースを変更せず") || !strings.Contains(output.String(), "設計品質レポート") {
+	if !strings.Contains(output.String(), "元ソースを変更せず") || !strings.Contains(output.String(), "設計品質レポート") || !strings.Contains(output.String(), "シーケンス図を生成") {
 		t.Fatalf("analyze help omits user-facing operation details: %q", output.String())
 	}
 }
@@ -169,6 +169,7 @@ func TestParseAnalyzeArgumentsSupportsMultipleOperations(t *testing.T) {
 		"src/main.py",
 		"--operation", "call-graph",
 		"--operation", "class-diagram",
+		"--operation", "sequence-diagram",
 		"--operation", "comments",
 		"--operation", "static-spec",
 		"--operation", "design-quality",
