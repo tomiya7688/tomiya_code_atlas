@@ -80,4 +80,4 @@ This documents one Python file or recursively scans a Python project (excluding 
 
 ## Japanese source
 
-The Japanese README is authoritative: [../../README.md](../../README.md). English guides are translations and must not define different behavior.
+The Japanese Go CLI guide is authoritative: [../jp/CLI利用ガイド.md](../jp/CLI利用ガイド.md). This English reference is its translation and must not define different behavior.

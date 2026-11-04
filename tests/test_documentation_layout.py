@@ -19,7 +19,9 @@ def test_documentation_is_in_language_roots_and_japanese_names_are_native() -> N
         assert relative.parts[0] in {"jp", "en"}, relative
         if relative.parts[0] == "jp":
             assert JAPANESE_CHARACTERS.search(path.stem), relative
-            assert JAPANESE_CHARACTERS.search(path.read_text(encoding="utf-8")), relative
+            assert JAPANESE_CHARACTERS.search(path.read_text(encoding="utf-8")), (
+                relative
+            )
 
 
 def test_documentation_links_resolve() -> None:
@@ -62,7 +64,7 @@ def test_v1_user_guides_have_english_names_and_reciprocal_japanese_links() -> No
         "README.md": "../../README.md",
         "Building.md": "../../README.md",
         "GUI-Usage.md": "../jp/GUI操作ガイド.md",
-        "CLI-Reference.md": "../../README.md",
+        "CLI-Reference.md": "../jp/CLI利用ガイド.md",
     }
     for name, japanese_source in expected_links.items():
         assert japanese_source in english_files[name].read_text(encoding="utf-8"), name
