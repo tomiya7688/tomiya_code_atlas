@@ -46,7 +46,7 @@ def test_root_build_creates_go_cli_and_cpython_ast_onedir_helper() -> None:
     assert 'set "GOTMPDIR=%CD%\\.build\\go-temp"' in go_build
     assert "pushd go" in go_build
     assert "go test ./..." in go_build
-    assert "go build -trimpath" in go_build
+    assert "go build -tags production -trimpath" in go_build
     assert ".build\\dist\\tomiya-code-atlas.exe" in go_build
     assert "build_python_backend.bat" in go_build
     assert "build_csharp_backend.bat" in go_build

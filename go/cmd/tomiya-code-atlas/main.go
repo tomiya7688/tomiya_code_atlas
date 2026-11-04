@@ -10,6 +10,7 @@ import (
 
 	"github.com/tomiya7688/tomiya_code_atlas/internal/data"
 	"github.com/tomiya7688/tomiya_code_atlas/internal/process"
+	"github.com/tomiya7688/tomiya_code_atlas/internal/ui"
 )
 
 var version = "dev"
@@ -31,18 +32,39 @@ func main() {
 }
 
 //	{
-//	  責務: [run: top-level commandを検証しhelp・version・analyzeの処理先へ振り分ける]
-//	  処理: [1: command名を判定する, 2: 各commandを呼び出す, 3: versioned CLI exit codeを返す]
-//	  引数: [args: command line引数, stdout: 利用者向け正常出力, stderr: 利用者向けerror出力]
-//	  戻り値: [int: 成功0、解析失敗1、引数誤り2のprocess exit status]
+//	  責務: [
+//	    run: 標準引数と出力をGUI / CLI dispatcherへ渡す,
+//	  ],
 //	}
 func run(args []string, stdout, stderr io.Writer) int {
+	return runWithGUI(args, stdout, stderr, launchGUI)
+}
+
+//	{
+//	  責務: [
+//	    runWithGUI: 引数なしはGUIを開き、command指定時は既存CLIへ振り分ける,
+//	  ],
+//	}
+func runWithGUI(args []string, stdout, stderr io.Writer, launch func(bool) error) int {
 	if len(args) == 0 {
-		writeHelp(stdout)
+		if err := launch(false); err != nil {
+			fmt.Fprintf(stderr, "[エラー] GUIを起動できません: %s\n", err)
+			return exitAnalysisError
+		}
 		return exitSuccess
 	}
 
 	switch args[0] {
+	case "--gui-smoke":
+		if len(args) != 1 {
+			fmt.Fprintln(stderr, "[エラー] --gui-smoke に追加の引数は指定できません")
+			return exitUsageError
+		}
+		if err := launch(true); err != nil {
+			fmt.Fprintf(stderr, "[エラー] GUI起動smoke testに失敗しました: %s\n", err)
+			return exitAnalysisError
+		}
+		return exitSuccess
 	case "--help", "-h", "help":
 		writeHelp(stdout)
 		return exitSuccess
@@ -74,6 +96,44 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 //	{
+//	  責務: [
+//	    launchGUI: CLIと共有する解析serviceをGUIへ渡してdesktop windowを起動する,
+//	  ],
+//	}
+func launchGUI(smokeMode bool) error {
+	service, err := newAnalysisService()
+	if err != nil {
+		return err
+	}
+	return ui.Run(service, smokeMode)
+}
+
+//	{
+//	  責務: [
+//	    newAnalysisService: 配布物と実行directoryからCLI / GUIが共有する解析serviceを準備する,
+//	  ],
+//	}
+func newAnalysisService() (process.AnalysisService, error) {
+	executablePath, err := os.Executable()
+	if err != nil {
+		return process.AnalysisService{}, fmt.Errorf("実行fileのpathを確認できません: %w", err)
+	}
+	workingDirectory, err := os.Getwd()
+	if err != nil {
+		return process.AnalysisService{}, fmt.Errorf("実行directoryを確認できません: %w", err)
+	}
+	applicationRoot, err := data.FindApplicationRoot(executablePath, workingDirectory)
+	if err != nil {
+		return process.AnalysisService{}, err
+	}
+	service, err := process.NewAnalysisService(applicationRoot, 30*time.Second)
+	if err != nil {
+		return process.AnalysisService{}, fmt.Errorf("parser helperを準備できません: %w", err)
+	}
+	return service, nil
+}
+
+//	{
 //	  責務: [writeHelp: 利用可能commandと詳細helpの開き方を日本語で表示する]
 //	  引数: [w: help本文を書き出すstream]
 //	}
@@ -81,6 +141,7 @@ func writeHelp(w io.Writer) {
 	fmt.Fprintln(w, "Tomiya Code Atlas (Go)")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "使用方法: tomiya-code-atlas [コマンド]")
+	fmt.Fprintln(w, "コマンドを指定せずに起動するとGUIが開きます。")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "コマンド:")
 	fmt.Fprintln(w, "  --help, -h     この案内を表示")
@@ -166,21 +227,9 @@ func parseAnalyzeArguments(arguments []string) (analyzeOptions, error) {
 //	  戻り値: [error: source読込・parser・generator・renderer・file保存に失敗した場合の内容]
 //	}
 func runAnalyze(options analyzeOptions) error {
-	executablePath, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("実行fileのpathを確認できません: %w", err)
-	}
-	workingDirectory, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("実行directoryを確認できません: %w", err)
-	}
-	applicationRoot, err := data.FindApplicationRoot(executablePath, workingDirectory)
+	service, err := newAnalysisService()
 	if err != nil {
 		return err
-	}
-	service, err := process.NewAnalysisService(applicationRoot, 30*time.Second)
-	if err != nil {
-		return fmt.Errorf("parser helperを準備できません: %w", err)
 	}
 	_, err = service.Generate(context.Background(), process.AnalysisRequest{
 		SourcePath: options.sourcePath, Operations: options.operations, OutputDirectory: options.outputDirectory,

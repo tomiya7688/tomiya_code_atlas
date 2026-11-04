@@ -18,6 +18,9 @@ func TestRunHelp(t *testing.T) {
 	if !strings.Contains(stdout.String(), "使用方法:") {
 		t.Fatalf("help output is missing usage: %q", stdout.String())
 	}
+	if !strings.Contains(stdout.String(), "コマンドを指定せずに起動するとGUIが開きます。") {
+		t.Fatalf("help is missing the GUI entry: %q", stdout.String())
+	}
 	if stderr.Len() != 0 {
 		t.Fatalf("help wrote to stderr: %q", stderr.String())
 	}
@@ -43,6 +46,32 @@ func TestRunUnknownCommand(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "[エラー]") {
 		t.Fatalf("error output is not Japanese: %q", stderr.String())
+	}
+}
+
+func TestRunWithGUIOpensDesktopAndSmokeMode(t *testing.T) {
+	for _, testCase := range []struct {
+		name      string
+		args      []string
+		wantSmoke bool
+	}{
+		{name: "default opens GUI", wantSmoke: false},
+		{name: "hidden smoke opens and exits", args: []string{"--gui-smoke"}, wantSmoke: true},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			called := false
+			code := runWithGUI(testCase.args, &stdout, &stderr, func(smoke bool) error {
+				called = true
+				if smoke != testCase.wantSmoke {
+					t.Fatalf("smoke mode = %v, want %v", smoke, testCase.wantSmoke)
+				}
+				return nil
+			})
+			if code != exitSuccess || !called || stderr.Len() != 0 {
+				t.Fatalf("code=%d called=%v stderr=%q", code, called, stderr.String())
+			}
+		})
 	}
 }
 

@@ -30,7 +30,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-go build -trimpath -ldflags "-s -w -X main.version=0.1.0-dev" -o "..\.build\dist\tomiya-code-atlas.exe" "./cmd/tomiya-code-atlas"
+go build -tags production -trimpath -ldflags "-s -w -X main.version=0.1.0-dev" -o "..\.build\dist\tomiya-code-atlas.exe" "./cmd/tomiya-code-atlas"
 set "BUILD_RESULT=%errorlevel%"
 if not "%BUILD_RESULT%"=="0" (
     popd
@@ -75,6 +75,26 @@ if not exist ".build\dist\tomiya-code-atlas.exe" (
     echo [エラー] Go版の配布EXEが生成されませんでした。
     exit /b 1
 )
+
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build\generate_app_icon.ps1 -OutputDirectory ".build\dist\assets"
+if errorlevel 1 exit /b 1
+copy /y "assets\characters\atlas-kun\atlas-kun-64.png" ".build\dist\assets\atlas-kun-64.png" >nul
+if errorlevel 1 exit /b 1
+copy /y "assets\characters\atlas-kun\LICENSE.md" ".build\dist\assets\LICENSE.md" >nul
+if errorlevel 1 exit /b 1
+if not exist ".build\dist\assets\atlas-kun.ico" (
+    echo [エラー] 配布先にアプリケーションiconがありません。
+    exit /b 1
+)
+if not exist ".build\dist\assets\atlas-kun-256.png" (
+    echo [エラー] 配布先に256pxアイコン画像がありません。
+    exit /b 1
+)
+if not exist ".build\dist\assets\atlas-kun-64.png" (
+    echo [エラー] 配布先に64pxアイコン画像がありません。
+    exit /b 1
+)
+
 echo.
 echo Windows Go distribution build complete.
 endlocal
