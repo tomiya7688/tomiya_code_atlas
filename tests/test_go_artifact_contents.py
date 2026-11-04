@@ -5,9 +5,9 @@ import yaml
 
 
 # {
-#   責務: [test_windows_gui_artifact_includes_manifest_after_smoke: ダウンロードした配布物がparserを解決できるようmanifestを含み、起動確認の後に保存されることを検証する,],
+#   責務: [test_windows_gui_artifact_includes_runtime_assets_after_smoke: ダウンロードした配布物がGUI assetとparserを含み、E2E確認の後に保存されることを検証する,],
 # }
-def test_windows_gui_artifact_includes_manifest_after_smoke() -> None:
+def test_windows_gui_artifact_includes_runtime_assets_after_smoke() -> None:
     workflow = yaml.safe_load(
         (
             Path(__file__).resolve().parents[1] / ".github/workflows/go-exe.yml"
@@ -24,6 +24,11 @@ def test_windows_gui_artifact_includes_manifest_after_smoke() -> None:
         for index, step in enumerate(steps)
         if step.get("name") == "Go GUIの配布起動をsmoke test"
     )
+    distribution_e2e_index = next(
+        index
+        for index, step in enumerate(steps)
+        if step.get("name") == "one-dir配布物のE2E検証"
+    )
     artifact_paths = {
         line.strip()
         for line in steps[upload_index]["with"]["path"].splitlines()
@@ -32,7 +37,17 @@ def test_windows_gui_artifact_includes_manifest_after_smoke() -> None:
     # 除外やglobを使う場合は照合方法を見直し、誤った成功を防ぐ。
     assert not any(any(char in path for char in "!*?[]") for path in artifact_paths)
     assert ".build/dist/backends/manifest.json" in artifact_paths
-    assert gui_smoke_index < upload_index
+    assert ".build/dist/assets/" in artifact_paths
+    assert gui_smoke_index < distribution_e2e_index < upload_index
+
+    build_script = (
+        Path(__file__).resolve().parents[1] / "scripts/build/build_go.bat"
+    ).read_text(encoding="utf-8")
+    assert "generate_app_icon.ps1" in build_script
+    assert '".build\\dist\\assets\\atlas-kun.ico"' in build_script
+    assert '".build\\dist\\assets\\atlas-kun-256.png"' in build_script
+    assert '".build\\dist\\assets\\atlas-kun-64.png"' in build_script
+    assert '".build\\dist\\assets\\LICENSE.md"' in build_script
 
     # manifestに登録されたhelperとライセンスが、保存対象のフォルダーに含まれるか確認する。
     manifest_path = (

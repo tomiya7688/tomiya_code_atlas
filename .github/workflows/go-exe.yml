@@ -345,12 +345,20 @@ jobs:
           & $exe --gui-smoke
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: one-dir配布物のE2E検証
+        timeout-minutes: 10
+        shell: pwsh
+        run: |
+          & .\.venv\Scripts\python.exe tools\verify_distribution.py --exe ".build\dist\tomiya-code-atlas.exe" --gui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Go版Windows EXEをartifactとして保存
         uses: actions/upload-artifact@v7
         with:
           name: tomiya-code-atlas-go-windows-x64
           path: |
             .build/dist/tomiya-code-atlas.exe
+            .build/dist/assets/
             .build/dist/backends/manifest.json
             .build/dist/backends/tomiya-python-backend/
             .build/dist/backends/csharp/
