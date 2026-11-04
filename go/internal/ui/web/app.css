@@ -103,13 +103,12 @@ label {
 .path {
   min-width: 0;
   flex: 1;
-  overflow: hidden;
+  overflow-wrap: anywhere;
   padding: 10px 12px;
   border: 1px solid #dce4ec;
   border-radius: 7px;
   font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 .path.empty {
   background: #f8fafc;
