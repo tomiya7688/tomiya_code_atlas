@@ -210,6 +210,9 @@ func TestClassDiagramOptionsDoNotCreateHiddenBoundaryReferences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildClassDiagramBundle() error = %v", err)
 	}
+	if bundle.Statistics["shared_node_count"] != 1 {
+		t.Errorf("shared node count = %v, want hidden semantic relation to remain in partition metadata", bundle.Statistics["shared_node_count"])
+	}
 	for _, diagram := range bundle.Diagrams {
 		if len(diagram.Relations) != 0 {
 			t.Errorf("hidden inheritance relations remain in %q: %#v", diagram.Name, diagram.Relations)
@@ -284,6 +287,82 @@ func TestSequenceBundleMarksDepthTruncation(t *testing.T) {
 			}
 		}
 	}
+}
+
+//	{
+//	  責務: [TestSequenceDepthContinuationsPreserveEveryInternalEdge: maxDepthを超える内部callを続き図と参照で保持する]
+//	}
+func TestSequenceDepthContinuationsPreserveEveryInternalEdge(t *testing.T) {
+	module := sequenceTestModule(
+		commonir.Entity{Kind: "function", Name: "alpha", CallSequence: []string{"beta"}},
+		commonir.Entity{Kind: "function", Name: "beta", CallSequence: []string{"gamma"}},
+		commonir.Entity{Kind: "function", Name: "gamma", CallSequence: []string{"delta"}},
+		commonir.Entity{Kind: "function", Name: "delta", CallSequence: []string{"epsilon"}},
+		commonir.Entity{Kind: "function", Name: "epsilon"},
+	)
+	sequences := analyzers.ResolveCallSequences(module)
+	graph := analyzers.BuildSequenceRelationGraph(module, sequences)
+	wantEdges := map[[2]string]struct{}{}
+	for _, edge := range graph.Edges() {
+		wantEdges[[2]string{edge.Caller, edge.Callee}] = struct{}{}
+	}
+	bundle, err := BuildSequenceDiagramBundle(module, 3, 1, nil)
+	if err != nil {
+		t.Fatalf("BuildSequenceDiagramBundle() error = %v", err)
+	}
+	diagramsByName := make(map[string]SequenceDiagram, len(bundle.Diagrams))
+	gotEdges := map[[2]string]struct{}{}
+	for _, diagram := range bundle.Diagrams {
+		diagramsByName[diagram.Name] = diagram
+		for _, message := range diagram.Messages {
+			if isInteractionDiagramMessage(message.Kind) {
+				gotEdges[[2]string{message.Caller, message.Callee}] = struct{}{}
+			}
+			if message.Kind != SequenceDepthTruncated {
+				continue
+			}
+			if len(sequences[message.Callee]) == 0 {
+				continue
+			}
+			foundReference := false
+			for _, reference := range diagram.References {
+				if reference.Node != message.Callee {
+					continue
+				}
+				foundReference = true
+				target, exists := diagramsByName[reference.OutputName]
+				if !exists {
+					target = sequenceDiagramByName(bundle.Diagrams, reference.OutputName)
+				}
+				if target.Name == "" || !containsString(target.Participants, message.Callee) {
+					t.Errorf("truncated target %q has invalid continuation reference %#v", message.Callee, reference)
+				}
+			}
+			if !foundReference {
+				t.Errorf("diagram %q has no continuation reference for %q", diagram.Name, message.Callee)
+			}
+		}
+	}
+	if len(gotEdges) != len(wantEdges) {
+		t.Fatalf("rendered call edges = %#v, want %#v", gotEdges, wantEdges)
+	}
+	for edge := range wantEdges {
+		if _, exists := gotEdges[edge]; !exists {
+			t.Errorf("internal call edge %q -> %q is missing from all diagrams", edge[0], edge[1])
+		}
+	}
+}
+
+//	{
+//	  責務: [sequenceDiagramByName: bundle内からdiagram名で一つの図を取得する]
+//	}
+func sequenceDiagramByName(diagrams []SequenceDiagram, name string) SequenceDiagram {
+	for _, diagram := range diagrams {
+		if diagram.Name == name {
+			return diagram
+		}
+	}
+	return SequenceDiagram{}
 }
 
 //	{

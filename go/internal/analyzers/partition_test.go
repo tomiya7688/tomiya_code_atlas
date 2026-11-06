@@ -122,3 +122,45 @@ func TestPartitionGraphRetainsEverySemanticEdge(t *testing.T) {
 		t.Fatalf("cycle nodes split across series: %#v", partition.Series)
 	}
 }
+
+//	{
+//	  責務: [TestPartitionGraphKeepsHighFanInSCCTogether: high-fan-in cycle全体を一つの通常seriesに保つ]
+//	}
+func TestPartitionGraphKeepsHighFanInSCCTogether(t *testing.T) {
+	edges := []RelationEdge{
+		{Caller: "external_a", Callee: "cycle_a"},
+		{Caller: "external_b", Callee: "cycle_a"},
+		{Caller: "external_c", Callee: "cycle_a"},
+		{Caller: "cycle_a", Callee: "cycle_b"},
+		{Caller: "cycle_b", Callee: "cycle_a"},
+	}
+	graph, err := NewRelationGraph([]string{"external_a", "external_b", "external_c", "cycle_a", "cycle_b"}, edges)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	partition, err := PartitionGraph(graph, 3, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(partition.Shared) != 0 {
+		t.Fatalf("shared nodes = %#v, want cyclic SCC to remain regular", partition.Shared)
+	}
+	cycleSeriesCount := 0
+	for _, series := range partition.Series {
+		containsCycleA, containsCycleB := false, false
+		for _, node := range series {
+			containsCycleA = containsCycleA || node == "cycle_a"
+			containsCycleB = containsCycleB || node == "cycle_b"
+		}
+		if containsCycleA || containsCycleB {
+			if !containsCycleA || !containsCycleB {
+				t.Fatalf("cycle SCC was split across regular series: %#v", series)
+			}
+			cycleSeriesCount++
+		}
+	}
+	if cycleSeriesCount != 1 {
+		t.Fatalf("cycle series count = %d, want exactly one", cycleSeriesCount)
+	}
+}

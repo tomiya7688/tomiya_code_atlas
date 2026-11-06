@@ -63,25 +63,22 @@ func TestSequenceRenderersPreserveMessageKinds(t *testing.T) {
 	}
 
 	mermaid := RenderSequenceDiagramMermaid(diagram)
-	for _, expected := range []string{"p0->>p1: call", "p0-)p1: async", "p1-->>p0: return", "p1->>p0: [recursive] recursive", "participant p2 as gamma", "p0->>p2: external", "Note over p1: Further calls omitted- next"} {
+	for _, expected := range []string{"p0->>p1: call", "p0-)p1: async", "p1-->>p0: return", "p1->>p0: [recursive] recursive", "participant p2 as gamma", "p0->>p2: external", "participant p3 as next", "p1->>p3: [depth truncated] Further calls omitted- next"} {
 		if !strings.Contains(mermaid, expected) {
 			t.Errorf("Mermaid output does not contain %q:\n%s", expected, mermaid)
 		}
 	}
-	if strings.Contains(mermaid, "participant p2 as next") {
-		t.Errorf("Mermaid output declared an uncalled truncated target:\n%s", mermaid)
-	}
-
 	plantUML := RenderSequenceDiagramPlantUML(diagram)
 	alpha := hashedID("p_", "alpha")
 	beta := hashedID("p_", "beta")
+	next := hashedID("p_", "next")
 	for _, expected := range []string{
 		alpha + " -> " + beta + " : call",
 		alpha + " ->> " + beta + " : async",
 		beta + " --> " + alpha + " : return",
 		beta + " -> " + alpha + " : [recursive] recursive",
 		alpha + " -> " + hashedID("p_", "gamma") + " : external",
-		"note over " + beta + " : Further calls omitted: next",
+		beta + " -> " + next + " : [depth truncated] Further calls omitted: next",
 	} {
 		if !strings.Contains(plantUML, expected) {
 			t.Errorf("PlantUML output does not contain %q:\n%s", expected, plantUML)

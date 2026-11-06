@@ -92,8 +92,8 @@ func BuildClassDiagramBundle(module commonir.Module, fanInThreshold int, options
 		}
 		visible = append(visible, edge)
 	}
-	pairs := make([][2]string, 0, len(visible))
-	for _, edge := range visible {
+	pairs := make([][2]string, 0, len(edges))
+	for _, edge := range edges {
 		pairs = append(pairs, [2]string{edge.Caller, edge.Callee})
 	}
 	relation, err := relationGraph(graph.Nodes(), pairs)

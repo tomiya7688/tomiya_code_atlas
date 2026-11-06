@@ -20,7 +20,10 @@ func RenderSequenceDiagramMermaid(diagram generators.SequenceDiagram) string {
 			continue
 		}
 		if message.Kind == generators.SequenceDepthTruncated {
-			lines = append(lines, fmt.Sprintf("    Note over %s: %s", ids[message.Caller], sequenceLabel(message.Label)))
+			if ids[message.Callee] == "" {
+				continue
+			}
+			lines = append(lines, fmt.Sprintf("    %s->>%s: [depth truncated] %s", ids[message.Caller], ids[message.Callee], sequenceLabel(message.Label)))
 			continue
 		}
 		if ids[message.Callee] == "" {
@@ -108,9 +111,7 @@ func sequenceRenderingParticipants(diagram generators.SequenceDiagram) []string 
 	}
 	for _, message := range diagram.Messages {
 		candidates := []string{message.Caller}
-		if message.Kind != generators.SequenceDepthTruncated {
-			candidates = append(candidates, message.Callee)
-		}
+		candidates = append(candidates, message.Callee)
 		for _, participant := range candidates {
 			appendRendererParticipant(&participants, seen, participant)
 		}

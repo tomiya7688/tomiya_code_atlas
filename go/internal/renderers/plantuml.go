@@ -80,7 +80,11 @@ func RenderSequenceDiagramPlantUML(diagram generators.SequenceDiagram) string {
 			continue
 		}
 		if message.Kind == generators.SequenceDepthTruncated {
-			lines = append(lines, fmt.Sprintf("note over %s : %s", caller, escapePlantUMLText(message.Label)))
+			if callee == "" {
+				continue
+			}
+			label := "[depth truncated] " + message.Label
+			lines = append(lines, fmt.Sprintf("%s -> %s : %s", caller, callee, escapePlantUMLText(label)))
 			continue
 		}
 		if callee == "" {

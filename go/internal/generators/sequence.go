@@ -92,6 +92,8 @@ func BuildSequenceDiagramBundle(module commonir.Module, fanInThreshold, maxDepth
 		incoming[edge.Callee][edge.Caller] = struct{}{}
 	}
 	result := SequenceDiagramBundle{Statistics: partitionStatistics(partition)}
+	rootOutputs := map[string]string{}
+	continuationOutputs := map[string]string{}
 	for i, series := range partition.Series {
 		selected := stringSet(series)
 		roots := []string{}
@@ -110,17 +112,47 @@ func BuildSequenceDiagramBundle(module commonir.Module, fanInThreshold, maxDepth
 		if len(roots) == 0 && len(series) > 0 {
 			roots = []string{series[0]}
 		}
+		seriesStart := len(result.Diagrams)
 		for _, root := range roots {
-			messages := expandSequence(root, sequences, selected, maxDepth, resolvedOptions)
 			name := stableOutputName(fmt.Sprintf("series_%d", i+1), root, "sequence")
-			diagram := SequenceDiagram{Name: name, Participants: sequenceParticipants(root, messages), Messages: messages}
+			diagram := buildSequenceDiagram(root, name, sequences, selected, maxDepth, resolvedOptions)
 			result.Diagrams = append(result.Diagrams, diagram)
-			for _, node := range series {
-				if containsString(diagram.Participants, node) && seriesOutputs[node] == "" {
-					seriesOutputs[node] = name
+			rootOutputs[root] = name
+			result.Placements = append(result.Placements, regularPlacement(name, partition, i))
+		}
+		// 深さ上限で省いたcallのtargetを新しい図のrootにし、全internal edgeを有限回で展開します。
+		queue := sequenceContinuationTargets(result.Diagrams[seriesStart:], sequences)
+		continuationNumber := 0
+		for queueIndex := 0; queueIndex < len(queue); queueIndex++ {
+			root := queue[queueIndex]
+			if rootOutputs[root] != "" || len(sequences[root]) == 0 {
+				continue
+			}
+			continuationNumber++
+			name := stableOutputName(fmt.Sprintf("series_%d_continuation_%d", i+1, continuationNumber), root, "sequence")
+			diagram := buildSequenceDiagram(root, name, sequences, selected, maxDepth, resolvedOptions)
+			result.Diagrams = append(result.Diagrams, diagram)
+			result.Placements = append(result.Placements, regularPlacement(name, partition, i))
+			rootOutputs[root] = name
+			continuationOutputs[root] = name
+			queue = append(queue, sequenceContinuationTargets([]SequenceDiagram{diagram}, sequences)...)
+		}
+		for _, node := range series {
+			output := rootOutputs[node]
+			if output == "" {
+				output = continuationOutputs[node]
+			}
+			if output == "" {
+				for _, diagram := range result.Diagrams[seriesStart:] {
+					if containsString(diagram.Participants, node) {
+						output = diagram.Name
+						break
+					}
 				}
 			}
-			result.Placements = append(result.Placements, regularPlacement(name, partition, i))
+			if output != "" {
+				seriesOutputs[node] = output
+			}
 		}
 	}
 	for diagramIndex := range result.Diagrams {
@@ -132,10 +164,20 @@ func BuildSequenceDiagramBundle(module commonir.Module, fanInThreshold, maxDepth
 		if seriesIndex < 0 {
 			continue
 		}
-		diagram.References = filterDiagramReferences(
-			partitionReferences(partition, seriesIndex, sharedOutputs, seriesOutputs),
-			diagram.Participants,
-		)
+		references := partitionReferences(partition, seriesIndex, sharedOutputs, seriesOutputs)
+		for _, message := range diagram.Messages {
+			if message.Kind != SequenceDepthTruncated {
+				continue
+			}
+			output := continuationOutputs[message.Callee]
+			if output == "" {
+				output = rootOutputs[message.Callee]
+			}
+			if output != "" && output != diagram.Name {
+				references = append(references, DiagramReference{Node: message.Callee, OutputName: output})
+			}
+		}
+		diagram.References = filterDiagramReferences(references, diagram.Participants)
 	}
 	for _, shared := range partition.Shared {
 		messages := []SequenceMessage{}
@@ -169,6 +211,35 @@ func BuildSequenceDiagramBundle(module commonir.Module, fanInThreshold, maxDepth
 		result.Placements = append(result.Placements, sharedPlacement(name, shared))
 	}
 	return result, nil
+}
+
+//	{
+//	  責務: [buildSequenceDiagram: 指定rootから深さ制限付きsequence図を構築する]
+//	}
+func buildSequenceDiagram(root, name string, sequences map[string][]analyzers.ResolvedCall, selected map[string]struct{}, maxDepth int, options SequenceDiagramOptions) SequenceDiagram {
+	messages := expandSequence(root, sequences, selected, maxDepth, options)
+	return SequenceDiagram{Name: name, Participants: sequenceParticipants(root, messages), Messages: messages}
+}
+
+//	{
+//	  責務: [sequenceContinuationTargets: 深さ省略callから追加図のrootを順序付きで集める]
+//	}
+func sequenceContinuationTargets(diagrams []SequenceDiagram, sequences map[string][]analyzers.ResolvedCall) []string {
+	targets := []string{}
+	seen := map[string]struct{}{}
+	for _, diagram := range diagrams {
+		for _, message := range diagram.Messages {
+			if message.Kind != SequenceDepthTruncated || len(sequences[message.Callee]) == 0 {
+				continue
+			}
+			if _, exists := seen[message.Callee]; exists {
+				continue
+			}
+			seen[message.Callee] = struct{}{}
+			targets = append(targets, message.Callee)
+		}
+	}
+	return targets
 }
 
 //	{
@@ -299,9 +370,7 @@ func sequenceParticipants(root string, messages []SequenceMessage) []string {
 	seen := map[string]struct{}{root: {}}
 	for _, message := range messages {
 		participants := []string{message.Caller}
-		if message.Kind != SequenceDepthTruncated {
-			participants = append(participants, message.Callee)
-		}
+		participants = append(participants, message.Callee)
 		for _, name := range participants {
 			if _, ok := seen[name]; ok {
 				continue

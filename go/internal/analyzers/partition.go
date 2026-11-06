@@ -262,14 +262,36 @@ func PartitionGraph(graph RelationGraph, fanInThreshold, minChildSeriesSize int)
 		return GraphPartition{}, fmt.Errorf("minimum child series size must be at least 2")
 	}
 	fanIn, fanOut := graph.FanIn(), graph.FanOut()
+	cycles := graph.Cycles()
+	cycleNodes := map[string]struct{}{}
+	for _, cycle := range cycles {
+		for index, node := range cycle {
+			if index == len(cycle)-1 && len(cycle) > 1 && cycle[0] == node {
+				continue
+			}
+			cycleNodes[node] = struct{}{}
+		}
+	}
 	// 共有参照として扱うnodeを分け、枝分割の対象を限定します。
 	sharedSet := map[string]struct{}{}
 	regular := map[string]struct{}{}
-	for n := range graph.nodes {
-		if fanIn[n] >= fanInThreshold {
-			sharedSet[n] = struct{}{}
-		} else {
-			regular[n] = struct{}{}
+	for _, component := range StronglyConnectedComponents(graph) {
+		componentShared := false
+		componentCyclic := false
+		for _, node := range component {
+			if _, cyclic := cycleNodes[node]; cyclic {
+				componentCyclic = true
+			}
+			if fanIn[node] >= fanInThreshold {
+				componentShared = true
+			}
+		}
+		for _, node := range component {
+			if componentShared && !componentCyclic {
+				sharedSet[node] = struct{}{}
+			} else {
+				regular[node] = struct{}{}
+			}
 		}
 	}
 	shared := sortedKeys(sharedSet)
@@ -282,17 +304,7 @@ func PartitionGraph(graph RelationGraph, fanInThreshold, minChildSeriesSize int)
 			}
 		}
 	}
-	cycles := graph.Cycles()
 	// Cycle内nodeは閉じた枝として切り出せないため、候補から除外します。
-	cycleNodes := map[string]struct{}{}
-	for _, cycle := range cycles {
-		for index, node := range cycle {
-			if index == len(cycle)-1 && len(cycle) > 1 && cycle[0] == node {
-				continue
-			}
-			cycleNodes[node] = struct{}{}
-		}
-	}
 	records := make([]partitionRecord, 0)
 	// 独立したweak componentごとに、再帰分割のrootを選びます。
 	for _, component := range weakComponents(regular, regularEdges) {
