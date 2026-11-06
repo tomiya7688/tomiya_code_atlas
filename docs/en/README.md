@@ -8,10 +8,11 @@ The Japanese documents are the source of truth. Start with the [Japanese README]
 - [Use the desktop GUI](GUI-Usage.md)
 - [Use the command-line interface](CLI-Reference.md)
 - [Diagram series partitioning](Series-Partition.md)
+- [UML semantics and renderer capabilities](UML-Semantics-and-Renderer-Capability.md)
 
-The tool currently targets Python, GDScript, C#, C++, Java, and Go. Feature support varies by command and language. See the [Japanese current-status document](../jp/現状.md) for the authoritative capability and limitation list.
+The tool currently targets Python, GDScript, C#, C++, Java, and Go. Feature support varies by command and language. See the [Japanese current-status document](../jp/%E7%8F%BE%E7%8A%B6.md) for the authoritative capability and limitation list.
 
-The product is being ported to Go. The Go CLI recursively scans project folders and generates call graphs, class diagrams, commented source copies, static specifications, and design-quality reports from per-file parser results. The `comments` operation writes language-specific comments into copies and leaves input files unchanged. Cross-file name and type resolution, other diagrams, and the GUI remain in progress. See the [CLI reference](CLI-Reference.md) for the current command and the [Japanese guide](../jp/CLI利用ガイド.md) for canonical instructions. Track migration progress in [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) and its child issues.
+The product is being ported to Go. The Go CLI recursively scans project folders and generates call graphs, class diagrams, sequence diagrams, commented source copies, static specifications, and design-quality reports from per-file parser results. The `comments` operation writes language-specific comments into copies and leaves input files unchanged. Cross-file name and type resolution, other diagrams, and the GUI remain in progress. See the [CLI reference](CLI-Reference.md) for the current command and the [Japanese guide](../jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md) for canonical instructions. Track migration progress in [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) and its child issues.
 
 ## Architecture
 
