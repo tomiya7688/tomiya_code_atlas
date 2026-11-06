@@ -2,11 +2,19 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
 JAPANESE_CHARACTERS = re.compile(r"[ぁ-ゟ゠-ヿ㐀-䶿一-鿿]")
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\((?:<([^>]+)>|([^\s)]+))(?:\s+[^)]*)?\)")
+
+
+def local_markdown_path(target: str) -> str:
+    parsed = urlsplit(target)
+    if parsed.scheme or parsed.netloc:
+        return ""
+    return unquote(parsed.path)
 
 
 def test_documentation_is_in_language_roots_and_japanese_names_are_native() -> None:
@@ -19,7 +27,9 @@ def test_documentation_is_in_language_roots_and_japanese_names_are_native() -> N
         assert relative.parts[0] in {"jp", "en"}, relative
         if relative.parts[0] == "jp":
             assert JAPANESE_CHARACTERS.search(path.stem), relative
-            assert JAPANESE_CHARACTERS.search(path.read_text(encoding="utf-8")), relative
+            assert JAPANESE_CHARACTERS.search(path.read_text(encoding="utf-8")), (
+                relative
+            )
 
 
 def test_documentation_links_resolve() -> None:
@@ -34,7 +44,7 @@ def test_documentation_links_resolve() -> None:
     for source in markdown_files:
         content = source.read_text(encoding="utf-8")
         for match in MARKDOWN_LINK.finditer(content):
-            target = (match.group(1) or match.group(2)).split("#", maxsplit=1)[0]
+            target = local_markdown_path(match.group(1) or match.group(2))
             if not target or "://" in target or target.startswith("mailto:"):
                 continue
             if not target.lower().endswith(".md"):
@@ -44,6 +54,11 @@ def test_documentation_links_resolve() -> None:
                 unresolved.append(f"{source.relative_to(ROOT)} -> {target}")
 
     assert unresolved == []
+
+
+def test_local_markdown_path_decodes_only_the_path_component() -> None:
+    assert local_markdown_path("../jp/%E5%9B%B3.md?view=1#details") == "../jp/図.md"
+    assert local_markdown_path("https://example.com/diagram.md") == ""
 
 
 def test_v1_user_guides_have_english_names_and_reciprocal_japanese_links() -> None:
