@@ -184,6 +184,9 @@ func RenderDeploymentDiagramMermaid(diagram generators.DeploymentDiagram) string
 
 func deploymentLabel(node generators.DeploymentNode) string {
 	label := node.Label
+	if node.Boundary && node.ReferenceOutput != "" {
+		label += "\\n続き: " + node.ReferenceOutput
+	}
 	detail := node.Metadata["image"]
 	if detail == "" {
 		detail = node.Metadata["images"]

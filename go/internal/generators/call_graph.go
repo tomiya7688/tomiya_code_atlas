@@ -16,9 +16,18 @@ type CallGraphEdge struct {
 	Callee string `json:"callee"`
 }
 
+//	{
+//	  責務: [CallGraph: diagramに描くnode、relation、分割境界参照を保持する]
+//	  フィールド: [
+//	    Nodes: 図に表示するnode名,
+//	    Edges: 元graphの有向relation,
+//	    References: 境界nodeから続きのdiagramへの参照,
+//	  ]
+//	}
 type CallGraph struct {
-	Nodes []string        `json:"nodes"`
-	Edges []CallGraphEdge `json:"edges"`
+	Nodes      []string           `json:"nodes"`
+	Edges      []CallGraphEdge    `json:"edges"`
+	References []DiagramReference `json:"references,omitempty"`
 }
 
 type CallGraphDiagram struct {
@@ -78,7 +87,7 @@ func BuildCallGraphBundle(module commonir.Module, fanInThreshold int, root *stri
 	if err != nil {
 		return CallGraphBundle{}, err
 	}
-	partition, err := analyzers.PartitionGraph(relation, fanInThreshold, 3)
+	partition, err := analyzers.PartitionGraph(relation, fanInThreshold, analyzers.DefaultMinChildSeriesSize)
 	if err != nil {
 		return CallGraphBundle{}, err
 	}
@@ -88,7 +97,17 @@ func BuildCallGraphBundle(module commonir.Module, fanInThreshold int, root *stri
 			seriesByNode[node] = i
 		}
 	}
-	shared := stringSet(partition.Shared)
+	sharedOutputs := map[string]string{}
+	for _, sharedNode := range partition.Shared {
+		sharedOutputs[sharedNode] = stableOutputName("shared", sharedNode, "call_graph")
+	}
+	seriesOutputs := map[string]string{}
+	for i, series := range partition.Series {
+		name := stableOutputName(fmt.Sprintf("series_%d", i+1), partition.SeriesRoots[i], "call_graph")
+		for _, node := range series {
+			seriesOutputs[node] = name
+		}
+	}
 	result := CallGraphBundle{Statistics: partitionStatistics(partition)}
 	for i, series := range partition.Series {
 		selected := stringSet(series)
@@ -96,9 +115,6 @@ func BuildCallGraphBundle(module commonir.Module, fanInThreshold int, root *stri
 		boundary := map[string]struct{}{}
 		for _, edge := range graph.Edges() {
 			if _, ok := selected[edge.Caller]; !ok {
-				continue
-			}
-			if _, ok := shared[edge.Callee]; ok {
 				continue
 			}
 			_, inside := selected[edge.Callee]
@@ -120,8 +136,10 @@ func BuildCallGraphBundle(module commonir.Module, fanInThreshold int, root *stri
 		if err != nil {
 			return CallGraphBundle{}, err
 		}
-		name := stableOutputName(fmt.Sprintf("series_%d", i+1), partition.SeriesRoots[i], "call_graph")
-		result.Diagrams = append(result.Diagrams, CallGraphDiagram{Name: name, Graph: callGraphModel(subgraph)})
+		name := seriesOutputs[partition.SeriesRoots[i]]
+		model := callGraphModel(subgraph)
+		model.References = partitionReferences(partition, i, sharedOutputs, seriesOutputs)
+		result.Diagrams = append(result.Diagrams, CallGraphDiagram{Name: name, Graph: model})
 		result.Placements = append(result.Placements, regularPlacement(name, partition, i))
 	}
 	for _, sharedNode := range partition.Shared {
@@ -139,8 +157,10 @@ func BuildCallGraphBundle(module commonir.Module, fanInThreshold int, root *stri
 		if err != nil {
 			return CallGraphBundle{}, err
 		}
-		name := stableOutputName("shared", sharedNode, "call_graph")
-		result.Diagrams = append(result.Diagrams, CallGraphDiagram{Name: name, Graph: callGraphModel(subgraph)})
+		name := sharedOutputs[sharedNode]
+		model := callGraphModel(subgraph)
+		model.References = sharedDiagramReferences(sharedNode, partition, sharedOutputs, seriesOutputs)
+		result.Diagrams = append(result.Diagrams, CallGraphDiagram{Name: name, Graph: model})
 		result.Placements = append(result.Placements, sharedPlacement(name, sharedNode))
 	}
 	return result, nil

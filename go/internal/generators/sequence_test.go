@@ -69,6 +69,160 @@ func TestSequenceBundleKeepsRecursiveCalls(t *testing.T) {
 }
 
 //	{
+//	  責務: [TestSequenceReferencesPointToActualRootDiagrams: 複数root系列の境界参照がnodeを含む実在図を指す]
+//	}
+func TestSequenceReferencesPointToActualRootDiagrams(t *testing.T) {
+	module := sequenceTestModule(
+		commonir.Entity{Kind: "function", Name: "caller_a", Calls: []string{"worker"}, CallSequence: []string{"worker"}},
+		commonir.Entity{Kind: "function", Name: "caller_b", Calls: []string{"worker"}, CallSequence: []string{"worker"}},
+		commonir.Entity{Kind: "function", Name: "worker"},
+		commonir.Entity{Kind: "function", Name: "caller_c", Calls: []string{"logger"}, CallSequence: []string{"logger"}},
+		commonir.Entity{Kind: "function", Name: "caller_d", Calls: []string{"logger"}, CallSequence: []string{"logger"}},
+		commonir.Entity{Kind: "function", Name: "caller_e", Calls: []string{"logger"}, CallSequence: []string{"logger"}},
+		commonir.Entity{Kind: "function", Name: "logger", Calls: []string{"caller_b"}, CallSequence: []string{"caller_b"}},
+	)
+	bundle, err := BuildSequenceDiagramBundle(module, 3, 8, nil)
+	if err != nil {
+		t.Fatalf("BuildSequenceDiagramBundle() error = %v", err)
+	}
+	diagrams := make(map[string]SequenceDiagram, len(bundle.Diagrams))
+	for _, diagram := range bundle.Diagrams {
+		diagrams[diagram.Name] = diagram
+	}
+	shared := diagrams[stableOutputName("shared", "logger", "sequence")]
+	foundCallerBReference := false
+	for _, reference := range shared.References {
+		if reference.Node != "caller_b" {
+			continue
+		}
+		foundCallerBReference = true
+		target, exists := diagrams[reference.OutputName]
+		if !exists {
+			t.Fatalf("shared reference points to missing diagram %q", reference.OutputName)
+		}
+		if !containsString(target.Participants, "caller_b") {
+			t.Errorf("shared reference target %q does not contain caller_b: %#v", target.Name, target.Participants)
+		}
+	}
+	if !foundCallerBReference {
+		t.Fatalf("shared diagram has no boundary reference to caller_b: %#v", shared.References)
+	}
+	for _, diagram := range bundle.Diagrams {
+		for _, reference := range diagram.References {
+			target, exists := diagrams[reference.OutputName]
+			if !exists {
+				t.Errorf("diagram %q references missing output %q", diagram.Name, reference.OutputName)
+				continue
+			}
+			if !containsString(target.Participants, reference.Node) {
+				t.Errorf("diagram %q reference node %q is absent from %q", diagram.Name, reference.Node, target.Name)
+			}
+		}
+	}
+}
+
+//	{
+//	  責務: [TestCallGraphBundleKeepsSharedBoundaryReferences: 通常call図とshared図の両方にshared境界を表示する]
+//	}
+func TestCallGraphBundleKeepsSharedBoundaryReferences(t *testing.T) {
+	module := sequenceTestModule(
+		commonir.Entity{Kind: "function", Name: "caller_a", Calls: []string{"logger"}, CallSequence: []string{"logger"}},
+		commonir.Entity{Kind: "function", Name: "caller_b", Calls: []string{"logger"}, CallSequence: []string{"logger"}},
+		commonir.Entity{Kind: "function", Name: "caller_c", Calls: []string{"logger"}, CallSequence: []string{"logger"}},
+		commonir.Entity{Kind: "function", Name: "logger"},
+	)
+	bundle, err := BuildCallGraphBundle(module, 3, nil, nil)
+	if err != nil {
+		t.Fatalf("BuildCallGraphBundle() error = %v", err)
+	}
+	if len(bundle.Diagrams) != 4 {
+		t.Fatalf("diagram count = %d, want three regular diagrams and one shared diagram", len(bundle.Diagrams))
+	}
+	for _, diagram := range bundle.Diagrams {
+		if diagram.Name == stableOutputName("shared", "logger", "call_graph") {
+			if len(diagram.Graph.Edges) != 3 || len(diagram.Graph.References) != 3 {
+				t.Fatalf("shared diagram lost relations or regular diagram references: %#v", diagram.Graph)
+			}
+			continue
+		}
+		if len(diagram.Graph.Edges) != 1 || diagram.Graph.Edges[0].Callee != "logger" {
+			t.Errorf("regular diagram lost shared relation: %#v", diagram.Graph)
+		}
+		if len(diagram.Graph.References) != 1 || diagram.Graph.References[0].OutputName != stableOutputName("shared", "logger", "call_graph") {
+			t.Errorf("regular diagram has no shared reference: %#v", diagram.Graph.References)
+		}
+	}
+}
+
+//	{
+//	  責務: [TestClassDiagramBundleKeepsSharedBoundaryReferences: class関係を通常図とshared図から辿れるようにする]
+//	}
+func TestClassDiagramBundleKeepsSharedBoundaryReferences(t *testing.T) {
+	module := sequenceTestModule(
+		commonir.Entity{Kind: "class", Name: "CallerA", Bases: []string{"Logger"}},
+		commonir.Entity{Kind: "class", Name: "CallerB", Bases: []string{"Logger"}},
+		commonir.Entity{Kind: "class", Name: "CallerC", Bases: []string{"Logger"}},
+		commonir.Entity{Kind: "class", Name: "Logger"},
+	)
+	bundle, err := BuildClassDiagramBundle(module, 3, nil)
+	if err != nil {
+		t.Fatalf("BuildClassDiagramBundle() error = %v", err)
+	}
+	if len(bundle.Diagrams) != 4 {
+		t.Fatalf("diagram count = %d, want three regular diagrams and one shared diagram", len(bundle.Diagrams))
+	}
+	sharedOutput := stableOutputName("shared", "Logger", "class")
+	for _, diagram := range bundle.Diagrams {
+		if diagram.Name == sharedOutput {
+			if len(diagram.Relations) != 3 {
+				t.Fatalf("shared diagram relations = %#v, want all three inheritance relations", diagram.Relations)
+			}
+			continue
+		}
+		if len(diagram.Relations) != 1 || diagram.Relations[0].Target != "Logger" {
+			t.Errorf("regular diagram lost shared relation: %#v", diagram.Relations)
+		}
+		var sharedStub *ClassNode
+		for index := range diagram.Nodes {
+			if diagram.Nodes[index].Name == "Logger" {
+				sharedStub = &diagram.Nodes[index]
+			}
+		}
+		if sharedStub == nil || !sharedStub.External || sharedStub.ReferenceOutput != sharedOutput {
+			t.Errorf("regular diagram has no shared stub reference: %#v", diagram.Nodes)
+		}
+	}
+}
+
+//	{
+//	  責務: [TestClassDiagramOptionsDoNotCreateHiddenBoundaryReferences: 非表示にした関係から続き参照を作らない]
+//	}
+func TestClassDiagramOptionsDoNotCreateHiddenBoundaryReferences(t *testing.T) {
+	module := sequenceTestModule(
+		commonir.Entity{Kind: "class", Name: "CallerA", Bases: []string{"Logger"}},
+		commonir.Entity{Kind: "class", Name: "CallerB", Bases: []string{"Logger"}},
+		commonir.Entity{Kind: "class", Name: "CallerC", Bases: []string{"Logger"}},
+		commonir.Entity{Kind: "class", Name: "Logger"},
+	)
+	options := DefaultClassDiagramOptions()
+	options.IncludeInheritance = false
+	bundle, err := BuildClassDiagramBundle(module, 3, &options)
+	if err != nil {
+		t.Fatalf("BuildClassDiagramBundle() error = %v", err)
+	}
+	for _, diagram := range bundle.Diagrams {
+		if len(diagram.Relations) != 0 {
+			t.Errorf("hidden inheritance relations remain in %q: %#v", diagram.Name, diagram.Relations)
+		}
+		for _, node := range diagram.Nodes {
+			if node.ReferenceOutput != "" {
+				t.Errorf("hidden inheritance relation created a reference in %q: %#v", diagram.Name, node)
+			}
+		}
+	}
+}
+
+//	{
 //	  責務: [TestSequenceBundleMarksDepthTruncation: max-depthで省く内部callを再帰cycleと区別して記録する]
 //	}
 func TestSequenceBundleMarksDepthTruncation(t *testing.T) {

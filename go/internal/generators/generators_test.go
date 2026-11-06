@@ -1,6 +1,7 @@
 package generators
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/tomiya7688/tomiya_code_atlas/internal/analyzers"
@@ -100,5 +101,127 @@ func TestGeneratorValidationRejectsInvalidBounds(t *testing.T) {
 	}
 	if _, err := BuildUseCaseDiagramBundle(commonir.Module{}, nil, -1); err == nil {
 		t.Fatal("negative use case depth must fail")
+	}
+}
+
+//	{
+//	  責務: [TestPackageAndDeploymentBundlesKeepBoundaryEdges: package図とdeployment図のshared境界関係を通常図から辿れるようにする]
+//	}
+func TestPackageAndDeploymentBundlesKeepBoundaryEdges(t *testing.T) {
+	units := []analyzers.ModuleDependencyUnit{
+		{Name: "caller.a", CommonIR: commonir.Module{Language: "go", Imports: []string{"shared.logger"}}},
+		{Name: "caller.b", CommonIR: commonir.Module{Language: "go", Imports: []string{"shared.logger"}}},
+		{Name: "caller.c", CommonIR: commonir.Module{Language: "go", Imports: []string{"shared.logger"}}},
+		{Name: "shared.logger", CommonIR: commonir.Module{Language: "go", Imports: []string{}}},
+	}
+	packageBundle, err := BuildPackageDiagramBundle(analyzers.BuildPackageDependencyGraph(units), 3)
+	if err != nil {
+		t.Fatalf("BuildPackageDiagramBundle() error = %v", err)
+	}
+	regularDiagrams := 0
+	sharedDiagramFound := false
+	for _, diagram := range packageBundle.Diagrams {
+		if strings.HasPrefix(diagram.Name, "shared_") {
+			sharedDiagramFound = true
+			if len(diagram.Edges) != 3 || len(diagram.ExternalNodes) != 3 || len(diagram.References) != 3 {
+				t.Errorf("shared package diagram lost boundary relations: %#v", diagram)
+			}
+			continue
+		}
+		regularDiagrams++
+		if len(diagram.Edges) != 1 || len(diagram.ExternalNodes) != 1 || len(diagram.References) != 1 {
+			t.Errorf("regular package diagram lost shared relation: %#v", diagram)
+		}
+	}
+	if regularDiagrams != 3 || !sharedDiagramFound {
+		t.Fatalf("package diagrams = %#v", packageBundle.Diagrams)
+	}
+
+	topology := analyzers.DeploymentTopology{
+		Nodes: []analyzers.DeploymentNode{
+			{ID: "caller.a", Label: "Caller A", Kind: "workload", Confidence: analyzers.ConfidenceConfirmed},
+			{ID: "caller.b", Label: "Caller B", Kind: "workload", Confidence: analyzers.ConfidenceConfirmed},
+			{ID: "caller.c", Label: "Caller C", Kind: "workload", Confidence: analyzers.ConfidenceConfirmed},
+			{ID: "shared.logger", Label: "Logger", Kind: "service", Confidence: analyzers.ConfidenceConfirmed},
+		},
+		Connections: []analyzers.DeploymentConnection{
+			{Source: "caller.a", Target: "shared.logger", Relation: "calls", Confidence: analyzers.ConfidenceConfirmed},
+			{Source: "caller.b", Target: "shared.logger", Relation: "calls", Confidence: analyzers.ConfidenceConfirmed},
+			{Source: "caller.c", Target: "shared.logger", Relation: "calls", Confidence: analyzers.ConfidenceConfirmed},
+		},
+	}
+	deploymentBundle, err := BuildDeploymentDiagramBundle(topology, 3)
+	if err != nil {
+		t.Fatalf("BuildDeploymentDiagramBundle() error = %v", err)
+	}
+	regularDiagrams = 0
+	sharedDiagramFound = false
+	for _, diagram := range deploymentBundle.Diagrams {
+		if strings.HasPrefix(diagram.Name, "shared_") {
+			sharedDiagramFound = true
+			if len(diagram.Connections) != 3 || len(diagram.References) != 3 {
+				t.Errorf("shared deployment diagram lost boundary relations: %#v", diagram)
+			}
+			continue
+		}
+		regularDiagrams++
+		if len(diagram.Connections) != 1 || len(diagram.References) != 1 || len(diagram.Nodes) != 2 {
+			t.Errorf("regular deployment diagram lost shared relation or stub: %#v", diagram)
+		}
+		for _, node := range diagram.Nodes {
+			if node.ID == "shared.logger" && (!node.Boundary || node.ReferenceOutput == "") {
+				t.Errorf("deployment diagram shared node has no boundary reference: %#v", node)
+			}
+		}
+	}
+	if regularDiagrams != 3 || !sharedDiagramFound {
+		t.Fatalf("deployment diagrams = %#v", deploymentBundle.Diagrams)
+	}
+}
+
+//	{
+//	  責務: [TestComponentBundleKeepsSharedBoundaryEdges: component図の通常seriesとshared図に依存関係を保持する]
+//	}
+func TestComponentBundleKeepsSharedBoundaryEdges(t *testing.T) {
+	units := []analyzers.ComponentDependencyUnit{
+		{Module: analyzers.ModuleDependencyUnit{Name: "app.a", CommonIR: commonir.Module{Language: "go", Imports: []string{"common.logger"}}}, Component: "app.a"},
+		{Module: analyzers.ModuleDependencyUnit{Name: "app.b", CommonIR: commonir.Module{Language: "go", Imports: []string{"common.logger"}}}, Component: "app.b"},
+		{Module: analyzers.ModuleDependencyUnit{Name: "app.c", CommonIR: commonir.Module{Language: "go", Imports: []string{"common.logger"}}}, Component: "app.c"},
+		{Module: analyzers.ModuleDependencyUnit{Name: "common.logger", CommonIR: commonir.Module{Language: "go", Imports: []string{}}}, Component: "common"},
+	}
+	bundle, err := BuildComponentDiagramBundle(analyzers.BuildComponentDependencyGraph(units), 3)
+	if err != nil {
+		t.Fatalf("BuildComponentDiagramBundle() error = %v", err)
+	}
+	sharedName := stableOutputName("shared", "common", "component")
+	sharedFound := false
+	regularCount := 0
+	for _, diagram := range bundle.Diagrams {
+		if diagram.Name == sharedName {
+			sharedFound = true
+			if len(diagram.Edges) != 3 || len(diagram.References) != 3 {
+				t.Errorf("shared component diagram lost edges or references: %#v", diagram)
+			}
+			continue
+		}
+		regularCount++
+		if len(diagram.Edges) != 1 || len(diagram.References) != 1 {
+			t.Errorf("regular component diagram lost shared edge or reference: %#v", diagram)
+		}
+		foundSharedStub := false
+		for _, node := range diagram.Nodes {
+			if node.Name == "common" {
+				foundSharedStub = true
+				if !node.Boundary || node.ReferenceOutput != sharedName {
+					t.Errorf("shared component stub has no destination: %#v", node)
+				}
+			}
+		}
+		if !foundSharedStub {
+			t.Errorf("regular component diagram omitted shared stub: %#v", diagram)
+		}
+	}
+	if regularCount != 3 || !sharedFound {
+		t.Fatalf("component diagrams = %#v", bundle.Diagrams)
 	}
 }

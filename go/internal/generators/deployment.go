@@ -6,14 +6,20 @@ import (
 	"github.com/tomiya7688/tomiya_code_atlas/internal/analyzers"
 )
 
+//	{
+//	  責務: [DeploymentNode: topology nodeまたはseries境界stubを保持する]
+//	  フィールド: [ID: node識別子, Label: 表示名, Kind: node種別, Confidence: 解析確度, Boundary: 別diagramのstub, ReferenceOutput: 続きのdiagram名]
+//	}
 type DeploymentNode struct {
-	ID          string            `json:"id"`
-	Label       string            `json:"label"`
-	Kind        string            `json:"kind"`
-	Confidence  string            `json:"confidence"`
-	Environment string            `json:"environment,omitempty"`
-	Source      string            `json:"source,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	ID              string            `json:"id"`
+	Label           string            `json:"label"`
+	Kind            string            `json:"kind"`
+	Confidence      string            `json:"confidence"`
+	Environment     string            `json:"environment,omitempty"`
+	Source          string            `json:"source,omitempty"`
+	Metadata        map[string]string `json:"metadata,omitempty"`
+	Boundary        bool              `json:"boundary,omitempty"`
+	ReferenceOutput string            `json:"reference_output,omitempty"`
 }
 
 type DeploymentConnection struct {
@@ -23,15 +29,25 @@ type DeploymentConnection struct {
 	Confidence string `json:"confidence"`
 }
 
+//	{
+//	  責務: [DeploymentDiagram: deployment topologyとseries境界参照を保持する]
+//	  フィールド: [Name: 図名, Nodes: workloadやstub, Connections: deployment relation, References: 続きのdiagram参照]
+//	}
 type DeploymentDiagram struct {
 	Name        string                 `json:"name"`
 	Nodes       []DeploymentNode       `json:"nodes"`
 	Connections []DeploymentConnection `json:"connections"`
+	References  []DiagramReference     `json:"references,omitempty"`
 }
 
+//	{
+//	  責務: [DeploymentDiagramBundle: 分割済みdeployment図と配置情報を保持する]
+//	  フィールド: [Diagrams: 論理diagram一覧, Statistics: 分割指標, Placements: 系列階層と配置先]
+//	}
 type DeploymentDiagramBundle struct {
 	Diagrams   []DeploymentDiagram `json:"diagrams"`
 	Statistics map[string]any      `json:"statistics"`
+	Placements []OutputPlacement   `json:"placements,omitempty"`
 }
 
 //	{
@@ -52,21 +68,53 @@ func BuildDeploymentDiagramBundle(topology analyzers.DeploymentTopology, fanInTh
 	if err != nil {
 		return DeploymentDiagramBundle{}, err
 	}
-	partition, err := analyzers.PartitionGraph(graph, fanInThreshold, 3)
+	partition, err := analyzers.PartitionGraph(graph, fanInThreshold, analyzers.DefaultMinChildSeriesSize)
 	if err != nil {
 		return DeploymentDiagramBundle{}, err
 	}
-	makeDiagram := func(prefix, logicalName string, ids map[string]struct{}) DeploymentDiagram {
+	sharedOutputs := map[string]string{}
+	for _, shared := range partition.Shared {
+		sharedOutputs[shared] = stableOutputName("shared", shared, "deployment")
+	}
+	seriesOutputs := map[string]string{}
+	for index, series := range partition.Series {
+		name := stableOutputName(fmt.Sprintf("series_%d", index+1), partition.SeriesRoots[index], "deployment")
+		for _, id := range series {
+			seriesOutputs[id] = name
+		}
+	}
+	makeDiagram := func(prefix, logicalName string, selected map[string]struct{}, includeOutgoing bool) DeploymentDiagram {
 		d := DeploymentDiagram{Name: stableOutputName(prefix, logicalName, "deployment")}
+		ids := map[string]struct{}{}
+		for id := range selected {
+			ids[id] = struct{}{}
+		}
+		for _, connection := range topology.Connections {
+			_, sourceSelected := selected[connection.Source]
+			_, targetSelected := selected[connection.Target]
+			if includeOutgoing && sourceSelected && !targetSelected {
+				ids[connection.Target] = struct{}{}
+			}
+		}
 		for _, id := range sortedSet(ids) {
 			if node, ok := nodeByID[id]; ok {
-				d.Nodes = append(d.Nodes, deploymentNodeModel(node))
+				model := deploymentNodeModel(node)
+				_, isSelected := selected[id]
+				model.Boundary = !isSelected
+				if !isSelected {
+					model.ReferenceOutput = seriesOutputs[id]
+					if model.ReferenceOutput == "" {
+						model.ReferenceOutput = sharedOutputs[id]
+					}
+				}
+				d.Nodes = append(d.Nodes, model)
 			}
 		}
 		for _, connection := range topology.Connections {
-			_, a := ids[connection.Source]
-			_, b := ids[connection.Target]
-			if a && b {
+			_, a := selected[connection.Source]
+			_, b := selected[connection.Target]
+			_, targetIncluded := ids[connection.Target]
+			if a && targetIncluded && (b || includeOutgoing) {
 				d.Connections = append(d.Connections, deploymentConnectionModel(connection))
 			}
 		}
@@ -75,7 +123,10 @@ func BuildDeploymentDiagramBundle(topology analyzers.DeploymentTopology, fanInTh
 	result := DeploymentDiagramBundle{Statistics: partitionStatistics(partition)}
 	for i, series := range partition.Series {
 		if len(series) > 0 {
-			result.Diagrams = append(result.Diagrams, makeDiagram(fmt.Sprintf("series_%d", i+1), series[0], stringSet(series)))
+			diagram := makeDiagram(fmt.Sprintf("series_%d", i+1), partition.SeriesRoots[i], stringSet(series), true)
+			diagram.References = partitionReferences(partition, i, sharedOutputs, seriesOutputs)
+			result.Diagrams = append(result.Diagrams, diagram)
+			result.Placements = append(result.Placements, regularPlacement(diagram.Name, partition, i))
 		}
 	}
 	for _, shared := range partition.Shared {
@@ -86,7 +137,20 @@ func BuildDeploymentDiagramBundle(topology analyzers.DeploymentTopology, fanInTh
 				ids[connection.Target] = struct{}{}
 			}
 		}
-		result.Diagrams = append(result.Diagrams, makeDiagram("shared", shared, ids))
+		diagram := makeDiagram("shared", shared, ids, false)
+		for index := range diagram.Nodes {
+			if diagram.Nodes[index].ID == shared {
+				continue
+			}
+			diagram.Nodes[index].Boundary = true
+			diagram.Nodes[index].ReferenceOutput = seriesOutputs[diagram.Nodes[index].ID]
+			if diagram.Nodes[index].ReferenceOutput == "" {
+				diagram.Nodes[index].ReferenceOutput = sharedOutputs[diagram.Nodes[index].ID]
+			}
+		}
+		diagram.References = sharedDiagramReferences(shared, partition, sharedOutputs, seriesOutputs)
+		result.Diagrams = append(result.Diagrams, diagram)
+		result.Placements = append(result.Placements, sharedPlacement(diagram.Name, shared))
 	}
 	for _, node := range topology.Nodes {
 		switch node.Confidence {

@@ -35,10 +35,15 @@ const (
 	SequenceDepthTruncated   = "depth_truncated"
 )
 
+//	{
+//	  責務: [SequenceDiagram: ordered message、participants、系列境界参照を保持する]
+//	  フィールド: [Name: 図名, Participants: 表示順のparticipant, Messages: ordered call, References: 続きのdiagram参照]
+//	}
 type SequenceDiagram struct {
 	Name         string
 	Participants []string
 	Messages     []SequenceMessage
+	References   []DiagramReference
 }
 
 type SequenceDiagramBundle struct {
@@ -65,10 +70,15 @@ func BuildSequenceDiagramBundle(module commonir.Module, fanInThreshold, maxDepth
 	if err != nil {
 		return SequenceDiagramBundle{}, err
 	}
-	partition, err := analyzers.PartitionGraph(relation, fanInThreshold, 3)
+	partition, err := analyzers.PartitionGraph(relation, fanInThreshold, analyzers.DefaultMinChildSeriesSize)
 	if err != nil {
 		return SequenceDiagramBundle{}, err
 	}
+	sharedOutputs := map[string]string{}
+	for _, shared := range partition.Shared {
+		sharedOutputs[shared] = stableOutputName("shared", shared, "sequence")
+	}
+	seriesOutputs := map[string]string{}
 	//	{
 	//	  背景: [shared partitionは個別のtraversal pathを持たない]
 	//	  処理: [グラフ上のcycleに含まれるedgeをrecursive messageとして識別する]
@@ -103,9 +113,29 @@ func BuildSequenceDiagramBundle(module commonir.Module, fanInThreshold, maxDepth
 		for _, root := range roots {
 			messages := expandSequence(root, sequences, selected, maxDepth, resolvedOptions)
 			name := stableOutputName(fmt.Sprintf("series_%d", i+1), root, "sequence")
-			result.Diagrams = append(result.Diagrams, SequenceDiagram{Name: name, Participants: sequenceParticipants(root, messages), Messages: messages})
+			diagram := SequenceDiagram{Name: name, Participants: sequenceParticipants(root, messages), Messages: messages}
+			result.Diagrams = append(result.Diagrams, diagram)
+			for _, node := range series {
+				if containsString(diagram.Participants, node) && seriesOutputs[node] == "" {
+					seriesOutputs[node] = name
+				}
+			}
 			result.Placements = append(result.Placements, regularPlacement(name, partition, i))
 		}
+	}
+	for diagramIndex := range result.Diagrams {
+		diagram := &result.Diagrams[diagramIndex]
+		if diagramIndex >= len(result.Placements) || result.Placements[diagramIndex].Shared {
+			continue
+		}
+		seriesIndex := indexOfSeriesRoot(partition, result.Placements[diagramIndex].SeriesRoot)
+		if seriesIndex < 0 {
+			continue
+		}
+		diagram.References = filterDiagramReferences(
+			partitionReferences(partition, seriesIndex, sharedOutputs, seriesOutputs),
+			diagram.Participants,
+		)
 	}
 	for _, shared := range partition.Shared {
 		messages := []SequenceMessage{}
@@ -134,10 +164,35 @@ func BuildSequenceDiagramBundle(module commonir.Module, fanInThreshold, maxDepth
 			}
 		}
 		name := stableOutputName("shared", shared, "sequence")
-		result.Diagrams = append(result.Diagrams, SequenceDiagram{Name: name, Participants: sequenceParticipants(shared, messages), Messages: messages})
+		participants := sequenceParticipants(shared, messages)
+		result.Diagrams = append(result.Diagrams, SequenceDiagram{Name: name, Participants: participants, Messages: messages, References: filterDiagramReferences(sharedDiagramReferences(shared, partition, sharedOutputs, seriesOutputs), participants)})
 		result.Placements = append(result.Placements, sharedPlacement(name, shared))
 	}
 	return result, nil
+}
+
+//	{
+//	  責務: [containsString: 図に含まれるparticipantを検索する]
+//	}
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+
+//	{
+//	  責務: [indexOfSeriesRoot: placementのseries rootからpartition indexを検索する]
+//	}
+func indexOfSeriesRoot(partition analyzers.GraphPartition, root string) int {
+	for index, seriesRoot := range partition.SeriesRoots {
+		if seriesRoot == root {
+			return index
+		}
+	}
+	return -1
 }
 
 //	{
@@ -275,10 +330,16 @@ type CommunicationMessage struct {
 	Source, Target, Order, Label string
 	Kind                         string
 }
+
+//	{
+//	  責務: [CommunicationDiagram: 順番付きcallと系列境界参照を保持する]
+//	  フィールド: [Name: 図名, Participants: 表示participant, Messages: call順序と関係, References: 続きのdiagram参照]
+//	}
 type CommunicationDiagram struct {
 	Name         string
 	Participants []string
 	Messages     []CommunicationMessage
+	References   []DiagramReference
 }
 type CommunicationDiagramBundle struct {
 	Diagrams   []CommunicationDiagram
@@ -311,7 +372,7 @@ func BuildCommunicationDiagramBundle(module commonir.Module, fanInThreshold, max
 		for i, message := range calls {
 			messages = append(messages, CommunicationMessage{Source: communicationParticipant(message.Caller), Target: communicationParticipant(message.Callee), Order: orders[i], Label: message.Label, Kind: message.Kind})
 		}
-		result.Diagrams = append(result.Diagrams, CommunicationDiagram{Name: sequence.Name, Participants: communicationParticipants(sequence.Participants, messages), Messages: messages})
+		result.Diagrams = append(result.Diagrams, CommunicationDiagram{Name: sequence.Name, Participants: communicationParticipants(sequence.Participants, messages), Messages: messages, References: append([]DiagramReference(nil), sequence.References...)})
 	}
 	return result, nil
 }
