@@ -13,14 +13,17 @@ func RenderSequenceDiagramMermaid(diagram generators.SequenceDiagram) string {
 	participants := sequenceRenderingParticipants(diagram)
 	for i, participant := range participants {
 		ids[participant] = fmt.Sprintf("p%d", i)
-		lines = append(lines, fmt.Sprintf("    participant %s as %s", ids[participant], sequenceLabel(participant)))
+		lines = append(lines, fmt.Sprintf("    participant %s as %s", ids[participant], sequenceLabel(sequenceParticipantLabel(participant, diagram.References))))
 	}
 	for _, message := range diagram.Messages {
 		if ids[message.Caller] == "" {
 			continue
 		}
 		if message.Kind == generators.SequenceDepthTruncated {
-			lines = append(lines, fmt.Sprintf("    Note over %s: %s", ids[message.Caller], sequenceLabel(message.Label)))
+			if ids[message.Callee] == "" {
+				continue
+			}
+			lines = append(lines, fmt.Sprintf("    %s->>%s: [depth truncated] %s", ids[message.Caller], ids[message.Callee], sequenceLabel(message.Label)))
 			continue
 		}
 		if ids[message.Callee] == "" {
@@ -54,9 +57,17 @@ func sequenceLabel(value string) string {
 func RenderCommunicationDiagramMermaid(diagram generators.CommunicationDiagram) string {
 	lines := []string{"flowchart LR"}
 	ids := map[string]string{}
+	references := map[string]string{}
+	for _, reference := range diagram.References {
+		references[reference.Node] = reference.OutputName
+	}
 	for i, participant := range communicationRenderingParticipants(diagram) {
 		ids[participant] = fmt.Sprintf("p%d", i)
-		lines = append(lines, fmt.Sprintf("    %s[\"%s\"]", ids[participant], communicationLabel(participant)))
+		label := participant
+		if outputName := references[participant]; outputName != "" {
+			label += "\n続き: " + outputName
+		}
+		lines = append(lines, fmt.Sprintf("    %s[\"%s\"]", ids[participant], communicationLabel(label)))
 	}
 	for _, message := range diagram.Messages {
 		if ids[message.Source] == "" || ids[message.Target] == "" {
@@ -76,6 +87,20 @@ func RenderCommunicationDiagramMermaid(diagram generators.CommunicationDiagram) 
 }
 
 //	{
+//	  責務: [sequenceParticipantLabel: 境界participantの名前に続きのdiagramを付ける]
+//	  引数: [participant: sequence participant名, references: 境界participantからdiagramへの参照]
+//	  戻り値: [表示名。参照先がある場合はdiagram名を含む]
+//	}
+func sequenceParticipantLabel(participant string, references []generators.DiagramReference) string {
+	for _, reference := range references {
+		if reference.Node == participant {
+			return participant + "\n続き: " + reference.OutputName
+		}
+	}
+	return participant
+}
+
+//	{
 //	  責務: [sequenceRenderingParticipants: messageから省略対象を除いたparticipantを順序付きで収集する]
 //	}
 func sequenceRenderingParticipants(diagram generators.SequenceDiagram) []string {
@@ -86,9 +111,7 @@ func sequenceRenderingParticipants(diagram generators.SequenceDiagram) []string 
 	}
 	for _, message := range diagram.Messages {
 		candidates := []string{message.Caller}
-		if message.Kind != generators.SequenceDepthTruncated {
-			candidates = append(candidates, message.Callee)
-		}
+		candidates = append(candidates, message.Callee)
 		for _, participant := range candidates {
 			appendRendererParticipant(&participants, seen, participant)
 		}
@@ -136,8 +159,24 @@ func communicationLabel(value string) string {
 
 func RenderPackageDiagramMermaid(diagram generators.PackageDiagram) string {
 	lines := []string{"flowchart LR"}
+	externalNodes := map[string]struct{}{}
+	for _, node := range diagram.ExternalNodes {
+		externalNodes[node] = struct{}{}
+	}
+	references := map[string]string{}
+	for _, reference := range diagram.References {
+		references[reference.Node] = reference.OutputName
+	}
 	for _, node := range diagram.Nodes {
-		lines = append(lines, fmt.Sprintf("    %s[\"%s\"]", packageNodeID(node), node))
+		label := node
+		if _, isExternal := externalNodes[node]; isExternal {
+			if outputName := references[node]; outputName != "" {
+				label += "<br/>続き: " + outputName
+			}
+			lines = append(lines, fmt.Sprintf("    %s([\"%s\"])", packageNodeID(node), label))
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("    %s[\"%s\"]", packageNodeID(node), label))
 	}
 	for _, edge := range diagram.Edges {
 		lines = append(lines, fmt.Sprintf("    %s --> %s", packageNodeID(edge.Source), packageNodeID(edge.Target)))
@@ -168,7 +207,10 @@ func RenderComponentDiagramMermaid(diagram generators.ComponentDiagram) string {
 	for _, node := range diagram.Nodes {
 		id := "component_" + nonNodeID.ReplaceAllString(node.Name, "_")
 		label := strings.TrimPrefix(node.Name, "external:")
-		if node.External {
+		if node.Boundary && node.ReferenceOutput != "" {
+			label += "<br/>続き: " + node.ReferenceOutput
+		}
+		if node.External || node.Boundary {
 			lines = append(lines, fmt.Sprintf("    %s([\"%s\"])", id, label))
 		} else {
 			lines = append(lines, fmt.Sprintf("    %s[\"%s\"]", id, label))
@@ -194,6 +236,9 @@ func RenderObjectDiagramMermaid(diagram generators.ObjectDiagram) string {
 	for i, node := range diagram.Nodes {
 		ids[node.Key] = fmt.Sprintf("o%d", i)
 		parts := []string{node.Name + " : " + node.TypeName}
+		if node.External && node.ReferenceOutput != "" {
+			parts = append(parts, "続き: "+node.ReferenceOutput)
+		}
 		for _, field := range node.Fields {
 			parts = append(parts, field.Name+" = "+field.Value)
 		}

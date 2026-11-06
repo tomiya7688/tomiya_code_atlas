@@ -5,6 +5,9 @@ import (
 	"sort"
 )
 
+// DefaultMinChildSeriesSize is the minimum number of nodes in a generated child series.
+const DefaultMinChildSeriesSize = 3
+
 //	{
 //	  責務: [
 //	    RelationEdge: グラフ解析で使うcaller・calleeの有向relationを表す
@@ -184,6 +187,8 @@ func (graph RelationGraph) Cycles() [][]string {
 //	  フィールド: [
 //	    Series: 閉じた枝ごとのnode群
 //	    Shared: fan-in threshold以上で共通groupへ分離したnode
+//	    OriginalEdges: 分割前のrelationを入力順で保持する
+//	    BoundaryEdges: series/shared境界を跨ぐrelationとendpointの所属先
 //	    CrossSeriesEdgeCount: series境界をまたぐedge数
 //	    FanInDistribution: nodeごとのfan-in値
 //	    FanOutDistribution: nodeごとのfan-out値
@@ -198,6 +203,8 @@ func (graph RelationGraph) Cycles() [][]string {
 type GraphPartition struct {
 	Series               [][]string
 	Shared               []string
+	OriginalEdges        []RelationEdge
+	BoundaryEdges        []PartitionBoundaryEdge
 	CrossSeriesEdgeCount int
 	FanInDistribution    []int
 	FanOutDistribution   []int
@@ -207,6 +214,24 @@ type GraphPartition struct {
 	SeriesParents        []*string
 	RegularEdgeCount     int
 	TotalNodeCount       int
+}
+
+//	{
+//	  責務: [PartitionBoundaryEdge: 元graph内でseriesまたはshared境界を跨ぐrelationと所属先を保持する]
+//	  フィールド: [
+//	    Relation: 元graphから変更していない有向relation,
+//	    CallerSeries: callerが通常seriesに属する場合のindex,
+//	    CalleeSeries: calleeが通常seriesに属する場合のindex,
+//	    CallerShared: callerがshared diagramに属することを示す,
+//	    CalleeShared: calleeがshared diagramに属することを示す,
+//	  ]
+//	}
+type PartitionBoundaryEdge struct {
+	Relation     RelationEdge
+	CallerSeries *int
+	CalleeSeries *int
+	CallerShared bool
+	CalleeShared bool
 }
 
 //	{
@@ -237,14 +262,36 @@ func PartitionGraph(graph RelationGraph, fanInThreshold, minChildSeriesSize int)
 		return GraphPartition{}, fmt.Errorf("minimum child series size must be at least 2")
 	}
 	fanIn, fanOut := graph.FanIn(), graph.FanOut()
+	cycles := graph.Cycles()
+	cycleNodes := map[string]struct{}{}
+	for _, cycle := range cycles {
+		for index, node := range cycle {
+			if index == len(cycle)-1 && len(cycle) > 1 && cycle[0] == node {
+				continue
+			}
+			cycleNodes[node] = struct{}{}
+		}
+	}
 	// 共有参照として扱うnodeを分け、枝分割の対象を限定します。
 	sharedSet := map[string]struct{}{}
 	regular := map[string]struct{}{}
-	for n := range graph.nodes {
-		if fanIn[n] >= fanInThreshold {
-			sharedSet[n] = struct{}{}
-		} else {
-			regular[n] = struct{}{}
+	for _, component := range StronglyConnectedComponents(graph) {
+		componentShared := false
+		componentCyclic := false
+		for _, node := range component {
+			if _, cyclic := cycleNodes[node]; cyclic {
+				componentCyclic = true
+			}
+			if fanIn[node] >= fanInThreshold {
+				componentShared = true
+			}
+		}
+		for _, node := range component {
+			if componentShared && !componentCyclic {
+				sharedSet[node] = struct{}{}
+			} else {
+				regular[node] = struct{}{}
+			}
 		}
 	}
 	shared := sortedKeys(sharedSet)
@@ -257,23 +304,16 @@ func PartitionGraph(graph RelationGraph, fanInThreshold, minChildSeriesSize int)
 			}
 		}
 	}
-	cycles := graph.Cycles()
 	// Cycle内nodeは閉じた枝として切り出せないため、候補から除外します。
-	cycleNodes := map[string]struct{}{}
-	for _, cycle := range cycles {
-		for index, node := range cycle {
-			if index == len(cycle)-1 && len(cycle) > 1 && cycle[0] == node {
-				continue
-			}
-			cycleNodes[node] = struct{}{}
-		}
-	}
 	records := make([]partitionRecord, 0)
 	// 独立したweak componentごとに、再帰分割のrootを選びます。
 	for _, component := range weakComponents(regular, regularEdges) {
 		records = append(records, splitComponent(component, regularEdges, cycleNodes, 0, nil, "", minChildSeriesSize)...)
 	}
-	result := GraphPartition{Shared: shared, CycleCount: len(cycles), RegularEdgeCount: len(regularEdges), TotalNodeCount: len(graph.nodes)}
+	result := GraphPartition{
+		Shared: shared, OriginalEdges: graph.Edges(),
+		CycleCount: len(cycles), RegularEdgeCount: len(regularEdges), TotalNodeCount: len(graph.nodes),
+	}
 	// 分割recordを出力用seriesへ移し、edgeの所属seriesを索引化します。
 	seriesByNode := map[string]int{}
 	for i, r := range records {
@@ -290,6 +330,20 @@ func PartitionGraph(graph RelationGraph, fanInThreshold, minChildSeriesSize int)
 			result.CrossSeriesEdgeCount++
 		}
 	}
+	// 元relationを保持し、通常series間とshared境界を跨ぐedgeを参照先付きで記録します。
+	for _, edge := range graph.edges {
+		callerSeries, callerInSeries := seriesByNode[edge.Caller]
+		calleeSeries, calleeInSeries := seriesByNode[edge.Callee]
+		_, callerShared := sharedSet[edge.Caller]
+		_, calleeShared := sharedSet[edge.Callee]
+		if callerInSeries && calleeInSeries && callerSeries == calleeSeries {
+			continue
+		}
+		result.BoundaryEdges = append(result.BoundaryEdges, PartitionBoundaryEdge{
+			Relation: edge, CallerSeries: optionalIndex(callerSeries, callerInSeries), CalleeSeries: optionalIndex(calleeSeries, calleeInSeries),
+			CallerShared: callerShared, CalleeShared: calleeShared,
+		})
+	}
 	// node単位のfan-in/out distributionを集計し、比較可能な順に揃えます。
 	for _, n := range graph.Nodes() {
 		result.FanInDistribution = append(result.FanInDistribution, fanIn[n])
@@ -301,12 +355,25 @@ func PartitionGraph(graph RelationGraph, fanInThreshold, minChildSeriesSize int)
 }
 
 //	{
+//	  責務: [optionalIndex: 所属先がある場合だけseries indexの参照を返す]
+//	  引数: [index: series index, exists: 通常seriesへの所属有無]
+//	  戻り値: [*int: 所属する場合のindex。shared nodeなどseriesがない場合はnil]
+//	}
+func optionalIndex(index int, exists bool) *int {
+	if !exists {
+		return nil
+	}
+	return &index
+}
+
+//	{
 //	  責務: [GraphPartition.SeriesCount: 分割後のseries数を返す]
 //	  処理: [1: Series sliceの要素数を返す]
 //	  引数: [なし]
 //	  戻り値: [int: series数]
 //	}
 func (partition GraphPartition) SeriesCount() int { return len(partition.Series) }
+
 //	{
 //	  責務: [GraphPartition.MaxNodesPerSeries: 最も大きいseriesのnode数を返す]
 //	  処理: [1: 各seriesのnode数を比較し最大値を求める]
@@ -322,6 +389,7 @@ func (partition GraphPartition) MaxNodesPerSeries() int {
 	}
 	return n
 }
+
 //	{
 //	  責務: [GraphPartition.MaxDepth: seriesの最大分割深さを返す]
 //	  処理: [1: SeriesDepthsの最大値を求める]
@@ -337,6 +405,7 @@ func (partition GraphPartition) MaxDepth() int {
 	}
 	return n
 }
+
 //	{
 //	  責務: [GraphPartition.AverageNodesPerSeries: seriesあたりの平均node数を返す]
 //	  処理: [1: 全seriesのnode数を合計しseries数で割る]
@@ -353,6 +422,7 @@ func (partition GraphPartition) AverageNodesPerSeries() float64 {
 	}
 	return float64(total) / float64(len(partition.Series))
 }
+
 //	{
 //	  責務: [GraphPartition.CrossSeriesEdgeRatio: regular edgeに占めるseries境界edgeの割合を返す]
 //	  処理: [1: CrossSeriesEdgeCountをRegularEdgeCountで割る]
@@ -365,6 +435,7 @@ func (partition GraphPartition) CrossSeriesEdgeRatio() float64 {
 	}
 	return float64(partition.CrossSeriesEdgeCount) / float64(partition.RegularEdgeCount)
 }
+
 //	{
 //	  責務: [GraphPartition.SharedNodeRatio: 全nodeに占めるshared nodeの割合を返す]
 //	  処理: [1: Shared node数をTotalNodeCountで割る]
@@ -393,6 +464,7 @@ type partitionRecord struct {
 	depth  int
 	parent *string
 }
+
 //	{
 //	  責務: [splitCandidate: 閉じた枝としてseriesへ分離可能なsubtreeを保持する]
 //	  フィールド: [
@@ -609,6 +681,7 @@ func splitComponent(component map[string]struct{}, edges []RelationEdge, cycleNo
 	}
 	return records
 }
+
 //	{
 //	  責務: [directedDistances: directed edgeに沿ったrootからの最短距離を求める]
 //	  処理: [1: 幅優先探索で各nodeの初回到達距離を記録する]
@@ -636,6 +709,7 @@ func directedDistances(root string, outgoing map[string]map[string]struct{}) map
 	}
 	return dist
 }
+
 //	{
 //	  責務: [reachable: directed edgeに沿ってstartから到達できるnodeを集める]
 //	  処理: [1: stackで探索し、訪問済みnodeを再訪しない]
@@ -665,6 +739,7 @@ func reachable(start string, outgoing map[string]map[string]struct{}) map[string
 	}
 	return found
 }
+
 //	{
 //	  責務: [toPairs: RelationEdgeを共通集計用のcaller・callee pairへ変換する]
 //	  処理: [1: edge順を保ってendpoint pairを作る]

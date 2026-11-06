@@ -2,6 +2,7 @@ package generators
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/tomiya7688/tomiya_code_atlas/internal/analyzers"
 	"github.com/tomiya7688/tomiya_code_atlas/internal/commonir"
@@ -13,10 +14,15 @@ type ClassMember struct {
 	Visibility string   `json:"visibility"`
 }
 
+//	{
+//	  責務: [ClassNode: class図のclassまたは境界stubを保持する]
+//	  フィールド: [Name: class名, Members: 表示するmember, External: 別diagramのnodeであること, ReferenceOutput: 続きのdiagram名]
+//	}
 type ClassNode struct {
-	Name     string        `json:"name"`
-	Members  []ClassMember `json:"members"`
-	External bool          `json:"external,omitempty"`
+	Name            string        `json:"name"`
+	Members         []ClassMember `json:"members"`
+	External        bool          `json:"external,omitempty"`
+	ReferenceOutput string        `json:"reference_output,omitempty"`
 }
 
 type ClassRelation struct {
@@ -76,6 +82,16 @@ func BuildClassDiagramBundle(module commonir.Module, fanInThreshold int, options
 	}
 	graph := analyzers.BuildClassRelationGraph(module)
 	edges := graph.Edges()
+	visible := make([]analyzers.ClassRelationEdge, 0, len(edges))
+	for _, edge := range edges {
+		if edge.Relation == "inheritance" && !resolvedOptions.IncludeInheritance {
+			continue
+		}
+		if edge.Relation == "uses" && !resolvedOptions.IncludeUses {
+			continue
+		}
+		visible = append(visible, edge)
+	}
 	pairs := make([][2]string, 0, len(edges))
 	for _, edge := range edges {
 		pairs = append(pairs, [2]string{edge.Caller, edge.Callee})
@@ -84,7 +100,7 @@ func BuildClassDiagramBundle(module commonir.Module, fanInThreshold int, options
 	if err != nil {
 		return ClassDiagramBundle{}, err
 	}
-	partition, err := analyzers.PartitionGraph(relation, fanInThreshold, 3)
+	partition, err := analyzers.PartitionGraph(relation, fanInThreshold, analyzers.DefaultMinChildSeriesSize)
 	if err != nil {
 		return ClassDiagramBundle{}, err
 	}
@@ -98,16 +114,6 @@ func BuildClassDiagramBundle(module commonir.Module, fanInThreshold int, options
 		if entity.Kind == "method" && entity.Parent != nil {
 			methods[*entity.Parent] = append(methods[*entity.Parent], entity)
 		}
-	}
-	visible := make([]analyzers.ClassRelationEdge, 0, len(edges))
-	for _, edge := range edges {
-		if edge.Relation == "inheritance" && !resolvedOptions.IncludeInheritance {
-			continue
-		}
-		if edge.Relation == "uses" && !resolvedOptions.IncludeUses {
-			continue
-		}
-		visible = append(visible, edge)
 	}
 	nodeModel := func(name string) ClassNode {
 		entity, ok := classes[name]
@@ -133,43 +139,85 @@ func BuildClassDiagramBundle(module commonir.Module, fanInThreshold int, options
 	relationModel := func(edge analyzers.ClassRelationEdge) ClassRelation {
 		return ClassRelation{Source: edge.Caller, Target: edge.Callee, Kind: edge.Relation}
 	}
+	sharedOutputs := map[string]string{}
+	for _, shared := range partition.Shared {
+		sharedOutputs[shared] = stableOutputName("shared", shared, "class")
+	}
+	seriesOutputs := map[string]string{}
+	for index, series := range partition.Series {
+		name := stableOutputName(fmt.Sprintf("series_%d", index+1), partition.SeriesRoots[index], "class")
+		for _, className := range series {
+			seriesOutputs[className] = name
+		}
+	}
 	result := ClassDiagramBundle{Statistics: partitionStatistics(partition)}
 	for i, series := range partition.Series {
 		selected := stringSet(series)
 		relations := []ClassRelation{}
+		nodesByName := map[string]ClassNode{}
 		for _, edge := range visible {
 			_, sourceOK := selected[edge.Caller]
-			_, targetOK := selected[edge.Callee]
-			if sourceOK && targetOK {
+			if sourceOK {
 				relations = append(relations, relationModel(edge))
+				if _, targetOK := selected[edge.Callee]; !targetOK {
+					referenceOutput := seriesOutputs[edge.Callee]
+					if referenceOutput == "" {
+						referenceOutput = sharedOutputs[edge.Callee]
+					}
+					nodesByName[edge.Callee] = ClassNode{Name: edge.Callee, Members: []ClassMember{}, External: true, ReferenceOutput: referenceOutput}
+				}
 			}
 		}
 		nodes := make([]ClassNode, 0, len(series))
 		for _, name := range series {
 			nodes = append(nodes, nodeModel(name))
 		}
-		name := stableOutputName(fmt.Sprintf("series_%d", i+1), partition.SeriesRoots[i], "class")
+		stubNames := make([]string, 0, len(nodesByName))
+		for name := range nodesByName {
+			stubNames = append(stubNames, name)
+		}
+		sort.Strings(stubNames)
+		for _, name := range stubNames {
+			nodes = append(nodes, nodesByName[name])
+		}
+		name := seriesOutputs[partition.SeriesRoots[i]]
 		result.Diagrams = append(result.Diagrams, ClassDiagram{Name: name, Nodes: nodes, Relations: relations})
 		result.Placements = append(result.Placements, regularPlacement(name, partition, i))
 	}
 	for _, shared := range partition.Shared {
-		incoming := []analyzers.ClassRelationEdge{}
-		selected := map[string]struct{}{shared: {}}
+		sharedRelations := []analyzers.ClassRelationEdge{}
+		selected := map[string]ClassNode{shared: nodeModel(shared)}
 		for _, edge := range visible {
-			if edge.Callee == shared {
-				incoming = append(incoming, edge)
-				selected[edge.Caller] = struct{}{}
+			if edge.Callee == shared || edge.Caller == shared {
+				sharedRelations = append(sharedRelations, edge)
+				otherNode := edge.Caller
+				if otherNode == shared {
+					otherNode = edge.Callee
+				}
+				if otherNode == shared {
+					continue
+				}
+				if _, isShared := sharedOutputs[otherNode]; isShared {
+					selected[otherNode] = ClassNode{Name: otherNode, Members: []ClassMember{}, External: true, ReferenceOutput: sharedOutputs[otherNode]}
+				} else {
+					selected[otherNode] = ClassNode{Name: otherNode, Members: []ClassMember{}, External: true, ReferenceOutput: seriesOutputs[otherNode]}
+				}
 			}
 		}
-		nodes := []ClassNode{}
-		for _, name := range sortedSet(selected) {
-			nodes = append(nodes, nodeModel(name))
+		nodes := make([]ClassNode, 0, len(selected))
+		selectedNames := make([]string, 0, len(selected))
+		for name := range selected {
+			selectedNames = append(selectedNames, name)
 		}
-		relations := make([]ClassRelation, 0, len(incoming))
-		for _, edge := range incoming {
+		sort.Strings(selectedNames)
+		for _, name := range selectedNames {
+			nodes = append(nodes, selected[name])
+		}
+		relations := make([]ClassRelation, 0, len(sharedRelations))
+		for _, edge := range sharedRelations {
 			relations = append(relations, relationModel(edge))
 		}
-		name := stableOutputName("shared", shared, "class")
+		name := sharedOutputs[shared]
 		result.Diagrams = append(result.Diagrams, ClassDiagram{Name: name, Nodes: nodes, Relations: relations})
 		result.Placements = append(result.Placements, sharedPlacement(name, shared))
 	}

@@ -118,7 +118,7 @@ func BuildResponsibilityTableBundle(module commonir.Module, fanInThreshold int) 
 	if err != nil {
 		return ResponsibilityTableBundle{}, err
 	}
-	partition, err := analyzers.PartitionGraph(graph, fanInThreshold, 3)
+	partition, err := analyzers.PartitionGraph(graph, fanInThreshold, analyzers.DefaultMinChildSeriesSize)
 	if err != nil {
 		return ResponsibilityTableBundle{}, err
 	}

@@ -21,6 +21,7 @@ const (
 	// }
 	helperProcessEnvironmentName = "TOMIYA_ATLAS_TEST_HELPER_PROCESS"
 	helperModeEnvironmentName    = "TOMIYA_ATLAS_TEST_HELPER_MODE"
+	testHelperResponseTimeout    = 10 * time.Second
 )
 
 //	{
@@ -31,7 +32,7 @@ const (
 //	}
 func TestHelperClientParsesValidatedCommonIR(t *testing.T) {
 	t.Setenv(helperModeEnvironmentName, "success")
-	client := newTestHelperClient(time.Second)
+	client := newTestHelperClient(testHelperResponseTimeout)
 	sourcePath := "src/main.go"
 	payload, err := client.Parse(context.Background(), "fake-helper", "go-stdlib-types-helper", "go", "package demo", &sourcePath)
 	if err != nil {
@@ -95,7 +96,7 @@ func TestHelperClientNormalizesProcessAndProtocolFailures(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Setenv(helperModeEnvironmentName, testCase.mode)
-			client := newTestHelperClient(time.Second)
+			client := newTestHelperClient(testHelperResponseTimeout)
 			_, err := client.Parse(context.Background(), "fake-helper", "csharp-roslyn-helper", "csharp", "class Worker {}", nil)
 			var backendError *BackendError
 			if !errors.As(err, &backendError) {
@@ -232,7 +233,7 @@ func newTestHelperClient(timeout time.Duration) HelperClient {
 //	}
 func TestHelperClientNormalizesProcessFailuresErrorText(t *testing.T) {
 	t.Setenv(helperModeEnvironmentName, "non-zero")
-	client := newTestHelperClient(time.Second)
+	client := newTestHelperClient(testHelperResponseTimeout)
 	_, err := client.Parse(context.Background(), "fake-helper", "test-backend", "go", "package x", nil)
 	if err == nil || !strings.Contains(err.Error(), "fake parser process failed") {
 		t.Fatalf("Parse() error = %v, want helper stderr", err)

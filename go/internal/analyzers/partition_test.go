@@ -81,3 +81,86 @@ func TestPartitionAndGraphMetricsMatchSharedGolden(t *testing.T) {
 	}
 }
 
+//	{
+//	  責務: [TestPartitionGraphRetainsEverySemanticEdge: 分割後も元relationと境界参照のendpointを保持する]
+//	}
+func TestPartitionGraphRetainsEverySemanticEdge(t *testing.T) {
+	edges := []RelationEdge{
+		{Caller: "caller_a", Callee: "shared"},
+		{Caller: "caller_b", Callee: "shared"},
+		{Caller: "caller_c", Callee: "shared"},
+		{Caller: "cycle_a", Callee: "cycle_b"},
+		{Caller: "cycle_b", Callee: "cycle_a"},
+	}
+	graph, err := NewRelationGraph([]string{"caller_a", "caller_b", "caller_c", "cycle_a", "cycle_b", "shared"}, edges)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	partition, err := PartitionGraph(graph, 3, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(partition.OriginalEdges, edges) {
+		t.Fatalf("original edges = %#v, want %#v", partition.OriginalEdges, edges)
+	}
+	if len(partition.BoundaryEdges) != 3 {
+		t.Fatalf("boundary edges = %#v, want the three edges to shared", partition.BoundaryEdges)
+	}
+	for _, boundary := range partition.BoundaryEdges {
+		if !boundary.CalleeShared || boundary.CallerSeries == nil || boundary.CalleeSeries != nil {
+			t.Errorf("shared boundary classification = %#v", boundary)
+		}
+	}
+	cycleSeries := map[string]int{}
+	for seriesIndex, series := range partition.Series {
+		for _, node := range series {
+			cycleSeries[node] = seriesIndex
+		}
+	}
+	if cycleSeries["cycle_a"] != cycleSeries["cycle_b"] {
+		t.Fatalf("cycle nodes split across series: %#v", partition.Series)
+	}
+}
+
+//	{
+//	  責務: [TestPartitionGraphKeepsHighFanInSCCTogether: high-fan-in cycle全体を一つの通常seriesに保つ]
+//	}
+func TestPartitionGraphKeepsHighFanInSCCTogether(t *testing.T) {
+	edges := []RelationEdge{
+		{Caller: "external_a", Callee: "cycle_a"},
+		{Caller: "external_b", Callee: "cycle_a"},
+		{Caller: "external_c", Callee: "cycle_a"},
+		{Caller: "cycle_a", Callee: "cycle_b"},
+		{Caller: "cycle_b", Callee: "cycle_a"},
+	}
+	graph, err := NewRelationGraph([]string{"external_a", "external_b", "external_c", "cycle_a", "cycle_b"}, edges)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	partition, err := PartitionGraph(graph, 3, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(partition.Shared) != 0 {
+		t.Fatalf("shared nodes = %#v, want cyclic SCC to remain regular", partition.Shared)
+	}
+	cycleSeriesCount := 0
+	for _, series := range partition.Series {
+		containsCycleA, containsCycleB := false, false
+		for _, node := range series {
+			containsCycleA = containsCycleA || node == "cycle_a"
+			containsCycleB = containsCycleB || node == "cycle_b"
+		}
+		if containsCycleA || containsCycleB {
+			if !containsCycleA || !containsCycleB {
+				t.Fatalf("cycle SCC was split across regular series: %#v", series)
+			}
+			cycleSeriesCount++
+		}
+	}
+	if cycleSeriesCount != 1 {
+		t.Fatalf("cycle series count = %d, want exactly one", cycleSeriesCount)
+	}
+}

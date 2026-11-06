@@ -64,11 +64,11 @@ func EvaluateDesignQuality(module commonir.Module, thresholds *DesignQualityThre
 	if err != nil {
 		return models.DesignQualityReport{}, fmt.Errorf("class graphを構築できません: %w", err)
 	}
-	callPartition, err := analyzers.PartitionGraph(callGraph, selected.HighFanIn, 3)
+	callPartition, err := analyzers.PartitionGraph(callGraph, selected.HighFanIn, analyzers.DefaultMinChildSeriesSize)
 	if err != nil {
 		return models.DesignQualityReport{}, fmt.Errorf("呼び出しgraphを分割できません: %w", err)
 	}
-	classPartition, err := analyzers.PartitionGraph(classRelations, selected.HighFanIn, 3)
+	classPartition, err := analyzers.PartitionGraph(classRelations, selected.HighFanIn, analyzers.DefaultMinChildSeriesSize)
 	if err != nil {
 		return models.DesignQualityReport{}, fmt.Errorf("class graphを分割できません: %w", err)
 	}

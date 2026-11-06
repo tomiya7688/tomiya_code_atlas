@@ -16,6 +16,104 @@ type OutputPlacement struct {
 }
 
 //	{
+//	  責務: [DiagramReference: 境界nodeから続きのdiagramへ辿る参照を保持する]
+//	  フィールド: [
+//	    Node: 境界node名,
+//	    OutputName: 続きのdiagram名,
+//	    Shared: 参照先がshared diagramであることを示す,
+//	  ]
+//	}
+type DiagramReference struct {
+	Node       string `json:"node"`
+	OutputName string `json:"output_name"`
+	Shared     bool   `json:"shared,omitempty"`
+}
+
+//	{
+//	  責務: [partitionReferences: 通常seriesから境界先diagramへの参照一覧を作る]
+//	  引数: [partition: 分割結果, seriesIndex: 対象series index, sharedOutputs: shared nodeからdiagram名への対応, seriesOutputs: regular nodeからdiagram名への対応]
+//	  戻り値: [参照先diagram名を含む重複のない境界参照]
+//	}
+func partitionReferences(partition analyzers.GraphPartition, seriesIndex int, sharedOutputs map[string]string, seriesOutputs map[string]string) []DiagramReference {
+	references := []DiagramReference{}
+	for _, edge := range partition.BoundaryEdges {
+		if edge.CallerSeries != nil && *edge.CallerSeries == seriesIndex {
+			if edge.CalleeShared {
+				references = append(references, DiagramReference{Node: edge.Relation.Callee, OutputName: sharedOutputs[edge.Relation.Callee], Shared: true})
+			} else if edge.CalleeSeries != nil {
+				references = append(references, DiagramReference{Node: edge.Relation.Callee, OutputName: seriesOutputs[edge.Relation.Callee]})
+			}
+		}
+		if edge.CalleeSeries != nil && *edge.CalleeSeries == seriesIndex && edge.CallerShared {
+			references = append(references, DiagramReference{Node: edge.Relation.Caller, OutputName: sharedOutputs[edge.Relation.Caller], Shared: true})
+		}
+	}
+	return uniqueDiagramReferences(references)
+}
+
+//	{
+//	  責務: [uniqueDiagramReferences: 同じnodeとdiagramへの参照を一件にまとめる]
+//	  引数: [references: 重複を含むdiagram参照]
+//	  戻り値: [入力順を保った有効な一意参照]
+//	}
+func uniqueDiagramReferences(references []DiagramReference) []DiagramReference {
+	unique := make([]DiagramReference, 0, len(references))
+	seen := map[DiagramReference]struct{}{}
+	for _, reference := range references {
+		if reference.OutputName == "" {
+			continue
+		}
+		if _, exists := seen[reference]; exists {
+			continue
+		}
+		seen[reference] = struct{}{}
+		unique = append(unique, reference)
+	}
+	return unique
+}
+
+//	{
+//	  責務: [filterDiagramReferences: 図に表示するparticipantの境界参照だけを残す]
+//	  引数: [references: partition全体から作った境界参照, participants: 対象図に表示するnode]
+//	  戻り値: [対象図に存在するnodeへの境界参照]
+//	}
+func filterDiagramReferences(references []DiagramReference, participants []string) []DiagramReference {
+	visible := make([]DiagramReference, 0, len(references))
+	for _, reference := range references {
+		if containsString(participants, reference.Node) {
+			visible = append(visible, reference)
+		}
+	}
+	return visible
+}
+
+//	{
+//	  責務: [sharedDiagramReferences: shared diagramから接続先regular seriesへの参照一覧を作る]
+//	  引数: [sharedNode: shared diagramのnode名, partition: 分割結果, sharedOutputs: shared nodeからdiagram名への対応, seriesOutputs: regular nodeからdiagram名への対応]
+//	  戻り値: [regular diagramを参照する一意なstub一覧]
+//	}
+func sharedDiagramReferences(sharedNode string, partition analyzers.GraphPartition, sharedOutputs, seriesOutputs map[string]string) []DiagramReference {
+	references := []DiagramReference{}
+	for _, edge := range partition.BoundaryEdges {
+		if edge.CallerShared && edge.Relation.Caller == sharedNode {
+			if edge.CalleeSeries != nil {
+				references = append(references, DiagramReference{Node: edge.Relation.Callee, OutputName: seriesOutputs[edge.Relation.Callee]})
+			} else if edge.CalleeShared && edge.Relation.Callee != sharedNode {
+				references = append(references, DiagramReference{Node: edge.Relation.Callee, OutputName: sharedOutputs[edge.Relation.Callee], Shared: true})
+			}
+		}
+		if edge.CalleeShared && edge.Relation.Callee == sharedNode {
+			if edge.CallerSeries != nil {
+				references = append(references, DiagramReference{Node: edge.Relation.Caller, OutputName: seriesOutputs[edge.Relation.Caller]})
+			} else if edge.CallerShared && edge.Relation.Caller != sharedNode {
+				references = append(references, DiagramReference{Node: edge.Relation.Caller, OutputName: sharedOutputs[edge.Relation.Caller], Shared: true})
+			}
+		}
+	}
+	return uniqueDiagramReferences(references)
+}
+
+//	{
 //	  責務: [partitionStatistics: Analyzerのpartition結果をPython版と同じplain metricsへ変換する]
 //	  引数: [partition: 共通Analyzerの分割結果]
 //	  戻り値: [map[string]any: evaluatorや生成結果で共有できるmetrics]

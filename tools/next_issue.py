@@ -62,6 +62,7 @@ SPEC_LABELS = {
     "spec:state-machine-diagram": "docs/jp/機能仕様/図表生成.md",
     "spec:timing-diagram": "docs/jp/機能仕様/図表生成.md",
     "spec:call-graph": "docs/jp/機能仕様/図表生成.md",
+    "spec:series-partition": "docs/jp/機能仕様/図の系列分割.md",
     "spec:class-responsibility-table": "docs/jp/機能仕様/クラス責務表.md",
     "spec:responsibility-table": "docs/jp/機能仕様/クラス責務表.md",
     "spec:ci-analyzer": "docs/jp/機能仕様/CI解析.md",
@@ -75,7 +76,11 @@ TASK_ROUTES = [
     (
         re.compile(r"comment|コメント", re.IGNORECASE),
         ["Src/generators/", "Src/languages/", "Src/models/"],
-        ["tests/test_comment_generator.py", "tests/test_python_comment_generator.py", "tests/test_csharp_comment_generator.py"],
+        [
+            "tests/test_comment_generator.py",
+            "tests/test_python_comment_generator.py",
+            "tests/test_csharp_comment_generator.py",
+        ],
         ["docs/jp/機能仕様/コメント生成.md"],
     ),
     (
@@ -85,7 +90,10 @@ TASK_ROUTES = [
         ["specification/architecture-policy.md"],
     ),
     (
-        re.compile(r"call.?graph|class diagram|sequence|communication|package|component|deployment|state|timing|activity|diagram|図", re.IGNORECASE),
+        re.compile(
+            r"call.?graph|class diagram|sequence|communication|package|component|deployment|state|timing|activity|diagram|図",
+            re.IGNORECASE,
+        ),
         ["Src/analyzers/", "Src/generators/", "Src/renderers/"],
         ["tests/test_call_graph.py", "tests/test_call_graph_generator.py"],
         ["docs/jp/機能仕様/図表生成.md"],
@@ -106,18 +114,28 @@ TASK_ROUTES = [
         re.compile(r"context|運用|commander|architecture|設計基盤", re.IGNORECASE),
         ["tools/", "AI_CONTEXT.md", "AGENTS.md", "docs/", "specification/"],
         ["tests/test_next_issue.py", "tests/test_context_tool.py"],
-        ["docs/jp/開発運用.md", "docs/jp/構成/UPDコマンダー適用.md", "specification/architecture-policy.md"],
+        [
+            "docs/jp/開発運用.md",
+            "docs/jp/構成/UPDコマンダー適用.md",
+            "specification/architecture-policy.md",
+        ],
     ),
 ]
 
 
 def run_gh() -> list[dict]:
     command = [
-        "gh", "issue", "list",
-        "--repo", REPO,
-        "--state", "open",
-        "--limit", "100",
-        "--json", "number,title,body,labels,url,updatedAt",
+        "gh",
+        "issue",
+        "list",
+        "--repo",
+        REPO,
+        "--state",
+        "open",
+        "--limit",
+        "100",
+        "--json",
+        "number,title,body,labels,url,updatedAt",
     ]
     try:
         completed = subprocess.run(
@@ -128,7 +146,9 @@ def run_gh() -> list[dict]:
             encoding="utf-8",
         )
     except FileNotFoundError:
-        sys.exit("ERROR: GitHub CLI (gh) was not found. Install it and run `gh auth login`.")
+        sys.exit(
+            "ERROR: GitHub CLI (gh) was not found. Install it and run `gh auth login`."
+        )
     except subprocess.CalledProcessError as exc:
         detail = (exc.stderr or exc.stdout or "gh failed").strip()
         sys.exit(f"ERROR: Could not read GitHub issues: {detail}")
@@ -205,7 +225,12 @@ def compact_body(body: str, max_chars: int = 900) -> str:
 
 def extract_sections(body: str) -> dict[str, str]:
     """Extract Goal/Required/Acceptance/Out-of-Scope from common Issue headings."""
-    buckets: dict[str, list[str]] = {"goal": [], "required": [], "acceptance": [], "out_of_scope": []}
+    buckets: dict[str, list[str]] = {
+        "goal": [],
+        "required": [],
+        "acceptance": [],
+        "out_of_scope": [],
+    }
     current: str | None = None
     for raw in body.splitlines():
         heading = re.match(r"^#{1,6}\s+(.+?)\s*$", raw.strip())
@@ -213,11 +238,17 @@ def extract_sections(body: str) -> dict[str, str]:
             title = heading.group(1).strip().lower()
             if any(key in title for key in ("goal", "目的", "概要")):
                 current = "goal"
-            elif any(key in title for key in ("required", "requirement", "要件", "必須", "基本方針")):
+            elif any(
+                key in title
+                for key in ("required", "requirement", "要件", "必須", "基本方針")
+            ):
                 current = "required"
             elif any(key in title for key in ("acceptance", "完了条件", "completion")):
                 current = "acceptance"
-            elif any(key in title for key in ("out of scope", "deferred", "対象外", "今回はやらない")):
+            elif any(
+                key in title
+                for key in ("out of scope", "deferred", "対象外", "今回はやらない")
+            ):
                 current = "out_of_scope"
             else:
                 current = None
@@ -276,26 +307,43 @@ def main() -> int:
         sections.get("goal", summary),
         "",
         "## Required",
-        sections.get("required", "Read the source of truth and preserve repository architecture constraints."),
+        sections.get(
+            "required",
+            "Read the source of truth and preserve repository architecture constraints.",
+        ),
         "",
         "## Acceptance",
-        sections.get("acceptance", "Use the Issue completion criteria; if they are ambiguous, inspect the original Issue before implementation."),
+        sections.get(
+            "acceptance",
+            "Use the Issue completion criteria; if they are ambiguous, inspect the original Issue before implementation.",
+        ),
         "",
         "## Out of Scope",
-        sections.get("out_of_scope", "Do not add unrelated refactors or deferred features."),
+        sections.get(
+            "out_of_scope", "Do not add unrelated refactors or deferred features."
+        ),
         "",
         "## Working Set",
         "### Source candidates",
     ]
     lines.extend(f"- {path}" for path in route["source"])
     if not route["source"]:
-        lines.append("- Search first; identify the minimum source area from the Issue before reading broadly.")
+        lines.append(
+            "- Search first; identify the minimum source area from the Issue before reading broadly."
+        )
     lines.append("### Matching tests")
     lines.extend(f"- {path}" for path in route["tests"])
     if not route["tests"]:
         lines.append("- Identify matching targeted tests before implementation.")
     lines.append("### Routed references")
-    lines.extend(["- AI_CONTEXT.md", "- AGENTS.md", "- docs/jp/責務マップ.md", "- specification/architecture-policy.md"])
+    lines.extend(
+        [
+            "- AI_CONTEXT.md",
+            "- AGENTS.md",
+            "- docs/jp/責務マップ.md",
+            "- specification/architecture-policy.md",
+        ]
+    )
     lines.extend(f"- {path}" for path in route["docs"])
 
     lines.extend(

@@ -7,6 +7,7 @@ The Japanese documents are the source of truth. Start with the [Japanese README]
 - [Build the Windows distribution](Building.md)
 - [Use the desktop GUI](GUI-Usage.md)
 - [Use the command-line interface](CLI-Reference.md)
+- [Diagram series partitioning](Series-Partition.md)
 
 The tool currently targets Python, GDScript, C#, C++, Java, and Go. Feature support varies by command and language. See the [Japanese current-status document](../jp/現状.md) for the authoritative capability and limitation list.
 

@@ -21,6 +21,9 @@ func RenderClassDiagramPlantUML(diagram generators.ClassDiagram) string {
 		label := escapeQuote(node.Name)
 		if node.External {
 			lines = append(lines, fmt.Sprintf("class \"%s\" as %s <<external>>", label, alias))
+			if node.ReferenceOutput != "" {
+				lines = append(lines, fmt.Sprintf("note right of %s : 続き: %s", alias, escapePlantUMLText(node.ReferenceOutput)))
+			}
 			continue
 		}
 		lines = append(lines, fmt.Sprintf("class \"%s\" as %s {", label, alias))
@@ -57,10 +60,18 @@ func RenderClassDiagramPlantUML(diagram generators.ClassDiagram) string {
 //	}
 func RenderSequenceDiagramPlantUML(diagram generators.SequenceDiagram) string {
 	aliases := map[string]string{}
+	references := map[string]string{}
+	for _, reference := range diagram.References {
+		references[reference.Node] = reference.OutputName
+	}
 	lines := []string{"@startuml"}
 	for _, participant := range sequenceRenderingParticipants(diagram) {
 		aliases[participant] = hashedID("p_", participant)
-		lines = append(lines, fmt.Sprintf("participant \"%s\" as %s", escapePlantUMLText(participant), aliases[participant]))
+		label := participant
+		if outputName := references[participant]; outputName != "" {
+			label += "\n続き: " + outputName
+		}
+		lines = append(lines, fmt.Sprintf("participant \"%s\" as %s", escapePlantUMLText(label), aliases[participant]))
 	}
 	for _, message := range diagram.Messages {
 		caller := aliases[message.Caller]
@@ -69,7 +80,11 @@ func RenderSequenceDiagramPlantUML(diagram generators.SequenceDiagram) string {
 			continue
 		}
 		if message.Kind == generators.SequenceDepthTruncated {
-			lines = append(lines, fmt.Sprintf("note over %s : %s", caller, escapePlantUMLText(message.Label)))
+			if callee == "" {
+				continue
+			}
+			label := "[depth truncated] " + message.Label
+			lines = append(lines, fmt.Sprintf("%s -> %s : %s", caller, callee, escapePlantUMLText(label)))
 			continue
 		}
 		if callee == "" {

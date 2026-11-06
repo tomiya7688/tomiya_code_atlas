@@ -11,6 +11,38 @@ import (
 
 const rendererFixturePath = "../../../tests/fixtures/generators/renderers_v1.json"
 
+//	{
+//	  責務: [TestBoundaryDiagramReferencesAreVisible: partition boundaryのstubに参照先diagram名を描画する]
+//	}
+func TestBoundaryDiagramReferencesAreVisible(t *testing.T) {
+	const nextDiagram = "shared_logger"
+	callGraph := generators.CallGraph{Nodes: []string{"Logger"}, References: []generators.DiagramReference{{Node: "Logger", OutputName: nextDiagram}}}
+	sequenceDiagram := generators.SequenceDiagram{Participants: []string{"Logger"}, References: []generators.DiagramReference{{Node: "Logger", OutputName: nextDiagram}}}
+	communicationDiagram := generators.CommunicationDiagram{Participants: []string{"Logger"}, References: []generators.DiagramReference{{Node: "Logger", OutputName: nextDiagram}}}
+	classDiagram := generators.ClassDiagram{Nodes: []generators.ClassNode{{Name: "Logger", External: true, ReferenceOutput: nextDiagram}}}
+	objectDiagram := generators.ObjectDiagram{Nodes: []generators.ObjectNode{{Key: "logger", Name: "Logger", TypeName: "Logger", External: true, ReferenceOutput: nextDiagram}}}
+	packageDiagram := generators.PackageDiagram{Nodes: []string{"shared.logger"}, ExternalNodes: []string{"shared.logger"}, References: []generators.DiagramReference{{Node: "shared.logger", OutputName: nextDiagram}}}
+	componentDiagram := generators.ComponentDiagram{Nodes: []generators.ComponentDiagramNode{{Name: "Logger", Boundary: true, ReferenceOutput: nextDiagram}}}
+	deploymentDiagram := generators.DeploymentDiagram{Nodes: []generators.DeploymentNode{{ID: "logger", Label: "Logger", Boundary: true, ReferenceOutput: nextDiagram}}}
+	outputs := []string{
+		RenderCallGraphMermaid(callGraph, "LR"),
+		RenderSequenceDiagramMermaid(sequenceDiagram),
+		RenderSequenceDiagramPlantUML(sequenceDiagram),
+		RenderCommunicationDiagramMermaid(communicationDiagram),
+		RenderClassDiagramMermaid(classDiagram),
+		RenderClassDiagramPlantUML(classDiagram),
+		RenderObjectDiagramMermaid(objectDiagram),
+		RenderPackageDiagramMermaid(packageDiagram),
+		RenderComponentDiagramMermaid(componentDiagram),
+		RenderDeploymentDiagramMermaid(deploymentDiagram),
+	}
+	for index, output := range outputs {
+		if !strings.Contains(output, nextDiagram) || !strings.Contains(output, "続き") {
+			t.Errorf("diagram output %d omitted boundary destination: %s", index, output)
+		}
+	}
+}
+
 func stringPointer(value string) *string { return &value }
 
 //	{
@@ -31,25 +63,22 @@ func TestSequenceRenderersPreserveMessageKinds(t *testing.T) {
 	}
 
 	mermaid := RenderSequenceDiagramMermaid(diagram)
-	for _, expected := range []string{"p0->>p1: call", "p0-)p1: async", "p1-->>p0: return", "p1->>p0: [recursive] recursive", "participant p2 as gamma", "p0->>p2: external", "Note over p1: Further calls omitted- next"} {
+	for _, expected := range []string{"p0->>p1: call", "p0-)p1: async", "p1-->>p0: return", "p1->>p0: [recursive] recursive", "participant p2 as gamma", "p0->>p2: external", "participant p3 as next", "p1->>p3: [depth truncated] Further calls omitted- next"} {
 		if !strings.Contains(mermaid, expected) {
 			t.Errorf("Mermaid output does not contain %q:\n%s", expected, mermaid)
 		}
 	}
-	if strings.Contains(mermaid, "participant p2 as next") {
-		t.Errorf("Mermaid output declared an uncalled truncated target:\n%s", mermaid)
-	}
-
 	plantUML := RenderSequenceDiagramPlantUML(diagram)
 	alpha := hashedID("p_", "alpha")
 	beta := hashedID("p_", "beta")
+	next := hashedID("p_", "next")
 	for _, expected := range []string{
 		alpha + " -> " + beta + " : call",
 		alpha + " ->> " + beta + " : async",
 		beta + " --> " + alpha + " : return",
 		beta + " -> " + alpha + " : [recursive] recursive",
 		alpha + " -> " + hashedID("p_", "gamma") + " : external",
-		"note over " + beta + " : Further calls omitted: next",
+		beta + " -> " + next + " : [depth truncated] Further calls omitted: next",
 	} {
 		if !strings.Contains(plantUML, expected) {
 			t.Errorf("PlantUML output does not contain %q:\n%s", expected, plantUML)

@@ -213,3 +213,91 @@ func TestAnalysisServiceRejectsCommentOutputInsideProject(t *testing.T) {
 		}
 	})
 }
+
+//	{
+//	  責務: [TestRenderCallGraphKeepsSeriesAndSharedBoundaries: CLI call graph出力で系列分割後のrelationと共有境界を保持する]
+//	  処理: [1: 三つの独立系列から共有nodeへ接続するCommon IRを作る, 2: call graph Markdownを生成する, 3: series/shared図とrelation参照の保持を確認する]
+//	}
+func TestRenderCallGraphKeepsSeriesAndSharedBoundaries(t *testing.T) {
+	module := commonir.Module{
+		Language: "go",
+		Entities: []commonir.Entity{
+			{Kind: "function", Name: "AlphaStart", Calls: []string{"AlphaMiddle"}},
+			{Kind: "function", Name: "AlphaMiddle", Calls: []string{"AlphaWrite"}},
+			{Kind: "function", Name: "AlphaWrite", Calls: []string{"SharedLogger"}},
+			{Kind: "function", Name: "BetaStart", Calls: []string{"BetaMiddle"}},
+			{Kind: "function", Name: "BetaMiddle", Calls: []string{"BetaWrite"}},
+			{Kind: "function", Name: "BetaWrite", Calls: []string{"SharedLogger"}},
+			{Kind: "function", Name: "GammaStart", Calls: []string{"GammaMiddle"}},
+			{Kind: "function", Name: "GammaMiddle", Calls: []string{"GammaWrite"}},
+			{Kind: "function", Name: "GammaWrite", Calls: []string{"SharedLogger"}},
+			{Kind: "function", Name: "SharedLogger"},
+		},
+	}
+	output, err := renderAnalysisOutput(module, "call-graph", "partition")
+	if err != nil {
+		t.Fatalf("renderAnalysisOutput returned error: %v", err)
+	}
+	if strings.Count(output, "## series_") != 3 || !strings.Contains(output, "## shared_") {
+		t.Fatalf("call graph does not include three series and one shared diagram: %q", output)
+	}
+	if !strings.Contains(output, "続き:") {
+		t.Fatalf("call graph does not include boundary references: %q", output)
+	}
+	for _, edge := range []string{
+		"n_AlphaStart --> n_AlphaMiddle",
+		"n_AlphaMiddle --> n_AlphaWrite",
+		"n_BetaStart --> n_BetaMiddle",
+		"n_BetaMiddle --> n_BetaWrite",
+		"n_GammaStart --> n_GammaMiddle",
+		"n_GammaMiddle --> n_GammaWrite",
+	} {
+		if !strings.Contains(output, edge) {
+			t.Errorf("call graph does not preserve relation %q", edge)
+		}
+	}
+	for _, edge := range []string{
+		"n_AlphaWrite --> n_SharedLogger",
+		"n_BetaWrite --> n_SharedLogger",
+		"n_GammaWrite --> n_SharedLogger",
+	} {
+		if count := strings.Count(output, edge); count != 2 {
+			t.Errorf("shared boundary relation %q appears %d times, want series and shared diagrams", edge, count)
+		}
+	}
+}
+
+//	{
+//	  責務: [TestRenderCallGraphPreservesEmptyDiagram: nodeがない入力でも空のMermaid call graphを維持する]
+//	  処理: [1: 空のCommon IRからcall graph Markdownを生成する, 2: 空のflowchart blockが出力されることを確認する]
+//	}
+func TestRenderCallGraphPreservesEmptyDiagram(t *testing.T) {
+	output, err := renderAnalysisOutput(commonir.Module{Language: "go"}, "call-graph", "empty")
+	if err != nil {
+		t.Fatalf("renderAnalysisOutput returned error: %v", err)
+	}
+	if !strings.Contains(output, "```mermaid\nflowchart LR\n```") {
+		t.Fatalf("empty call graph Mermaid block was not preserved: %q", output)
+	}
+}
+
+//	{
+//	  責務: [TestRenderCallGraphKeepsSingleDiagramFormat: 分割されないcall graphの従来Markdown形式を維持する]
+//	  処理: [1: 小さなCommon IRからcall graphを生成する, 2: トップレベルMermaid blockと見出しの不在を確認する]
+//	}
+func TestRenderCallGraphKeepsSingleDiagramFormat(t *testing.T) {
+	module := commonir.Module{
+		Language: "go",
+		Entities: []commonir.Entity{
+			{Kind: "function", Name: "Main", Calls: []string{"Helper"}},
+			{Kind: "function", Name: "Helper"},
+		},
+	}
+	output, err := renderAnalysisOutput(module, "call-graph", "single")
+	if err != nil {
+		t.Fatalf("renderAnalysisOutput returned error: %v", err)
+	}
+	if !strings.Contains(output, "```mermaid\nflowchart LR\n") || strings.Contains(output, "## ") {
+		t.Fatalf("single call graph did not preserve its top-level Mermaid block: %q", output)
+	}
+}
