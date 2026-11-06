@@ -34,4 +34,4 @@ parserが失敗した場合も、原因と次の確認手順を日本語で案�
 
 ## 現在の範囲
 
-現在のGo CLIが対応するoperationは`call-graph`、`class-diagram`、`comments`、`static-spec`、`design-quality`です。project folderを指定した場合も各fileを独立して解析し、宣言などのCommon IR情報を集約します。comment copyは各言語用のcomment prefixを使い、元sourceを上書きしません。fileをまたぐ名前・型解決、その他の図、GitHub Actions解析、GUIは後続の移行Issueで対応します。
+現在のGo CLIが対応するoperationは`call-graph`、`class-diagram`、`sequence-diagram`、`comments`、`static-spec`、`design-quality`です。project folderを指定した場合も各fileを独立して解析し、宣言などのCommon IR情報を集約します。comment copyは各言語用のcomment prefixを使い、元sourceを上書きしません。fileをまたぐ名前・型解決、その他の図、GitHub Actions解析、GUIは後続の移行Issueで対応します。
