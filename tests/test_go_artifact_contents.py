@@ -5,9 +5,9 @@ import yaml
 
 
 # {
-#   責務: [test_windows_gui_artifact_includes_runtime_assets_after_smoke: ダウンロードした配布物がGUI assetとparserを含み、E2E確認の後に保存されることを検証する,],
+#   責務: [test_windows_gui_artifact_is_available_before_gui_checks: 配布物にGUI assetとparserが含まれ、GUI smokeとE2Eの前に保存されることを検証する,],
 # }
-def test_windows_gui_artifact_includes_runtime_assets_after_smoke() -> None:
+def test_windows_gui_artifact_is_available_before_gui_checks() -> None:
     workflow = yaml.safe_load(
         (
             Path(__file__).resolve().parents[1] / ".github/workflows/go-exe.yml"
@@ -38,7 +38,7 @@ def test_windows_gui_artifact_includes_runtime_assets_after_smoke() -> None:
     assert not any(any(char in path for char in "!*?[]") for path in artifact_paths)
     assert ".build/dist/backends/manifest.json" in artifact_paths
     assert ".build/dist/assets/" in artifact_paths
-    assert gui_smoke_index < distribution_e2e_index < upload_index
+    assert upload_index < gui_smoke_index < distribution_e2e_index
 
     build_script = (
         Path(__file__).resolve().parents[1] / "scripts/build/build_go.bat"

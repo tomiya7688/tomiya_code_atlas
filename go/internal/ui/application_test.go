@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/tomiya7688/tomiya_code_atlas/internal/data"
 	"github.com/tomiya7688/tomiya_code_atlas/internal/process"
@@ -21,6 +22,50 @@ type fakeDiagramGenerator struct {
 	request process.AnalysisRequest
 	paths   []string
 	err     error
+}
+
+//	{
+//	  責務: [TestRemoveSmokeProfileRetriesUntilReleased: WebView2 profile削除を成功まで再試行する,],
+//	}
+func TestRemoveSmokeProfileRetriesUntilReleased(t *testing.T) {
+	attempts := 0
+	waits := 0
+	err := removeSmokeProfileWithRetry("profile", func(string) error {
+		attempts++
+		if attempts < 3 {
+			return errors.New("profile is still in use")
+		}
+		return nil
+	}, func(delay time.Duration) {
+		waits++
+		if delay != smokeProfileCleanupInterval {
+			t.Errorf("retry delay = %s, want %s", delay, smokeProfileCleanupInterval)
+		}
+	})
+	if err != nil {
+		t.Fatalf("removeSmokeProfileWithRetry returned error: %v", err)
+	}
+	if attempts != 3 || waits != 2 {
+		t.Fatalf("attempts = %d, waits = %d; want 3 attempts and 2 waits", attempts, waits)
+	}
+}
+
+//	{
+//	  責務: [TestRemoveSmokeProfileReportsPersistentLock: profile削除が再試行上限後も失敗した場合にerrorを返す,],
+//	}
+func TestRemoveSmokeProfileReportsPersistentLock(t *testing.T) {
+	cleanupError := errors.New("profile is still in use")
+	attempts := 0
+	err := removeSmokeProfileWithRetry("profile", func(string) error {
+		attempts++
+		return cleanupError
+	}, func(time.Duration) {})
+	if !errors.Is(err, cleanupError) {
+		t.Fatalf("removeSmokeProfileWithRetry error = %v, want %v", err, cleanupError)
+	}
+	if attempts != smokeProfileCleanupAttempts {
+		t.Fatalf("attempts = %d, want %d", attempts, smokeProfileCleanupAttempts)
+	}
 }
 
 //	{

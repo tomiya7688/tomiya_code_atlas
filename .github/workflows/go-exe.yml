@@ -344,21 +344,6 @@ jobs:
           & .\.venv\Scripts\python.exe tools\go_cli_smoke.py ".build\dist\tomiya-code-atlas.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Go GUIの配布起動をsmoke test
-        timeout-minutes: 3
-        shell: pwsh
-        run: |
-          $exe = ".\.build\dist\tomiya-code-atlas.exe"
-          & $exe --gui-smoke
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: one-dir配布物のE2E検証
-        timeout-minutes: 10
-        shell: pwsh
-        run: |
-          & .\.venv\Scripts\python.exe tools\verify_distribution.py --exe ".build\dist\tomiya-code-atlas.exe" --gui
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
       - name: Go版Windows EXEをartifactとして保存
         uses: actions/upload-artifact@v7
         with:
@@ -373,4 +358,19 @@ jobs:
             .build/dist/backends/java/
             .build/dist/backends/go/
           if-no-files-found: error
+
+      - name: Go GUIの配布起動をsmoke test
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          $exe = ".\.build\dist\tomiya-code-atlas.exe"
+          & $exe --gui-smoke
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: one-dir配布物のE2E検証
+        timeout-minutes: 10
+        shell: pwsh
+        run: |
+          & .\.venv\Scripts\python.exe tools\verify_distribution.py --exe ".build\dist\tomiya-code-atlas.exe" --gui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

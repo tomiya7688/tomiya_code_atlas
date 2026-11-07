@@ -23,6 +23,9 @@ import (
 //	}
 const sourceFileFilterPattern = "*.py;*.gd;*.cs;*.cpp;*.cc;*.cxx;*.hpp;*.hxx;*.java;*.go"
 
+const smokeProfileCleanupAttempts = 40
+const smokeProfileCleanupInterval = 250 * time.Millisecond
+
 //go:embed web/*
 var embeddedWebFiles embed.FS
 
@@ -82,7 +85,11 @@ func Run(generator DiagramGenerator, smokeMode bool) (runError error) {
 			return fmt.Errorf("smoke test用WebView2 profileを準備できません: %w", err)
 		}
 		defer func() {
-			if cleanupError := os.RemoveAll(webviewUserDataPath); cleanupError != nil {
+			if cleanupError := removeSmokeProfileWithRetry(
+				webviewUserDataPath,
+				os.RemoveAll,
+				time.Sleep,
+			); cleanupError != nil {
 				runError = errors.Join(runError, fmt.Errorf("smoke test用WebView2 profileを削除できません: %w", cleanupError))
 			}
 		}()
@@ -102,6 +109,23 @@ func Run(generator DiagramGenerator, smokeMode bool) (runError error) {
 		Bind:       []interface{}{application},
 		Windows:    &windows.Options{WebviewUserDataPath: webviewUserDataPath},
 	})
+}
+
+//	{
+//	  責務: [removeSmokeProfileWithRetry: WebView2がprofileを解放するまで一時profile削除を再試行する,],
+//	}
+func removeSmokeProfileWithRetry(profilePath string, removeAll func(string) error, sleep func(time.Duration)) error {
+	var cleanupError error
+	for attempt := 0; attempt < smokeProfileCleanupAttempts; attempt++ {
+		cleanupError = removeAll(profilePath)
+		if cleanupError == nil {
+			return nil
+		}
+		if attempt < smokeProfileCleanupAttempts-1 {
+			sleep(smokeProfileCleanupInterval)
+		}
+	}
+	return cleanupError
 }
 
 //	{
