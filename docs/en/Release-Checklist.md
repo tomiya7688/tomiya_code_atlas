@@ -54,4 +54,4 @@ Download `tomiya-code-atlas-go-windows-x64` from its Actions run and use the ver
 
 ## 2026-11-07 main-branch artifact audit
 
-I checked 33 artifacts from 32 main-branch Go EXE workflow runs. Thirty-one were created before provenance was introduced and remain retained without verifiable provenance; do not execute or distribute them. The [audit record](release-audit/2026-11-07.md) lists their run IDs, artifact IDs, and expiry dates. Non-main pushes and the older workflow remain unaudited.
+I checked 33 artifacts from 32 main-branch Go EXE workflow runs. Thirty-one were created before provenance was introduced and remain retained without verifiable provenance; do not execute or distribute them. I also identified artifact `13566251928` from PR run `42352674978`; its provenance is unverified, so do not execute or distribute it. The [audit record](release-audit/2026-11-07.md) lists artifact IDs and expiry dates. Remaining PR runs, non-main pushes, and artifacts from the older workflow remain unaudited.
