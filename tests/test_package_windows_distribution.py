@@ -138,6 +138,7 @@ def test_distribution_package_rejects_external_paths(
 def test_distribution_package_removes_stale_archive_after_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.chdir(tmp_path)
     distribution = tmp_path / "dist"
     backend_directory = distribution / "backends"
     backend_directory.mkdir(parents=True)
