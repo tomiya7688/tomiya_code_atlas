@@ -45,7 +45,10 @@ def pip_config_files(
             )
         else:
             home = "~"
-        windows_user_config = Path(ntpath.join(home, "pip", "pip.ini"))
+        if os.name == "nt":
+            windows_user_config = Path(ntpath.join(home, "pip", "pip.ini"))
+        else:
+            windows_user_config = Path(home) / "pip" / "pip.ini"
     else:
         home = Path(environment.get("HOME", str(Path.home())))
         windows_user_config = None
