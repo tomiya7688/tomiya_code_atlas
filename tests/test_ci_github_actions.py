@@ -122,7 +122,7 @@ def test_v1_release_workflow_is_withheld_until_go_migration_finishes() -> None:
     assert "Go移行完了まで" in checklist
 
 
-def test_go_windows_artifact_is_uploaded_before_gui_smoke_and_e2e() -> None:
+def test_go_windows_build_is_packaged_after_gui_smoke_and_e2e() -> None:
     source = Path(".github/workflows/go-exe.yml").read_text(encoding="utf-8")
     workflow = parse_github_actions(source)
 
@@ -132,14 +132,18 @@ def test_go_windows_artifact_is_uploaded_before_gui_smoke_and_e2e() -> None:
     assert "go test ./..." in (steps["Go testを実行"].command or "")
     assert "call build_exe.bat" in (steps["Windows EXEをbuild"].command or "")
     assert "配布EXEのhelpとversionをsmoke test" in steps
-    assert "Go版Windows EXEをartifactとして保存" in steps
+    assert "provenance作成用artifactを保存" in steps
     names = [step.name for step in workflow.jobs[0].steps]
-    upload_index = names.index("Go版Windows EXEをartifactとして保存")
-    assert upload_index > names.index("Go CLIの配布解析をsmoke test")
-    assert upload_index < names.index("Go GUIの配布起動をsmoke test")
-    assert upload_index < names.index("one-dir配布物のE2E検証")
+    package_index = names.index("Windows one-dir配布ZIPとSHA-256 manifestを作成")
+    upload_index = names.index("provenance作成用artifactを保存")
+    assert names.index("one-dir配布物のE2E検証") < package_index
+    assert package_index < upload_index
+    assert steps["provenance作成用artifactを保存"].condition == (
+        "github.event_name != 'pull_request' && "
+        "github.repository == 'tomiya7688/tomiya_code_atlas'"
+    )
     assert '$helpText = $help -join "`n"' in source
     assert "cache-dependency-path: go/go.mod" in source
-    assert "tomiya-code-atlas-go-windows-x64" in source
+    assert "tomiya-code-atlas-windows-x64-attestation-input" in source
     assert not Path(".github/workflows/build.yml").exists()
     assert not Path(".github/workflows/python-exe.yml").exists()

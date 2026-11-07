@@ -14,6 +14,16 @@ The tool currently targets Python, GDScript, C#, C++, Java, and Go. Feature supp
 
 The product is being ported to Go. The Windows executable opens a Japanese GUI for call graphs and class diagrams when started without arguments. The Go CLI recursively scans project folders and generates call graphs, class diagrams, sequence diagrams, commented source copies, static specifications, and design-quality reports from per-file parser results. Comments are written to copies without changing inputs. Cross-file name and type resolution and other GUI operations remain in progress. See the [CLI reference](CLI-Reference.md), [GUI guide](GUI-Usage.md), and canonical [Japanese CLI guide](../jp/CLI利用ガイド.md). Migration progress is tracked in [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) and its child issues.
 
+## Download and verify the Windows artifact
+
+Open a successful `Go EXE` workflow run in the canonical GitHub repository and download its `tomiya-code-atlas-go-windows-x64` artifact. Pull request events and forks do not publish the final distribution artifact. Extract the ZIP, then use the branch name and commit SHA shown by the Actions run to verify its provenance with GitHub CLI:
+
+```powershell
+gh attestation verify tomiya-code-atlas-windows-x64.zip -R tomiya7688/tomiya_code_atlas --signer-workflow tomiya7688/tomiya_code_atlas/.github/workflows/go-exe.yml --source-ref <source-ref> --source-digest <commit-sha>
+```
+
+Replace `<source-ref>` and `<commit-sha>` with the values shown by the workflow run. A branch push uses a ref such as `refs/heads/<branch>`; a tag push uses `refs/tags/<tag>`. Use the `SHA256SUMS.txt` inside the ZIP to verify the extracted parser binaries. This verifies artifacts produced by this workflow; older artifacts do not have its provenance. Provenance does not add a Windows Authenticode signature. Official Authenticode signing remains unavailable until a trusted signing certificate is provisioned.
+
 ## Architecture
 
 ```text

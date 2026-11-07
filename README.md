@@ -42,6 +42,16 @@ Go版への移行を進めています。ルートで `build_exe.bat` を実行�
 
 Python版は移行期間中の参照用ソースとして残します。Python parser helperはCPython標準ASTで文法を解析し、配布時はPyInstaller one-dir内へ対応するCPython runtimeを同梱します。アーキテクチャ規則として、全言語の構造解析backendで対象言語の実文法parserまたはcompiler ASTを使います。
 
+### Windows配布artifactの取得と検証
+
+正規repositoryのGitHub Actionsで、成功した`Go EXE` workflow runを開き、`tomiya-code-atlas-go-windows-x64` artifactをダウンロードしてください。pull request eventとforkでは最終配布artifactを公開しません。ZIPを展開してから、GitHub CLIでrunに表示されたworkflow runに表示されたsource refとcommit SHAを指定して検証してください。
+
+```powershell
+gh attestation verify tomiya-code-atlas-windows-x64.zip -R tomiya7688/tomiya_code_atlas --signer-workflow tomiya7688/tomiya_code_atlas/.github/workflows/go-exe.yml --source-ref <source-ref> --source-digest <commit-sha>
+```
+
+`<source-ref>`と`<commit-sha>`はworkflow runの表示値に置き換えてください。source refはbranch pushなら`refs/heads/<branch>`、tag pushなら`refs/tags/<tag>`です。ZIP内の`SHA256SUMS.txt`で、展開したparser helper等のSHA-256を照合してください。この検証手順は本workflowが作ったartifactを対象とし、過去の成果物にはそのprovenanceがありません。provenance attestationはWindows Authenticode署名を付与しません。正式releaseのAuthenticode署名は、信頼された証明書を用意するまで未対応です。
+
 ## 基本アーキテクチャ
 
 ```text
