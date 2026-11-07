@@ -38,7 +38,22 @@ document.querySelector("#choose-output").addEventListener("click", async () => {
 });
 
 analyzeButton.addEventListener("click", async () => {
+  if (analyzeButton.disabled) return;
+
   const operations = [...document.querySelectorAll(".diagram input:checked")].map((item) => item.value);
+  if (!selected.source) {
+    showMessage("解析するファイルまたはプロジェクトフォルダーを選んでください。", "error");
+    return;
+  }
+  if (operations.length === 0) {
+    showMessage("作りたい図を一つ以上選んでください。", "error");
+    return;
+  }
+  if (!selected.output) {
+    showMessage("保存先フォルダーを選んでください。", "error");
+    return;
+  }
+
   analyzeButton.disabled = true;
   showMessage("解析しています。ファイル数によっては時間がかかります。");
   try {
@@ -47,7 +62,8 @@ analyzeButton.addEventListener("click", async () => {
     const message = document.createElement("p");
     message.textContent = response.message;
     const paths = document.createElement("ul");
-    response.outputPaths.forEach((path) => paths.append(Object.assign(document.createElement("li"), { textContent: path })));
+    const outputPaths = Array.isArray(response?.outputPaths) ? response.outputPaths : [];
+    outputPaths.forEach((path) => paths.append(Object.assign(document.createElement("li"), { textContent: path })));
     result.replaceChildren(message, paths);
   } catch (error) { showMessage(String(error).replace(/^Error:\s*/, ""), "error"); }
   finally { analyzeButton.disabled = false; }
@@ -56,7 +72,9 @@ analyzeButton.addEventListener("click", async () => {
 document.addEventListener("keydown", (event) => {
   if (!event.altKey || event.ctrlKey || event.metaKey) return;
   const key = event.key.toLowerCase();
+  if (!["o", "p", "r"].includes(key)) return;
+  event.preventDefault();
   if (key === "o") document.querySelector("#choose-source").click();
   if (key === "p") document.querySelector("#choose-output").click();
-  if (key === "r") analyzeButton.click();
+  if (key === "r" && !analyzeButton.disabled) analyzeButton.click();
 });

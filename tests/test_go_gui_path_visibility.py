@@ -45,3 +45,21 @@ def test_gui_controls_expose_names_and_live_status() -> None:
     ):
         assert visible_name in markup
     assert 'role="status" aria-live="polite"' in markup
+
+
+# {
+#   責務: [test_gui_rejects_incomplete_requests_before_analysis: GUIが未選択の解析要求を止め、入力中の二重起動と結果pathの欠損を安全に扱うことを確認する,],
+# }
+def test_gui_rejects_incomplete_requests_before_analysis() -> None:
+    script = (
+        Path(__file__).resolve().parents[1] / "go/internal/ui/web/app.js"
+    ).read_text(encoding="utf-8")
+
+    assert "if (analyzeButton.disabled) return;" in script
+    assert "if (!selected.source)" in script
+    assert "if (operations.length === 0)" in script
+    assert "if (!selected.output)" in script
+    assert "Array.isArray(response?.outputPaths)" in script
+    assert 'if (!["o", "p", "r"].includes(key)) return;' in script
+    assert "event.preventDefault();" in script
+    assert 'if (key === "r" && !analyzeButton.disabled)' in script
