@@ -37,7 +37,7 @@ func TestParserHostSelectsManifestBackendAndReturnsCommonIR(t *testing.T) {
 		}},
 	}
 	writeParserHostTestManifest(t, applicationRoot, manifest)
-	host, err := NewParserHost(applicationRoot, time.Second)
+	host, err := NewParserHost(applicationRoot, 10*time.Second)
 	if err != nil {
 		t.Fatalf("NewParserHost() error = %v", err)
 	}

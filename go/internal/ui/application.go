@@ -18,7 +18,7 @@ import (
 //	{
 //	  責務: [sourceFileFilterPattern: GUIで選択できる解析対象の拡張子を表す,],
 //	}
-const sourceFileFilterPattern = "*.py;*.gd;*.cs;*.cpp;*.cc;*.cxx;*.h;*.hpp;*.hxx;*.java;*.go"
+const sourceFileFilterPattern = "*.py;*.gd;*.cs;*.cpp;*.cc;*.cxx;*.hpp;*.hxx;*.java;*.go"
 
 //go:embed web/*
 var embeddedWebFiles embed.FS
