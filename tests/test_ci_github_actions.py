@@ -96,9 +96,22 @@ def test_tomiya_ci_workflow_parses_as_regression_fixture() -> None:
     jobs = {job.name: job for job in workflow.jobs}
     assert {"test", "oop-design"} <= set(jobs)
     test_steps = {step.name: step for step in jobs["test"].steps}
+    tls_setup = test_steps["PythonのpipとCA bundleを安全な版へ更新"]
+    tls_command = tls_setup.command or ""
+    assert "python tools/python_tls_floor.py" in tls_command
+    assert (
+        "python -m pip install --upgrade --require-hashes -r "
+        "tools/requirements-pip-bootstrap.txt"
+    ) in tls_command
+    assert (
+        "python -m pip install --upgrade --require-hashes -r "
+        "tools/requirements-python-tls.txt"
+    ) in tls_command
+    assert "python tools/verify_python_tls.py" in tls_command
     install = test_steps["projectとtest用ツールをinstall"]
-    assert "python -m pip install --upgrade pip" in (install.command or "")
     assert 'python -m pip install -e ".[test]"' in (install.command or "")
+    step_names = [step.name for step in jobs["test"].steps]
+    assert step_names.index(tls_setup.name) < step_names.index(install.name)
     assert test_steps["全testを実行"].command == "python -m pytest"
 
 

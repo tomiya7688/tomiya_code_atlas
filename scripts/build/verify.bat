@@ -53,7 +53,7 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 call scripts\dev\context.bat policy-check
 if errorlevel 1 exit /b 1
-git diff --check
+git -c core.whitespace=cr-at-eol diff HEAD --check
 if errorlevel 1 exit /b 1
 
 rmdir /s /q "%VERIFY_DIR%" >nul 2>nul

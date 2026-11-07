@@ -14,9 +14,21 @@ if errorlevel 1 (
     exit /b 1
 )
 
+if not exist ".build\temp" mkdir ".build\temp"
+if errorlevel 1 exit /b 1
+set "TEMP=%CD%\.build\temp"
+set "TMP=%TEMP%"
+
+if not exist ".build\pyinstaller\config" mkdir ".build\pyinstaller\config"
+if errorlevel 1 exit /b 1
+set "PYINSTALLER_CONFIG_DIR=%CD%\.build\pyinstaller\config"
+
 if not exist ".build\pyinstaller\work" mkdir ".build\pyinstaller\work"
+if errorlevel 1 exit /b 1
 if not exist ".build\pyinstaller\spec" mkdir ".build\pyinstaller\spec"
+if errorlevel 1 exit /b 1
 if not exist ".build\dist\backends" mkdir ".build\dist\backends"
+if errorlevel 1 exit /b 1
 
 ".venv\Scripts\python.exe" -m PyInstaller --noconfirm --clean --onedir --name tomiya-cpp-backend --paths "%CD%" --collect-all clang --distpath ".build\dist\backends\cpp" --workpath ".build\pyinstaller\work" --specpath ".build\pyinstaller\spec" "parser-backends\cpp\main.py"
 if errorlevel 1 exit /b 1
@@ -26,6 +38,7 @@ if not exist ".build\dist\backends\cpp\tomiya-cpp-backend\tomiya-cpp-backend.exe
     exit /b 1
 )
 if not exist ".build\dist\backends\cpp\tomiya-cpp-backend\licenses" mkdir ".build\dist\backends\cpp\tomiya-cpp-backend\licenses"
+if errorlevel 1 exit /b 1
 ".venv\Scripts\python.exe" scripts\build\copy_python_runtime_license.py ".build\dist\backends\cpp\tomiya-cpp-backend\licenses\Python-LICENSE.txt"
 if errorlevel 1 exit /b 1
 copy /y "parser-backends\licenses\PyInstaller-COPYING.txt" ".build\dist\backends\cpp\tomiya-cpp-backend\licenses\PyInstaller-COPYING.txt" >nul
