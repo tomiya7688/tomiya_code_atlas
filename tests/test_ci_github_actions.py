@@ -122,7 +122,7 @@ def test_v1_release_workflow_is_withheld_until_go_migration_finishes() -> None:
     assert "Go移行完了まで" in checklist
 
 
-def test_go_windows_artifact_is_uploaded_after_gui_smoke_and_e2e() -> None:
+def test_go_windows_build_is_packaged_after_gui_smoke_and_e2e() -> None:
     source = Path(".github/workflows/go-exe.yml").read_text(encoding="utf-8")
     workflow = parse_github_actions(source)
 
@@ -132,25 +132,18 @@ def test_go_windows_artifact_is_uploaded_after_gui_smoke_and_e2e() -> None:
     assert "go test ./..." in (steps["Go testを実行"].command or "")
     assert "call build_exe.bat" in (steps["Windows EXEをbuild"].command or "")
     assert "配布EXEのhelpとversionをsmoke test" in steps
-    assert "署名済みprovenance付き配布ZIPをartifactとして保存" in steps
+    assert "provenance作成用artifactを保存" in steps
     names = [step.name for step in workflow.jobs[0].steps]
     package_index = names.index("Windows one-dir配布ZIPとSHA-256 manifestを作成")
-    attestation_index = names.index("配布ZIP・manifest・内包binaryのprovenanceを署名")
-    verification_index = names.index("配布ZIPのprovenance attestationを検証")
-    upload_index = names.index("署名済みprovenance付き配布ZIPをartifactとして保存")
+    upload_index = names.index("provenance作成用artifactを保存")
     assert names.index("one-dir配布物のE2E検証") < package_index
-    assert package_index < attestation_index < verification_index < upload_index
-    assert steps["配布ZIP・manifest・内包binaryのprovenanceを署名"].condition == (
-        "github.event_name != 'pull_request'"
-    )
-    assert steps["配布ZIPのprovenance attestationを検証"].condition == (
-        "github.event_name != 'pull_request'"
-    )
-    assert steps["署名済みprovenance付き配布ZIPをartifactとして保存"].condition == (
-        "github.event_name != 'pull_request'"
+    assert package_index < upload_index
+    assert steps["provenance作成用artifactを保存"].condition == (
+        "github.event_name != 'pull_request' && "
+        "github.repository == 'tomiya7688/tomiya_code_atlas'"
     )
     assert '$helpText = $help -join "`n"' in source
     assert "cache-dependency-path: go/go.mod" in source
-    assert "tomiya-code-atlas-go-windows-x64" in source
+    assert "tomiya-code-atlas-windows-x64-attestation-input" in source
     assert not Path(".github/workflows/build.yml").exists()
     assert not Path(".github/workflows/python-exe.yml").exists()

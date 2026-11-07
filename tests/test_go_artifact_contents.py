@@ -6,7 +6,7 @@ import yaml
 
 # {
 #   責務: [
-#     test_windows_distribution_is_attested_after_smoke_checks: one-dir配布ZIP、checksum、attestationを全smoke成功後に保存することを検証する,
+#     test_windows_distribution_is_attested_after_smoke_checks: PR検証ジョブと署名ジョブの権限分離、ZIP生成・検証順を検証する,
 #   ],
 # }
 def test_windows_distribution_is_attested_after_smoke_checks() -> None:
@@ -15,71 +15,100 @@ def test_windows_distribution_is_attested_after_smoke_checks() -> None:
             Path(__file__).resolve().parents[1] / ".github/workflows/go-exe.yml"
         ).read_text(encoding="utf-8")
     )
-    steps = workflow["jobs"]["build-windows-exe"]["steps"]
-    upload_index = next(
+    build_job = workflow["jobs"]["build-windows-exe"]
+    build_steps = build_job["steps"]
+    attest_job = workflow["jobs"]["attest-windows-distribution"]
+    attest_steps = attest_job["steps"]
+    intermediate_upload_index = next(
         index
-        for index, step in enumerate(steps)
-        if step.get("with", {}).get("name") == "tomiya-code-atlas-go-windows-x64"
+        for index, step in enumerate(build_steps)
+        if step.get("with", {}).get("name")
+        == "tomiya-code-atlas-windows-x64-attestation-input"
     )
+    intermediate_upload = build_steps[intermediate_upload_index]
     package_index = next(
         index
-        for index, step in enumerate(steps)
+        for index, step in enumerate(build_steps)
         if step.get("name") == "Windows one-dir配布ZIPとSHA-256 manifestを作成"
     )
     attestation_index = next(
         index
-        for index, step in enumerate(steps)
+        for index, step in enumerate(attest_steps)
         if step.get("uses") == "actions/attest@v4"
     )
     verification_index = next(
         index
-        for index, step in enumerate(steps)
-        if step.get("name") == "配布ZIPのprovenance attestationを検証"
+        for index, step in enumerate(attest_steps)
+        if step.get("name") == "配布ZIPとchecksum manifestのprovenanceを検証"
+    )
+    final_upload_index = next(
+        index
+        for index, step in enumerate(attest_steps)
+        if step.get("with", {}).get("name") == "tomiya-code-atlas-go-windows-x64"
     )
     gui_smoke_index = next(
         index
-        for index, step in enumerate(steps)
+        for index, step in enumerate(build_steps)
         if step.get("name") == "Go GUIの配布起動をsmoke test"
     )
     distribution_e2e_index = next(
         index
-        for index, step in enumerate(steps)
+        for index, step in enumerate(build_steps)
         if step.get("name") == "one-dir配布物のE2E検証"
     )
     artifact_paths = {
         line.strip()
-        for line in steps[upload_index]["with"]["path"].splitlines()
+        for line in attest_steps[final_upload_index]["with"]["path"].splitlines()
         if line.strip()
     }
     assert artifact_paths == {
         ".build/release/tomiya-code-atlas-windows-x64.zip",
         ".build/release/SHA256SUMS.txt",
     }
-    assert (
-        distribution_e2e_index
-        < package_index
-        < attestation_index
-        < verification_index
-        < upload_index
-    )
+    assert distribution_e2e_index < package_index < intermediate_upload_index
     assert gui_smoke_index < distribution_e2e_index
-    assert steps[package_index]["run"] == "python tools/package_windows_distribution.py"
-    assert steps[package_index]["env"] == {"PYTHONIOENCODING": "utf-8"}
-    assert steps[attestation_index]["if"] == "github.event_name != 'pull_request'"
-    assert steps[verification_index]["if"] == "github.event_name != 'pull_request'"
-    assert steps[upload_index]["if"] == "github.event_name != 'pull_request'"
-    assert "gh attestation verify" in steps[verification_index]["run"]
-    assert "--signer-workflow" in steps[verification_index]["run"]
-    assert steps[verification_index]["env"] == {"GH_TOKEN": "${{ github.token }}"}
-    job_permissions = workflow["jobs"]["build-windows-exe"]["permissions"]
-    assert job_permissions == {
+    assert build_steps[package_index]["run"] == (
+        "python scripts/build/package_windows_distribution.py"
+    )
+    assert build_steps[package_index]["env"] == {"PYTHONIOENCODING": "utf-8"}
+    assert build_job["permissions"] == {"contents": "read"}
+    assert attest_job["needs"] == "build-windows-exe"
+    assert attest_job["if"] == (
+        "github.event_name != 'pull_request' "
+        "&& github.repository == 'tomiya7688/tomiya_code_atlas'"
+    )
+    assert attest_job["permissions"] == {
         "contents": "read",
         "id-token": "write",
         "attestations": "write",
     }
-    assert steps[attestation_index]["with"]["subject-checksums"] == (
+    assert intermediate_upload["if"] == attest_job["if"]
+    assert intermediate_upload["with"]["path"].splitlines() == [
+        ".build/dist/",
+        ".build/release/",
+    ]
+    download_step = attest_steps[0]
+    assert download_step["uses"] == "actions/download-artifact@v8"
+    assert download_step["with"]["path"] == ".build"
+    assert attest_steps[attestation_index]["with"]["subject-checksums"] == (
         ".build/release/ATTESTED-SUBJECTS.txt"
     )
+    assert attestation_index < verification_index < final_upload_index
+    assert "gh attestation verify" in attest_steps[verification_index]["run"]
+    assert (
+        "Test-Path -LiteralPath $path -PathType Leaf"
+        in attest_steps[verification_index]["run"]
+    )
+    assert "--signer-workflow" in attest_steps[verification_index]["run"]
+    assert (
+        '--source-digest "${{ github.sha }}"' in attest_steps[verification_index]["run"]
+    )
+    assert '--source-ref "${{ github.ref }}"' in attest_steps[verification_index]["run"]
+    assert '".build/release/SHA256SUMS.txt"' in attest_steps[verification_index]["run"]
+    assert '".build/dist/SHA256SUMS.txt"' in attest_steps[verification_index]["run"]
+    assert attest_steps[verification_index]["env"] == {
+        "GH_TOKEN": "${{ github.token }}"
+    }
 
     build_script = (
         Path(__file__).resolve().parents[1] / "scripts/build/build_go.bat"
