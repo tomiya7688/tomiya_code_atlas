@@ -52,6 +52,12 @@ gh attestation verify tomiya-code-atlas-windows-x64.zip -R tomiya7688/tomiya_cod
 
 `<source-ref>`と`<commit-sha>`はworkflow runの表示値に置き換えてください。source refはbranch pushなら`refs/heads/<branch>`、tag pushなら`refs/tags/<tag>`です。ZIP内の`SHA256SUMS.txt`で、展開したparser helper等のSHA-256を照合してください。この検証手順は本workflowが作ったartifactを対象とし、過去の成果物にはそのprovenanceがありません。provenance attestationはWindows Authenticode署名を付与しません。正式releaseのAuthenticode署名は、信頼された証明書を用意するまで未対応です。
 
+workflowは配布ZIP、両方のSHA-256 manifest、および各同梱binaryを個別にattestします。ZIPの検証と同じ`gh attestation verify` optionsを使い、対象pathをartifact内の `SHA256SUMS.txt` または展開した各binaryへ置き換えて検証してください。各binaryのhashもmanifestと照合してください。
+
+GitHub CLIは既定でattestationを最大30件取得します（[公式manual](https://cli.github.com/manual/gh_attestation_verify)）。対象runのattestationがその範囲外で見つからない場合は、source refとcommit SHAの検証を維持し、対象runを含む件数を`--limit`に指定して再検証してください（例: `--limit 100`）。
+
+現行workflowが生成する成果物とv1.0.0のrelease gateは[リリース確認表](docs/jp/%E3%83%AA%E3%83%AA%E3%83%BC%E3%82%B9%E7%A2%BA%E8%AA%8D%E8%A1%A8.md)を参照してください。
+
 ## 基本アーキテクチャ
 
 ```text

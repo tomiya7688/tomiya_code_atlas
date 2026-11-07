@@ -37,6 +37,12 @@ The Go EXE workflow uploads the `tomiya-code-atlas-go-windows-x64` artifact only
 
 Extract the GitHub Actions artifact and find the distribution ZIP and `SHA256SUMS.txt`. In an environment with GitHub CLI installed, use the source ref and commit SHA shown in the Actions run to verify ZIP provenance: `gh attestation verify tomiya-code-atlas-windows-x64.zip -R tomiya7688/tomiya_code_atlas --signer-workflow tomiya7688/tomiya_code_atlas/.github/workflows/go-exe.yml --source-ref <source-ref> --source-digest <commit-sha>`. A branch push uses a ref such as `refs/heads/<branch>`; a tag push uses `refs/tags/<tag>`. Replace `<source-ref>` and `<commit-sha>` with the run's values. The `SHA256SUMS.txt` inside the ZIP lets you verify the extracted parser binaries. This process verifies artifacts produced by this workflow; older artifacts do not have provenance from it. Provenance attestations establish the build source and integrity; they do not add a Windows Authenticode Publisher signature. Authenticode signing for official releases remains unavailable until a trusted signing certificate is provisioned.
 
+The workflow also attests each bundled binary and both SHA-256 manifests. Run `gh attestation verify <path-to-file> -R tomiya7688/tomiya_code_atlas --signer-workflow tomiya7688/tomiya_code_atlas/.github/workflows/go-exe.yml --source-ref <source-ref> --source-digest <commit-sha>` for each manifest and every binary listed in `SHA256SUMS.txt`, replacing `<path-to-file>`, `<source-ref>`, and `<commit-sha>` with the downloaded paths and values from the Actions run. Compare each extracted binary with the hash in the manifest. The CI job verifies the ZIP and both manifests before it publishes the final Actions artifact.
+
+GitHub CLI fetches up to 30 attestations by default ([official manual](https://cli.github.com/manual/gh_attestation_verify)). If the expected run is outside that result window, repeat verification with `--limit 100` or a larger value that includes the target, while keeping the source ref and commit SHA checks enabled.
+
+See the [v1.0.0 release checklist](Release-Checklist.md) for the current artifact inventory and release gates.
+
 To run the packaged command-line application, pass arguments through the launcher:
 
 ```bat
