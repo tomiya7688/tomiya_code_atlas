@@ -60,6 +60,11 @@ jobs:
       - name: Python sourceをcompile
         run: python -m compileall -q Src tools tests
 
+      - name: GUIのJavaScript test用Node.jsを準備
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
       - name: 全testを実行
         run: python -m pytest
 

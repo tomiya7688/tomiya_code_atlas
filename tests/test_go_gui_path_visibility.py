@@ -1,5 +1,9 @@
 import re
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 
 # {
@@ -48,18 +52,22 @@ def test_gui_controls_expose_names_and_live_status() -> None:
 
 
 # {
-#   責務: [test_gui_rejects_incomplete_requests_before_analysis: GUIが未選択の解析要求を止め、入力中の二重起動と結果pathの欠損を安全に扱うことを確認する,],
+#   責務: [test_gui_interactions_validate_and_dispatch_requests: 実際のGUIイベントで未入力拒否、再入防止、複数図の送信、結果path欠損を検証する,],
 # }
-def test_gui_rejects_incomplete_requests_before_analysis() -> None:
-    script = (
-        Path(__file__).resolve().parents[1] / "go/internal/ui/web/app.js"
-    ).read_text(encoding="utf-8")
+def test_gui_interactions_validate_and_dispatch_requests() -> None:
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required for GUI JavaScript behavior tests")
 
-    assert "if (analyzeButton.disabled) return;" in script
-    assert "if (!selected.source)" in script
-    assert "if (operations.length === 0)" in script
-    assert "if (!selected.output)" in script
-    assert "Array.isArray(response?.outputPaths)" in script
-    assert 'if (!["o", "p", "r"].includes(key)) return;' in script
-    assert "event.preventDefault();" in script
-    assert 'if (key === "r" && !analyzeButton.disabled)' in script
+    test_script = Path(__file__).resolve().parent / "go_gui_frontend_behavior.test.cjs"
+    result = subprocess.run(
+        [node, str(test_script)],
+        cwd=test_script.parent,
+        capture_output=True,
+        check=False,
+        text=True,
+        encoding="utf-8",
+        errors="backslashreplace",
+        timeout=30,
+    )
+    assert result.returncode == 0, f"{result.stdout}\n{result.stderr}"

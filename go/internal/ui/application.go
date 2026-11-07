@@ -3,8 +3,10 @@ package ui
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
+	"os"
 	"strings"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -53,7 +56,7 @@ type AnalysisResult struct {
 //	  状態: [
 //	    generator: Processの図生成契約,
 //	    context: file dialogとwindow制御に使うruntime情報,
-//	    smokeMode: CIの起動確認後に画面を閉じる設定,
+//	    smokeMode: CI smoke時にDOM読込後GUIを閉じる設定,
 //	  ],
 //	}
 type Application struct {
@@ -67,10 +70,22 @@ type Application struct {
 //	    Run: 埋込み画面を解析serviceへ接続し、desktop windowを起動する,
 //	  ],
 //	}
-func Run(generator DiagramGenerator, smokeMode bool) error {
+func Run(generator DiagramGenerator, smokeMode bool) (runError error) {
 	webFiles, err := fs.Sub(embeddedWebFiles, "web")
 	if err != nil {
 		return fmt.Errorf("GUIの埋込みassetを開けません: %w", err)
+	}
+	webviewUserDataPath := ""
+	if smokeMode {
+		webviewUserDataPath, err = os.MkdirTemp("", "tomiya-code-atlas-webview-smoke-")
+		if err != nil {
+			return fmt.Errorf("smoke test用WebView2 profileを準備できません: %w", err)
+		}
+		defer func() {
+			if cleanupError := os.RemoveAll(webviewUserDataPath); cleanupError != nil {
+				runError = errors.Join(runError, fmt.Errorf("smoke test用WebView2 profileを削除できません: %w", cleanupError))
+			}
+		}()
 	}
 	application := &Application{generator: generator, smokeMode: smokeMode}
 	return wails.Run(&options.App{
@@ -85,6 +100,7 @@ func Run(generator DiagramGenerator, smokeMode bool) error {
 		OnStartup:  application.startup,
 		OnDomReady: application.domReady,
 		Bind:       []interface{}{application},
+		Windows:    &windows.Options{WebviewUserDataPath: webviewUserDataPath},
 	})
 }
 
@@ -99,7 +115,7 @@ func (application *Application) startup(runtimeContext context.Context) {
 
 //	{
 //	  責務: [
-//	    domReady: CI smoke modeではruntime初期化後にGUIを隠して終了する,
+//	    domReady: smoke modeで埋込み画面の読込完了を確認してからGUIを閉じる,
 //	  ],
 //	}
 func (application *Application) domReady(runtimeContext context.Context) {
