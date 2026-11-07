@@ -372,6 +372,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Windows one-dir配布ZIPとSHA-256 manifestを作成
+        env:
+          PYTHONIOENCODING: utf-8
         run: python tools/package_windows_distribution.py
 
       - name: 配布ZIP・manifest・内包binaryのprovenanceを署名

@@ -64,6 +64,7 @@ def test_windows_distribution_is_attested_after_smoke_checks() -> None:
     )
     assert gui_smoke_index < distribution_e2e_index
     assert steps[package_index]["run"] == "python tools/package_windows_distribution.py"
+    assert steps[package_index]["env"] == {"PYTHONIOENCODING": "utf-8"}
     assert steps[attestation_index]["if"] == "github.event_name != 'pull_request'"
     assert steps[verification_index]["if"] == "github.event_name != 'pull_request'"
     assert steps[upload_index]["if"] == "github.event_name != 'pull_request'"
