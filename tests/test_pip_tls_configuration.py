@@ -7,6 +7,39 @@ from tools.pip_tls_configuration import (
 )
 
 
+def test_windows_pip_config_uses_userprofile_when_home_differs(
+    tmp_path: Path,
+) -> None:
+    user_profile = tmp_path / "user-profile"
+    environment = {
+        "HOME": str(tmp_path / "home"),
+        "USERPROFILE": str(user_profile),
+        "HOMEDRIVE": "Z:",
+        "HOMEPATH": "\\different-profile",
+    }
+
+    paths = pip_config_files(environment, tmp_path / "prefix", "win32")
+
+    assert user_profile / "pip" / "pip.ini" in paths
+    assert Path(environment["HOME"]) / "pip" / "pip.ini" not in paths
+    assert Path("Z:\\different-profile") / "pip" / "pip.ini" not in paths
+
+
+def test_windows_pip_config_uses_home_drive_and_path_without_userprofile(
+    tmp_path: Path,
+) -> None:
+    environment = {
+        "HOME": str(tmp_path / "home"),
+        "HOMEDRIVE": "Z:",
+        "HOMEPATH": "\\user-profile",
+    }
+
+    paths = pip_config_files(environment, tmp_path / "prefix", "win32")
+
+    assert Path("Z:\\user-profile") / "pip" / "pip.ini" in paths
+    assert Path(environment["HOME"]) / "pip" / "pip.ini" not in paths
+
+
 def test_discover_pip_ca_bundles_reads_certificate_environment_variables(
     tmp_path: Path,
 ) -> None:

@@ -226,7 +226,8 @@ def distribution_certifi_bundles(
                 )
                 subdirectories.remove(subdirectory)
 
-        if "cacert.pem" not in filenames or "certifi" not in directory_path.parts:
+        relative_parts = directory_path.relative_to(bundle_root).parts
+        if "cacert.pem" not in filenames or "certifi" not in relative_parts:
             continue
         bundle_path = directory_path / "cacert.pem"
         try:

@@ -57,6 +57,21 @@ def test_distribution_certifi_bundles_finds_ca_file(tmp_path: Path) -> None:
     assert errors == []
 
 
+def test_distribution_certifi_bundles_ignores_certifi_ancestor(
+    tmp_path: Path,
+) -> None:
+    bundle_root = tmp_path / "certifi" / "distribution"
+    unrelated_directory = bundle_root / "_internal"
+    unrelated_directory.mkdir(parents=True)
+    unrelated_bundle = unrelated_directory / "cacert.pem"
+    unrelated_bundle.write_text("unrelated CA data", encoding="utf-8")
+
+    bundles, errors = verify_python_tls.distribution_certifi_bundles(bundle_root)
+
+    assert bundles == []
+    assert errors == []
+
+
 def test_distribution_certifi_bundles_reports_inaccessible_subdirectory(
     monkeypatch,
     tmp_path: Path,

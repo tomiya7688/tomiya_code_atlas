@@ -24,6 +24,12 @@ if errorlevel 1 exit /b 1
 if not exist ".build\dist\backends" mkdir ".build\dist\backends"
 if errorlevel 1 exit /b 1
 
+if exist ".build\dist\backends\tomiya-python-backend" rmdir /s /q ".build\dist\backends\tomiya-python-backend"
+if errorlevel 1 (
+    echo [エラー] 以前のPython parser配布先を削除できませんでした。
+    exit /b 1
+)
+
 ".venv\Scripts\python.exe" -m PyInstaller --noconfirm --clean --onedir --name tomiya-python-backend --paths "%CD%" --collect-data certifi --distpath ".build\dist\backends" --workpath ".build\pyinstaller\work" --specpath ".build\pyinstaller\spec" "parser-backends\python\main.py"
 if errorlevel 1 exit /b 1
 

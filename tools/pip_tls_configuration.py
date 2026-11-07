@@ -34,7 +34,16 @@ def pip_config_files(
     prefix: Path,
     platform_name: str,
 ) -> list[Path]:
-    home = Path(environment.get("HOME", str(Path.home())))
+    # Windows版pipはUSERPROFILE、またはHOMEDRIVEとHOMEPATHからホームを決めます。
+    if platform_name == "win32":
+        if "USERPROFILE" in environment:
+            home = Path(environment["USERPROFILE"])
+        elif "HOMEPATH" in environment:
+            home = Path(environment.get("HOMEDRIVE", "") + environment["HOMEPATH"])
+        else:
+            home = Path("~")
+    else:
+        home = Path(environment.get("HOME", str(Path.home())))
     paths: list[Path] = []
     user_paths: list[Path] = []
     config_name = "pip.ini" if platform_name == "win32" else "pip.conf"
