@@ -57,6 +57,20 @@ def test_distribution_certifi_bundles_finds_ca_file(tmp_path: Path) -> None:
     assert errors == []
 
 
+def test_distribution_certifi_bundles_ignores_other_nested_certifi_directories(
+    tmp_path: Path,
+) -> None:
+    bundle_root = tmp_path / "distribution"
+    unrelated_directory = bundle_root / "plugins" / "certifi"
+    unrelated_directory.mkdir(parents=True)
+    (unrelated_directory / "cacert.pem").write_text("unrelated", encoding="utf-8")
+
+    bundles, errors = verify_python_tls.distribution_certifi_bundles(bundle_root)
+
+    assert bundles == []
+    assert errors == []
+
+
 def test_distribution_certifi_bundles_ignores_certifi_ancestor(
     tmp_path: Path,
 ) -> None:
@@ -77,7 +91,7 @@ def test_distribution_certifi_bundles_reports_inaccessible_subdirectory(
     tmp_path: Path,
 ) -> None:
     bundle_root = tmp_path / "distribution"
-    certifi_directory = bundle_root / "certifi"
+    certifi_directory = bundle_root / "_internal" / "certifi"
     certifi_directory.mkdir(parents=True)
     ca_bundle = certifi_directory / "cacert.pem"
     ca_bundle.write_text("test data", encoding="utf-8")
@@ -89,7 +103,7 @@ def test_distribution_certifi_bundles_reports_inaccessible_subdirectory(
     ):
         assert followlinks is False
         onerror(PermissionError(13, "permission denied", str(root / "blocked")))
-        yield str(root), ["certifi"], []
+        yield str(root), ["_internal"], []
         yield str(certifi_directory), [], ["cacert.pem"]
 
     monkeypatch.setattr(verify_python_tls.os, "walk", walk_with_permission_error)
@@ -106,7 +120,7 @@ def test_distribution_certifi_bundles_rejects_symlink_directory(
     tmp_path: Path,
 ) -> None:
     bundle_root = tmp_path / "distribution"
-    certifi_directory = bundle_root / "certifi"
+    certifi_directory = bundle_root / "_internal" / "certifi"
     certifi_directory.mkdir(parents=True)
     (certifi_directory / "cacert.pem").write_text("test data", encoding="utf-8")
     original_lstat = Path.lstat
@@ -130,7 +144,7 @@ def test_distribution_certifi_bundles_rejects_symlink_ca_file(
     tmp_path: Path,
 ) -> None:
     bundle_root = tmp_path / "distribution"
-    certifi_directory = bundle_root / "certifi"
+    certifi_directory = bundle_root / "_internal" / "certifi"
     certifi_directory.mkdir(parents=True)
     ca_bundle = certifi_directory / "cacert.pem"
     ca_bundle.write_text("test data", encoding="utf-8")

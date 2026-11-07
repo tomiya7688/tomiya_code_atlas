@@ -77,10 +77,16 @@ def test_root_build_creates_go_cli_and_cpython_ast_onedir_helper() -> None:
         in python_build
     )
     assert "PyInstaller" in python_build
-    assert (
-        'if exist ".build\\dist\\backends\\tomiya-python-backend" '
-        'rmdir /s /q ".build\\dist\\backends\\tomiya-python-backend"' in python_build
+    cleanup_start = python_build.index(
+        'if exist ".build\\dist\\backends\\tomiya-python-backend" ('
     )
+    build_start = python_build.index(" -m PyInstaller ")
+    cleanup = python_build[cleanup_start:build_start]
+    assert cleanup.index("rmdir /s /q") < cleanup.index(
+        'if exist ".build\\dist\\backends\\tomiya-python-backend" (', 1
+    )
+    assert "exit /b 1" in cleanup
+    assert cleanup_start < build_start
     assert 'set "TEMP=%CD%\\.build\\temp"' in python_build
     assert (
         'set "PYINSTALLER_CONFIG_DIR=%CD%\\.build\\pyinstaller\\config"' in python_build

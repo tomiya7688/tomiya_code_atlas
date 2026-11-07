@@ -1,4 +1,5 @@
 import os
+import ntpath
 from pathlib import Path
 
 from tools.pip_tls_configuration import (
@@ -22,7 +23,7 @@ def test_windows_pip_config_uses_userprofile_when_home_differs(
 
     assert user_profile / "pip" / "pip.ini" in paths
     assert Path(environment["HOME"]) / "pip" / "pip.ini" not in paths
-    assert Path("Z:\\different-profile") / "pip" / "pip.ini" not in paths
+    assert Path(ntpath.join("Z:", "\\different-profile", "pip", "pip.ini")) not in paths
 
 
 def test_windows_pip_config_uses_home_drive_and_path_without_userprofile(
@@ -36,8 +37,34 @@ def test_windows_pip_config_uses_home_drive_and_path_without_userprofile(
 
     paths = pip_config_files(environment, tmp_path / "prefix", "win32")
 
-    assert Path("Z:\\user-profile") / "pip" / "pip.ini" in paths
+    assert Path(ntpath.join("Z:", "\\user-profile", "pip", "pip.ini")) in paths
     assert Path(environment["HOME"]) / "pip" / "pip.ini" not in paths
+
+
+def test_windows_pip_config_matches_hompath_without_home_drive() -> None:
+    environment = {"HOMEPATH": "\\user-profile"}
+
+    paths = pip_config_files(environment, Path("prefix"), "win32")
+
+    assert Path(ntpath.join("", "\\user-profile", "pip", "pip.ini")) in paths
+
+
+def test_windows_pip_config_keeps_tilde_when_home_variables_are_missing() -> None:
+    paths = pip_config_files({}, Path("prefix"), "win32")
+
+    assert Path(ntpath.join("~", "pip", "pip.ini")) in paths
+
+
+def test_windows_pip_config_preserves_empty_userprofile_like_pip() -> None:
+    environment = {
+        "USERPROFILE": "",
+        "HOMEDRIVE": "Z:",
+        "HOMEPATH": "\\user-profile",
+    }
+
+    paths = pip_config_files(environment, Path("prefix"), "win32")
+
+    assert Path(ntpath.join("", "pip", "pip.ini")) in paths
 
 
 def test_discover_pip_ca_bundles_reads_certificate_environment_variables(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import configparser
+import ntpath
 import os
 import sys
 from collections.abc import Mapping
@@ -37,13 +38,17 @@ def pip_config_files(
     # Windows版pipはUSERPROFILE、またはHOMEDRIVEとHOMEPATHからホームを決めます。
     if platform_name == "win32":
         if "USERPROFILE" in environment:
-            home = Path(environment["USERPROFILE"])
+            home = environment["USERPROFILE"]
         elif "HOMEPATH" in environment:
-            home = Path(environment.get("HOMEDRIVE", "") + environment["HOMEPATH"])
+            home = ntpath.join(
+                environment.get("HOMEDRIVE", ""), environment["HOMEPATH"]
+            )
         else:
-            home = Path("~")
+            home = "~"
+        windows_user_config = Path(ntpath.join(home, "pip", "pip.ini"))
     else:
         home = Path(environment.get("HOME", str(Path.home())))
+        windows_user_config = None
     paths: list[Path] = []
     user_paths: list[Path] = []
     config_name = "pip.ini" if platform_name == "win32" else "pip.conf"
@@ -68,7 +73,8 @@ def pip_config_files(
         paths.append(Path(program_data) / "pip" / "pip.ini")
         if app_data:
             user_paths.append(Path(app_data) / "pip" / "pip.ini")
-        user_paths.append(home / "pip" / "pip.ini")
+        if windows_user_config is not None:
+            user_paths.append(windows_user_config)
     elif platform_name == "darwin":
         data_directories = environment.get("XDG_DATA_DIRS", "")
         if data_directories:
