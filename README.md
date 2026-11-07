@@ -4,7 +4,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 目的は、コードを読む前に「何があるか」「どこから呼ばれるか」「何に依存するか」「どこが複雑か」を短時間で把握できる状態を作ることです。
 
-製品本体はGoへ移行中です。Go CLIはsource fileまたはproject folderを再帰解析し、呼び出し図・クラス図・コメント付きsource copy・静的仕様書・設計品質レポートを生成します。各fileは個別解析され、file間の名前・型解決、その他の図、GUIは未移植です。コメント生成では入力sourceを変更せず、言語別のcommentを加えたcopyを出力します。具体的な実行方法は[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)を参照してください。既存機能の説明は移行中のPython source版を含み、移行完了までは [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで進捗を管理します。
+製品本体はGoへ移行中です。Windows版Go EXEは引数なしで日本語GUIを開き、呼び出し図とクラス図を生成します。Go CLIはsource fileまたはproject folderを再帰解析し、呼び出し図・クラス図・シーケンス図・コメント付きsource copy・静的仕様書・設計品質レポートを生成できます。各fileは個別解析され、file間の名前・型解決やその他の図は未移植です。コメント生成では元のソースを変更しません。実行方法は[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)、GUI操作は[GUI操作ガイド](docs/jp/GUI%E6%93%8D%E4%BD%9C%E3%82%AC%E3%82%A4%E3%83%89.md)を参照してください。移行の進捗は [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで管理します。
 
 ## 主な機能
 
@@ -21,7 +21,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 - CI 解析
 - 設計評価
 
-図表の標準出力は Mermaid とし、PlantUML 等は Renderer の差し替えで追加できる構造を目指します。コメント生成は基本的に元ソースへ追記します。
+図表の標準出力は Mermaid とし、PlantUML 等は Renderer の差し替えで追加できる構造を目指します。Go版のコメント生成は元ソースを変更せず、コメント付きコピーを出力します。
 
 ## 主な解析対象
 
@@ -60,7 +60,7 @@ Source
 
 ## repository構成
 
-```
+```text
 .github/
   workflows/                 # GitHub ActionsのCI／配布workflow
   config/
@@ -113,13 +113,11 @@ Python参照実装は `python -m Src.app` または `scripts\build\run_source.ba
 - .NET 10 SDK: [Microsoft .NETダウンロード](https://dotnet.microsoft.com/download/dotnet/10.0)。C# Roslyn helperのself-contained buildに使います。配布物の利用者は.NETを別途用意する必要がありません。
 - JDK 25: Java parser helperのbuildとprivate runtime作成に使います。配布物の利用者はJavaを別途用意する必要がありません。
 - Apache Maven: [Mavenの配布案内](https://maven.apache.org/download.cgi)。JavaParser helperのbuildに使います。利用者向けartifactにはMavenを含めません。
-- CPython安定版: 3.11系列は3.11.18以降、3.12系列は3.12.16以降、3.13系列は3.13.18以降、3.14系列は3.14.10以降、3.15系列は3.15.2以降。入手先は[Windows向けPython配布](https://www.python.org/downloads/windows/)です。source実行、test、parser helperのbuildに使います。配布物はCPython runtimeを同梱します。
-- WindowsのPython install managerから導入する場合は3.14.10または3.15.2以降を選んでください。3.11.18、3.12.16、3.13.18はsource-onlyのsecurity releaseで、Windows installerはありません（[公式release案内](https://blog.python.org/2026/10/python-3152-31410-31318-31216-31118/)）。
-- setup時のsecurity checkerは、修正済みpatch floorを登録していないCPython minor系列を受け入れません。公式の修正版を確認後、対応patch floorを登録します。
+- Python 3.11.18、3.12.16、3.13.18、3.14.10、3.15.2以降: [Windows向けPython配布](https://www.python.org/downloads/windows/)。source実行、test、parser helperのbuildに使います。対応する安定版patch floorは[開発運用](docs/jp/%E9%96%8B%E7%99%BA%E9%81%8B%E7%94%A8.md#windows%E3%83%93%E3%83%AB%E3%83%89%E3%81%AE%E6%A4%9C%E8%A8%BC)を参照してください。配布物はCPython runtimeを同梱します。
 
-Go版EXEと全parser helperのbuildにはGo 1.27.x、上記のsecurity patchを含むPython、.NET 10 SDK、JDK 25、Apache Mavenと `scripts\build\setup.bat` が必要です。配布物の利用者はこれらの開発toolchainを別途用意する必要がありません。
+Go版EXEと全parser helperのbuildにはGo 1.27.x、上記のsecurity floorを満たすPython、.NET 10 SDK、JDK 25、Apache Mavenと `scripts\build\setup.bat` が必要です。配布物の利用者はこれらの開発toolchainを別途用意する必要がありません。
 
-`scripts\build\setup.bat` はリポジトリ内の `.venv` を作り、source testとPyInstaller helper buildに必要なpackageをインストールします。既存の `.venv` も最初にCPythonのsecurity floorを確認し、SHA-256固定したpipとcertifiのwheelで更新してからtrust storeを検査します。ソース版を起動する場合は `scripts\build\run_source.bat` を使います。Pythonや依存packageをglobal環境へインストールしません。
+`scripts\build\setup.bat` はリポジトリ内の `.venv` を作り、source testとPyInstaller helper buildに必要なpackageをインストールします。ソース版を起動する場合は `scripts\build\run_source.bat` を使います。Pythonや依存packageをglobal環境へインストールしません。
 
 ```bat
 build_exe.bat

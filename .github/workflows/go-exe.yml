@@ -1,5 +1,12 @@
 name: Go EXE
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     paths:
@@ -23,6 +30,8 @@ on:
       - "parser-backends/manifest.json"
       - "tests/fixtures/static_specification/**"
       - "internal/**"
+      - "tools/web-format/**"
+      - "tools/verify_distribution.py"
       - "scripts/build/build_go.bat"
       - "scripts/build/build_go_parser_backend.bat"
       - "scripts/build/build_python_backend.bat"
@@ -34,13 +43,15 @@ on:
       - "tools/java_backend_smoke.py"
       - "tools/go_backend_smoke.py"
       - "tools/go_cli_smoke.py"
-      - "tests/fixtures/distribution_e2e/sequence_recursion.go"
       - "scripts/build/copy_python_runtime_license.py"
       - "scripts/build/setup.bat"
+      - "scripts/build/generate_app_icon.ps1"
+      - "assets/characters/atlas-kun/**"
       - "build_exe.bat"
       - "run_dist.bat"
       - ".github/workflows/go-exe.yml"
       - "tests/test_windows_build_entrypoints.py"
+      - "tests/test_go_artifact_contents.py"
       - "tests/test_python_parser_helper.py"
       - "tests/test_gdscript_tree_sitter_backend.py"
       - "tests/test_csharp_roslyn_backend.py"
@@ -80,6 +91,8 @@ on:
       - "parser-backends/manifest.json"
       - "tests/fixtures/static_specification/**"
       - "internal/**"
+      - "tools/web-format/**"
+      - "tools/verify_distribution.py"
       - "scripts/build/build_go.bat"
       - "scripts/build/build_go_parser_backend.bat"
       - "scripts/build/build_python_backend.bat"
@@ -91,13 +104,15 @@ on:
       - "tools/java_backend_smoke.py"
       - "tools/go_backend_smoke.py"
       - "tools/go_cli_smoke.py"
-      - "tests/fixtures/distribution_e2e/sequence_recursion.go"
       - "scripts/build/copy_python_runtime_license.py"
       - "scripts/build/setup.bat"
+      - "scripts/build/generate_app_icon.ps1"
+      - "assets/characters/atlas-kun/**"
       - "build_exe.bat"
       - "run_dist.bat"
       - ".github/workflows/go-exe.yml"
       - "tests/test_windows_build_entrypoints.py"
+      - "tests/test_go_artifact_contents.py"
       - "tests/test_python_parser_helper.py"
       - "tests/test_gdscript_tree_sitter_backend.py"
       - "tests/test_csharp_roslyn_backend.py"
@@ -157,6 +172,16 @@ jobs:
       - name: Go testを実行
         working-directory: go
         run: go test ./...
+
+      - name: Node.jsを準備
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: GUI CSSのformat check
+        run: |
+          npm ci --prefix tools/web-format --ignore-scripts --no-audit --no-fund
+          npm --prefix tools/web-format run check
 
       - name: GoとPythonのformat check
         shell: pwsh
@@ -245,7 +270,9 @@ jobs:
         shell: cmd
         run: call build_exe.bat
 
+
       - name: 配布EXEのhelpとversionをsmoke test
+        timeout-minutes: 3
         shell: pwsh
         run: |
           $exe = ".\.build\dist\tomiya-code-atlas.exe"
@@ -264,6 +291,11 @@ jobs:
             Write-Error "Go版のEXEのhelp smoke testに失敗しました: $help"
             exit 1
           }
+
+      - name: 配布Java runtimeをsmoke test
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
           $java = ".\.build\dist\backends\java\runtime\bin\java.exe"
           if (-not (Test-Path $java)) {
             Get-ChildItem ".\.build\dist\backends\java" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName
@@ -272,16 +304,47 @@ jobs:
           }
           & $java -version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Python parser helperをsmoke test
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
           & .\.venv\Scripts\python.exe scripts\build\smoke_python_backend.py ".build\dist\backends\tomiya-python-backend\tomiya-python-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: C# parser helperをsmoke test
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
           & .\.venv\Scripts\python.exe tools\csharp_backend_smoke.py ".build\dist\backends\csharp\tomiya-csharp-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: C++ parser helperをsmoke test
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
           & .\.venv\Scripts\python.exe tools\cpp_backend_smoke.py ".build\dist\backends\cpp\tomiya-cpp-backend\tomiya-cpp-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Java parser helperをsmoke test
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          $java = ".\.build\dist\backends\java\runtime\bin\java.exe"
           & .\.venv\Scripts\python.exe tools\java_backend_smoke.py $java -jar ".build\dist\backends\java\tomiya-java-backend.jar"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Go parser helperをsmoke test
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
           & .\.venv\Scripts\python.exe tools\go_backend_smoke.py ".build\dist\backends\go\tomiya-go-backend.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Go CLIの配布解析をsmoke test
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
           & .\.venv\Scripts\python.exe tools\go_cli_smoke.py ".build\dist\tomiya-code-atlas.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -291,6 +354,7 @@ jobs:
           name: tomiya-code-atlas-go-windows-x64
           path: |
             .build/dist/tomiya-code-atlas.exe
+            .build/dist/assets/
             .build/dist/backends/manifest.json
             .build/dist/backends/tomiya-python-backend/
             .build/dist/backends/csharp/
@@ -298,4 +362,19 @@ jobs:
             .build/dist/backends/java/
             .build/dist/backends/go/
           if-no-files-found: error
+
+      - name: Go GUIの配布起動をsmoke test
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          $exe = ".\.build\dist\tomiya-code-atlas.exe"
+          & $exe --gui-smoke
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: one-dir配布物のE2E検証
+        timeout-minutes: 10
+        shell: pwsh
+        run: |
+          & .\.venv\Scripts\python.exe tools\verify_distribution.py --exe ".build\dist\tomiya-code-atlas.exe" --gui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

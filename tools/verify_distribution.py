@@ -15,11 +15,36 @@ from pathlib import Path
 
 LANGUAGE_FIXTURES: tuple[tuple[str, str, str, str], ...] = (
     ("python", ".py", "def load_config():\n    return {}\n", "# Retrieves config."),
-    ("gdscript", ".gd", "class_name LoadConfig\nfunc load_config():\n    return {}\n", "# Retrieves config."),
-    ("csharp", ".cs", "using UnityEngine;\npublic class LoadConfig : MonoBehaviour { public void Start() {} }\n", "// Coordinates this Unity load config component."),
-    ("cpp", ".cpp", "class LoadConfig { public: void load() {} };\n", "// Groups behavior related to load config."),
-    ("java", ".java", "class LoadConfig { void load() {} }\n", "// Groups behavior related to load config."),
-    ("go", ".go", "package e2e\ntype LoadConfig struct {}\nfunc Load() {}\n", "// Groups behavior related to load config."),
+    (
+        "gdscript",
+        ".gd",
+        "class_name LoadConfig\nfunc load_config():\n    return {}\n",
+        "# Retrieves config.",
+    ),
+    (
+        "csharp",
+        ".cs",
+        "using UnityEngine;\npublic class LoadConfig : MonoBehaviour { public void Start() {} }\n",
+        "// Coordinates this Unity load config component.",
+    ),
+    (
+        "cpp",
+        ".cpp",
+        "class LoadConfig { public: void load() {} };\n",
+        "// Groups behavior related to load config.",
+    ),
+    (
+        "java",
+        ".java",
+        "class LoadConfig { void load() {} }\n",
+        "// Groups behavior related to load config.",
+    ),
+    (
+        "go",
+        ".go",
+        "package e2e\ntype LoadConfig struct {}\nfunc Load() {}\n",
+        "// Groups behavior related to load config.",
+    ),
 )
 
 
@@ -35,13 +60,17 @@ def _environment(workspace: Path) -> dict[str, str]:
         if key.upper() in {"SYSTEMROOT", "WINDIR", "TEMP", "TMP", "USERPROFILE"}
     }
     system_root = env.get("SystemRoot", r"C:\Windows")
-    env["PATH"] = os.pathsep.join((str(workspace), str(Path(system_root) / "System32"), system_root))
+    env["PATH"] = os.pathsep.join(
+        (str(workspace), str(Path(system_root) / "System32"), system_root)
+    )
     env["TEMP"] = str(workspace)
     env["TMP"] = str(workspace)
     return env
 
 
-def _run(exe: Path, workspace: Path, *arguments: str, expected: int = 0) -> subprocess.CompletedProcess[str]:
+def _run(
+    exe: Path, workspace: Path, *arguments: str, expected: int = 0
+) -> subprocess.CompletedProcess[str]:
     command = [str(exe), *arguments]
     result = subprocess.run(
         command,
@@ -68,12 +97,21 @@ def _require(path: Path, *markers: str) -> str:
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
     missing = [marker for marker in markers if marker not in text]
     if missing:
-        raise DistributionCheckError(f"{path.name} is missing expected output markers: {missing!r}\n{text}")
+        raise DistributionCheckError(
+            f"{path.name} is missing expected output markers: {missing!r}\n{text}"
+        )
     return text
 
 
 def _assert_golden(actual: Path, golden_name: str) -> None:
-    golden = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "distribution_e2e" / "golden" / golden_name
+    golden = (
+        Path(__file__).resolve().parents[1]
+        / "tests"
+        / "fixtures"
+        / "distribution_e2e"
+        / "golden"
+        / golden_name
+    )
     if not golden.is_file():
         raise DistributionCheckError(f"Expected output golden is missing: {golden}")
     actual_text = actual.read_text(encoding="utf-8").replace("\r\n", "\n")
@@ -87,12 +125,17 @@ def _assert_golden(actual: Path, golden_name: str) -> None:
                 tofile=str(actual),
             )
         )
-        raise DistributionCheckError(f"Output differed from golden {golden_name}:\n{difference}")
+        raise DistributionCheckError(
+            f"Output differed from golden {golden_name}:\n{difference}"
+        )
+
 
 def _only_output(root: Path, suffix: str) -> Path:
     matches = sorted(root.rglob(f"*{suffix}"))
     if len(matches) != 1:
-        raise DistributionCheckError(f"Expected one {suffix} output below {root}, found {len(matches)}")
+        raise DistributionCheckError(
+            f"Expected one {suffix} output below {root}, found {len(matches)}"
+        )
     return matches[0]
 
 
@@ -112,32 +155,50 @@ def _verify_application_icon(exe: Path) -> None:
         return struct.unpack_from(">II", data, 16)
 
     if png_dimensions(png_256.read_bytes(), png_256) != (256, 256):
-        raise DistributionCheckError("The packaged 256px window icon has the wrong dimensions")
+        raise DistributionCheckError(
+            "The packaged 256px window icon has the wrong dimensions"
+        )
     if png_dimensions(png_64.read_bytes(), png_64) != (64, 64):
-        raise DistributionCheckError("The packaged 64px window icon has the wrong dimensions")
+        raise DistributionCheckError(
+            "The packaged 64px window icon has the wrong dimensions"
+        )
 
     data = ico.read_bytes()
     if len(data) < 6:
         raise DistributionCheckError("The packaged ICO file is truncated")
     reserved, icon_type, count = struct.unpack_from("<HHH", data)
     if reserved != 0 or icon_type != 1 or count != 7:
-        raise DistributionCheckError("The packaged ICO must contain seven Windows icon sizes")
+        raise DistributionCheckError(
+            "The packaged ICO must contain seven Windows icon sizes"
+        )
     dimensions: set[tuple[int, int]] = set()
     for index in range(count):
-        width, height, _, _, _, _, length, offset = struct.unpack_from("<BBBBHHII", data, 6 + index * 16)
+        width, height, _, _, _, _, length, offset = struct.unpack_from(
+            "<BBBBHHII", data, 6 + index * 16
+        )
         width, height = width or 256, height or 256
         end = offset + length
         if end > len(data):
-            raise DistributionCheckError("The packaged ICO contains an invalid image offset")
+            raise DistributionCheckError(
+                "The packaged ICO contains an invalid image offset"
+            )
         actual = png_dimensions(data[offset:end], ico)
         if actual != (width, height):
-            raise DistributionCheckError(f"ICO entry {width}px contains an image of {actual[0]}x{actual[1]}")
+            raise DistributionCheckError(
+                f"ICO entry {width}px contains an image of {actual[0]}x{actual[1]}"
+            )
         dimensions.add((width, height))
     expected = {(size, size) for size in (16, 24, 32, 48, 64, 128, 256)}
     if dimensions != expected:
-        raise DistributionCheckError(f"The packaged ICO sizes differ from the required set: {dimensions!r}")
-    if "Tomiya Character License v1.0.1" not in license_file.read_text(encoding="utf-8"):
-        raise DistributionCheckError("The packaged icon license notice is not Tomiya Character License v1.0.1")
+        raise DistributionCheckError(
+            f"The packaged ICO sizes differ from the required set: {dimensions!r}"
+        )
+    if "Tomiya Character License v1.0.1" not in license_file.read_text(
+        encoding="utf-8"
+    ):
+        raise DistributionCheckError(
+            "The packaged icon license notice is not Tomiya Character License v1.0.1"
+        )
 
 
 def _verify_language_comments(exe: Path, workspace: Path) -> None:
@@ -145,7 +206,16 @@ def _verify_language_comments(exe: Path, workspace: Path) -> None:
         source = workspace / f"comment-{language}{extension}"
         output = workspace / f"comment-{language}.out{extension}"
         source.write_text(source_text, encoding="utf-8")
-        _run(exe, workspace, "comment", str(source), "--language", language, "--output", str(output))
+        _run(
+            exe,
+            workspace,
+            "comment",
+            str(source),
+            "--language",
+            language,
+            "--output",
+            str(output),
+        )
         _require(output, marker)
         if language == "python":
             _assert_golden(output, "comment-python.py")
@@ -153,22 +223,44 @@ def _verify_language_comments(exe: Path, workspace: Path) -> None:
 
 def _verify_semantic_backends(exe: Path, workspace: Path) -> None:
     python_source = workspace / "diagram-python.py"
-    python_source.write_text("class LoadConfig:\n    def load(self):\n        return True\n", encoding="utf-8")
+    python_source.write_text(
+        "class LoadConfig:\n    def load(self):\n        return True\n",
+        encoding="utf-8",
+    )
     python_output = workspace / "class-python"
-    _run(exe, workspace, "class-diagram", str(python_source), "--output-dir", str(python_output))
+    _run(
+        exe,
+        workspace,
+        "class-diagram",
+        str(python_source),
+        "--output-dir",
+        str(python_output),
+    )
     _require(_only_output(python_output, ".mmd"), "classDiagram", "LoadConfig")
 
     cases = (
-        ("gdscript", ".gd", "class_name LoadConfig\nextends RefCounted\nfunc load():\n    return true\n"),
+        (
+            "gdscript",
+            ".gd",
+            "class_name LoadConfig\nextends RefCounted\nfunc load():\n    return true\n",
+        ),
         ("csharp", ".cs", "public class LoadConfig { public bool Load() => true; }\n"),
-        ("java", ".java", "public class LoadConfig { public boolean load() { return true; } }\n"),
+        (
+            "java",
+            ".java",
+            "public class LoadConfig { public boolean load() { return true; } }\n",
+        ),
     )
     for language, extension, source_text in cases:
         source = workspace / f"backend-{language}{extension}"
         source.write_text(source_text, encoding="utf-8")
-        output = _run(exe, workspace, "backend-smoke", language, "--source", str(source))
+        output = _run(
+            exe, workspace, "backend-smoke", language, "--source", str(source)
+        )
         if not output.stdout.strip():
-            raise DistributionCheckError(f"{language} backend did not identify itself after parsing real input")
+            raise DistributionCheckError(
+                f"{language} backend did not identify itself after parsing real input"
+            )
 
     go_source = "package e2e\ntype LoadConfig struct {}\nfunc (c LoadConfig) Load() bool { return true }\n"
     helper = exe.parent / "backends" / "go" / "tomiya-go-backend.exe"
@@ -200,7 +292,10 @@ def _verify_semantic_backends(exe: Path, workspace: Path) -> None:
     if response.get("request_id") != request["request_id"] or not response.get("ok"):
         raise DistributionCheckError(f"Go helper rejected the fixture: {response!r}")
     if not any(entity.get("name") == "LoadConfig" for entity in entities):
-        raise DistributionCheckError(f"Go helper omitted the fixture type: {response!r}")
+        raise DistributionCheckError(
+            f"Go helper omitted the fixture type: {response!r}"
+        )
+
 
 def _verify_python_features(exe: Path, workspace: Path) -> None:
     source = workspace / "sample.py"
@@ -234,25 +329,47 @@ def _verify_python_features(exe: Path, workspace: Path) -> None:
         _run(exe, workspace, command, str(source), "--output-dir", str(output_dir))
         outputs = sorted(output_dir.rglob(f"*{extension}"))
         if not outputs:
-            raise DistributionCheckError(f"{command} did not produce a {extension} file")
+            raise DistributionCheckError(
+                f"{command} did not produce a {extension} file"
+            )
         combined = "\n".join(path.read_text(encoding="utf-8") for path in outputs)
         if marker not in combined:
-            raise DistributionCheckError(f"{command} output omitted {marker!r}: {combined}")
+            raise DistributionCheckError(
+                f"{command} output omitted {marker!r}: {combined}"
+            )
         if command == "timing":
             for output in outputs:
                 _assert_golden(output, f"timing-{output.name}")
         else:
-            golden_name = {"call-graph": "call-graph.mmd", "class-diagram": "class-diagram.mmd", "sequence-diagram": "sequence-diagram.mmd"}[command]
+            golden_name = {
+                "call-graph": "call-graph.mmd",
+                "class-diagram": "class-diagram.mmd",
+                "sequence-diagram": "sequence-diagram.mmd",
+            }[command]
             _assert_golden(_only_output(output_dir, ".mmd"), golden_name)
 
-    for command, marker in (("class-diagram", "@startuml"), ("sequence-diagram", "@startuml")):
+    for command, marker in (
+        ("class-diagram", "@startuml"),
+        ("sequence-diagram", "@startuml"),
+    ):
         output_dir = workspace / f"{command}-plantuml"
-        _run(exe, workspace, command, str(source), "--renderer", "plantuml", "--output-dir", str(output_dir))
+        _run(
+            exe,
+            workspace,
+            command,
+            str(source),
+            "--renderer",
+            "plantuml",
+            "--output-dir",
+            str(output_dir),
+        )
         outputs = sorted(output_dir.rglob("*.puml"))
         if not outputs:
             raise DistributionCheckError(f"{command} did not produce PlantUML output")
         if marker not in outputs[0].read_text(encoding="utf-8"):
-            raise DistributionCheckError(f"{command} PlantUML output omitted {marker!r}")
+            raise DistributionCheckError(
+                f"{command} PlantUML output omitted {marker!r}"
+            )
         _assert_golden(outputs[0], f"{command}.puml")
 
     ui_source = workspace / "ui.py"
@@ -276,19 +393,40 @@ def _verify_python_features(exe: Path, workspace: Path) -> None:
         encoding="utf-8",
     )
     deploy_dir = workspace / "deployment"
-    _run(exe, workspace, "deployment", str(deploy_root), "--mode", "full", "--output-dir", str(deploy_dir))
+    _run(
+        exe,
+        workspace,
+        "deployment",
+        str(deploy_root),
+        "--mode",
+        "full",
+        "--output-dir",
+        str(deploy_dir),
+    )
     deployment_outputs = sorted(deploy_dir.rglob("*.mmd"))
-    if not deployment_outputs or not any("postgres" in path.read_text(encoding="utf-8") for path in deployment_outputs):
-        raise DistributionCheckError("deployment output did not include the fixture database")
+    if not deployment_outputs or not any(
+        "postgres" in path.read_text(encoding="utf-8") for path in deployment_outputs
+    ):
+        raise DistributionCheckError(
+            "deployment output did not include the fixture database"
+        )
     _assert_golden(_only_output(deploy_dir, ".mmd"), "deployment.mmd")
 
 
-def _verify_cli_contract(exe: Path, workspace: Path) -> None:
-    version = _run(exe, workspace, "--version")
-    if "Tomiya Code Atlas" not in version.stdout:
-        raise DistributionCheckError(f"Unexpected version output: {version.stdout!r}")
+def _verify_cli_contract(exe: Path, workspace: Path, version_output: str) -> None:
+    if "Tomiya Code Atlas" not in version_output:
+        raise DistributionCheckError(f"Unexpected version output: {version_output!r}")
     help_result = _run(exe, workspace, "--help")
-    for command in ("comment", "ci", "deployment", "timing", "use-cases", "call-graph", "class-diagram", "sequence-diagram"):
+    for command in (
+        "comment",
+        "ci",
+        "deployment",
+        "timing",
+        "use-cases",
+        "call-graph",
+        "class-diagram",
+        "sequence-diagram",
+    ):
         if command not in help_result.stdout:
             raise DistributionCheckError(f"CLI help omitted subcommand {command!r}")
     for marker in ("使い方:", "オプション"):
@@ -297,12 +435,81 @@ def _verify_cli_contract(exe: Path, workspace: Path) -> None:
     _run(exe, workspace, "invalid-command", expected=2)
     _run(exe, workspace, "comment", expected=2)
     _run(exe, workspace, "comment", str(workspace / "missing.py"), expected=1)
-    _run(exe, workspace, "comment", str(workspace / "sample.py"), "--language", "unsupported", expected=1)
+    _run(
+        exe,
+        workspace,
+        "comment",
+        str(workspace / "sample.py"),
+        "--language",
+        "unsupported",
+        expected=1,
+    )
 
     source = workspace / "in-place.py"
     source.write_text("def load_config():\n    return {}\n", encoding="utf-8")
     _run(exe, workspace, "comment", str(source), "--in-place")
     _require(source, "# Retrieves config.")
+
+
+# {
+#   責務: [_verify_go_cli_contract: Go版CLIのhelpとusage errorが配布後も日本語の契約を保つことを検証する,]
+# }
+def _verify_go_cli_contract(exe: Path, workspace: Path) -> None:
+    help_result = _run(exe, workspace, "--help")
+    for marker in ("使用方法:", "analyze", "詳しい使い方:"):
+        if marker not in help_result.stdout:
+            raise DistributionCheckError(f"Go CLI help omitted {marker!r}")
+    analyze_help = _run(exe, workspace, "analyze", "--help")
+    for marker in (
+        "--operation",
+        "--output-dir",
+        "call-graph",
+        "class-diagram",
+        "comments",
+    ):
+        if marker not in analyze_help.stdout:
+            raise DistributionCheckError(f"Go analyze help omitted {marker!r}")
+    _run(exe, workspace, "invalid-command", expected=2)
+    _run(exe, workspace, "analyze", expected=2)
+
+
+# {
+#   責務: [_verify_go_analysis_outputs: Go one-dir CLIがPython解析結果とcomment copyを配布先へ保存することを検証する,]
+# }
+def _verify_go_analysis_outputs(exe: Path, workspace: Path) -> None:
+    source = workspace / "distribution-python.py"
+    original = "class LoadConfig:\n    def load_config(self):\n        return self.repository.fetch()\n"
+    source.write_text(original, encoding="utf-8")
+    output_directory = workspace / "go-analysis"
+    _run(
+        exe,
+        workspace,
+        "analyze",
+        str(source),
+        "--operation",
+        "call-graph",
+        "--operation",
+        "class-diagram",
+        "--operation",
+        "comments",
+        "--operation",
+        "static-spec",
+        "--operation",
+        "design-quality",
+        "--output-dir",
+        str(output_directory),
+    )
+    expectations = {
+        "distribution-python_call-graph.md": ("flowchart", "load_config"),
+        "distribution-python_class-diagram.md": ("classDiagram", "LoadConfig"),
+        "distribution-python_static-spec.md": ("宣言一覧", "LoadConfig"),
+        "distribution-python_design-quality.md": ("設計品質レポート", "指標"),
+        "comments/distribution-python_commented.py": ("configを読み込みます。",),
+    }
+    for relative_path, markers in expectations.items():
+        _require(output_directory / relative_path, *markers)
+    if source.read_text(encoding="utf-8") != original:
+        raise DistributionCheckError("Go comments operation modified its input source")
 
 
 def _verify_gui_launch(exe: Path, workspace: Path) -> None:
@@ -318,11 +525,28 @@ def _verify_gui_launch(exe: Path, workspace: Path) -> None:
         try:
             exit_code = process.wait(timeout=3)
         except subprocess.TimeoutExpired:
-            return
-        raise DistributionCheckError(f"GUI process exited during startup with code {exit_code}")
+            # 3秒後もGUIが動作していれば起動確認を通過させ、finallyで終了する。
+            pass
+        else:
+            raise DistributionCheckError(
+                f"GUI process exited during startup with code {exit_code}"
+            )
     finally:
         if process.poll() is None:
-            process.terminate()
+            process_tree_terminated = False
+            try:
+                result = subprocess.run(
+                    ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=10,
+                    check=False,
+                )
+                process_tree_terminated = result.returncode == 0
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+            if not process_tree_terminated and process.poll() is None:
+                process.terminate()
             try:
                 process.wait(timeout=10)
             except subprocess.TimeoutExpired:
@@ -332,8 +556,14 @@ def _verify_gui_launch(exe: Path, workspace: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--exe", required=True, type=Path, help="Path to the built onedir executable")
-    parser.add_argument("--gui", action="store_true", help="Also perform a bounded GUI startup smoke test")
+    parser.add_argument(
+        "--exe", required=True, type=Path, help="Path to the built onedir executable"
+    )
+    parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Also perform a bounded GUI startup smoke test",
+    )
     args = parser.parse_args()
     exe = args.exe.resolve()
     if not exe.is_file():
@@ -345,13 +575,23 @@ def main() -> int:
         workspace = Path(temp)
         try:
             _verify_application_icon(exe)
-            _verify_cli_contract(exe, workspace)
-            _verify_language_comments(exe, workspace)
-            _verify_semantic_backends(exe, workspace)
-            _verify_python_features(exe, workspace)
+            version = _run(exe, workspace, "--version")
+            if "Tomiya Code Atlas (Go)" in version.stdout:
+                _verify_go_cli_contract(exe, workspace)
+                _verify_go_analysis_outputs(exe, workspace)
+            else:
+                _verify_cli_contract(exe, workspace, version.stdout)
+                _verify_language_comments(exe, workspace)
+                _verify_semantic_backends(exe, workspace)
+                _verify_python_features(exe, workspace)
             if args.gui:
                 _verify_gui_launch(exe, workspace)
-        except (DistributionCheckError, OSError, ValueError, subprocess.SubprocessError) as error:
+        except (
+            DistributionCheckError,
+            OSError,
+            ValueError,
+            subprocess.SubprocessError,
+        ) as error:
             print(f"Distribution E2E failed: {error}", file=sys.stderr)
             return 1
 

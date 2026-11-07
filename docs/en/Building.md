@@ -33,6 +33,8 @@ run_dist.bat
 .build\dist\backends\go\tomiya-go-backend.exe
 ```
 
+The Go EXE workflow uploads the `tomiya-code-atlas-go-windows-x64` artifact after the CLI distribution smoke test and before the GUI startup smoke test and one-dir E2E check. Download it from the workflow run's Artifacts section in GitHub Actions. If a later GUI or E2E check fails, the artifact remains available when the upload step succeeded. Its presence does not mean those later checks passed.
+
 To run the packaged command-line application, pass arguments through the launcher:
 
 ```bat

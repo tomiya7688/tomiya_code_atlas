@@ -1,0 +1,11 @@
+{
+  "name": "tomiya-code-atlas-web-format",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write ../../go/internal/ui/web/app.css",
+    "check": "prettier --check ../../go/internal/ui/web/app.css"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
+  }
+}
