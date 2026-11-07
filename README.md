@@ -4,17 +4,18 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 目的は、コードを読む前に「何があるか」「どこから呼ばれるか」「何に依存するか」「どこが複雑か」を短時間で把握できる状態を作ることです。
 
-製品本体はGoへ移行中です。Go CLIはsource fileまたはproject folderを再帰解析し、呼び出し図・クラス図・コメント付きsource copy・静的仕様書・設計品質レポートを生成します。各fileは個別解析され、file間の名前・型解決、その他の図、GUIは未移植です。コメント生成では入力sourceを変更せず、言語別のcommentを加えたcopyを出力します。具体的な実行方法は[CLI利用ガイド](docs/jp/CLI利用ガイド.md)を参照してください。既存機能の説明は移行中のPython source版を含み、移行完了までは [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで進捗を管理します。
+製品本体はGoへ移行中です。Go CLIはsource fileまたはproject folderを再帰解析し、呼び出し図・クラス図・コメント付きsource copy・静的仕様書・設計品質レポートを生成します。各fileは個別解析され、file間の名前・型解決、その他の図、GUIは未移植です。コメント生成では入力sourceを変更せず、言語別のcommentを加えたcopyを出力します。具体的な実行方法は[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)を参照してください。既存機能の説明は移行中のPython source版を含み、移行完了までは [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで進捗を管理します。
 
 ## 主な機能
 
 主な対象:
+
 - コメント生成
 - クラス / オブジェクト / シーケンス / コミュニケーション図
 - 状態遷移 / アクティビティ / タイミング / ユースケース図
 - パッケージ / コンポーネント / デプロイメント図
 - コールグラフ
-- [静的仕様書](docs/jp/機能仕様/静的仕様書.md)（Pythonファイル／プロジェクト）
+- [静的仕様書](docs/jp/%E6%A9%9F%E8%83%BD%E4%BB%95%E6%A7%98/%E9%9D%99%E7%9A%84%E4%BB%95%E6%A7%98%E6%9B%B8.md)（Pythonファイル／プロジェクト）
 - 静的仕様書（Python単一ファイル）
 - クラス責務表
 - CI 解析
@@ -25,6 +26,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 ## 主な解析対象
 
 主要な解析対象言語:
+
 - Python
 - GDScript
 - C#
@@ -36,7 +38,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 ## Windows配布アプリをビルドする
 
-Go版への移行を進めています。ルートで `build_exe.bat` を実行すると、Go CLIと各言語のparser helper・必要runtimeを含むone-dir配布物を作成します。Go CLIではsource fileまたはproject folderから5種類の解析結果を生成できます。[CLI利用ガイド](docs/jp/CLI利用ガイド.md)を参照してください。GitHub Actionsの `Go EXE` workflowからWindows配布artifactを取得できます。
+Go版への移行を進めています。ルートで `build_exe.bat` を実行すると、Go CLIと各言語のparser helper・必要runtimeを含むone-dir配布物を作成します。Go CLIではsource fileまたはproject folderから5種類の解析結果を生成できます。[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)を参照してください。GitHub Actionsの `Go EXE` workflowからWindows配布artifactを取得できます。
 
 Python版は移行期間中の参照用ソースとして残します。Python parser helperはCPython標準ASTで文法を解析し、配布時はPyInstaller one-dir内へ対応するCPython runtimeを同梱します。アーキテクチャ規則として、全言語の構造解析backendで対象言語の実文法parserまたはcompiler ASTを使います。
 
@@ -54,52 +56,54 @@ Source
 
 アプリケーション全体では UI / Process / Data の責務を分け、処理の振り分けと境界通信を薄く保ちます。解析や入出力などの実処理は、それぞれの専門moduleが担当します。
 
-規定は [`specification/architecture-policy.md`](specification/architecture-policy.md)、moduleごとの責務は [`docs/jp/責務マップ.md`](docs/jp/責務マップ.md) を参照してください。
+規定は [`specification/architecture-policy.md`](specification/architecture-policy.md)、moduleごとの責務は [`docs/jp/責務マップ.md`](docs/jp/%E8%B2%AC%E5%8B%99%E3%83%9E%E3%83%83%E3%83%97.md) を参照してください。
 
 ## repository構成
 
-    .github/
-      workflows/                 # GitHub ActionsのCI／配布workflow
-      config/
-        oop-design-checker.json  # GitHub CI専用の静的解析設定
-    assets/                      # アプリケーションの静的素材
-    config/                      # 実行時設定と例
-    docs/
-      jp/                        # 日本語正本
-      en/                        # 日本語正本から作成した英語版
-    go/                          # Go製品本体とCLI
-    parser-backends/             # 言語別parser source、manifest、license
-    scripts/
-      build/                     # build、source起動、検証の内部処理
-      dev/                       # Issue、context、PRの開発補助
-    specification/               # 規範となるプロジェクトルール
-    Src/
-      app.py                     # Python参照実装のmodule entry
-      analyzers/                 # 関係・graphの決定的な解析
-      models/                    # 受動的な共通data契約
-      generators/                # 論理出力の生成
-      renderers/                 # Mermaid / textなどの出力形式
-      evaluators/                # 設計・コード品質の評価
-      languages/                 # 言語固有のadapter
-    tests/                       # 自動検証
-    tools/                       # Issue / PR / context補助
+```
+.github/
+  workflows/                 # GitHub ActionsのCI／配布workflow
+  config/
+    oop-design-checker.json  # GitHub CI専用の静的解析設定
+assets/                      # アプリケーションの静的素材
+config/                      # 実行時設定と例
+docs/
+  jp/                        # 日本語正本
+  en/                        # 日本語正本から作成した英語版
+go/                          # Go製品本体とCLI
+parser-backends/             # 言語別parser source、manifest、license
+scripts/
+  build/                     # build、source起動、検証の内部処理
+  dev/                       # Issue、context、PRの開発補助
+specification/               # 規範となるプロジェクトルール
+Src/
+  app.py                     # Python参照実装のmodule entry
+  analyzers/                 # 関係・graphの決定的な解析
+  models/                    # 受動的な共通data契約
+  generators/                # 論理出力の生成
+  renderers/                 # Mermaid / textなどの出力形式
+  evaluators/                # 設計・コード品質の評価
+  languages/                 # 言語固有のadapter
+tests/                       # 自動検証
+tools/                       # Issue / PR / context補助
+```
 
 ルート直下には、利用者向けのWindows build/run入口、リポジトリ案内、Python参照実装用metadataを置きます。各ファイルの役割は次のとおりです。
 
-| ルート直下のファイル | 役割 |
-| --- | --- |
-| `README.md` | 人向けの概要、セットアップ、利用入口を説明します。 |
-| `LICENSE` | MITライセンスを記載します。 |
-| `AGENTS.md` | エージェントが作業時に守る安定した規則を記載します。 |
-| `AI_CONTEXT.md` | AIが正本や責務の場所を探すための短い案内です。 |
-| `.gitignore` | build成果物、cache、ローカル状態をGitの追跡対象から除外します。 |
-| `.updcommanderignore` | UPD Commanderの解析対象から除外するpathを指定します。 |
-| `build_exe.bat`, `run_dist.bat` | Windows配布物のbuildと起動に使う2つの直接入口です。内部処理は `scripts/build/` にあります。 |
+| ルート直下のファイル                         | 役割                                                                                                               |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `README.md`                                  | 人向けの概要、セットアップ、利用入口を説明します。                                                                 |
+| `LICENSE`                                    | MITライセンスを記載します。                                                                                        |
+| `AGENTS.md`                                  | エージェントが作業時に守る安定した規則を記載します。                                                               |
+| `AI_CONTEXT.md`                              | AIが正本や責務の場所を探すための短い案内です。                                                                     |
+| `.gitignore`                                 | build成果物、cache、ローカル状態をGitの追跡対象から除外します。                                                    |
+| `.updcommanderignore`                        | UPD Commanderの解析対象から除外するpathを指定します。                                                              |
+| `build_exe.bat`, `run_dist.bat`              | Windows配布物のbuildと起動に使う2つの直接入口です。内部処理は `scripts/build/` にあります。                        |
 | `pyproject.toml`, `setup.cfg`, `MANIFEST.in` | Python参照実装のeditable install・testとparser helper build用の開発metadataです。Go製品の配布buildには使いません。 |
 
 Python参照実装は `python -m Src.app` または `scripts\build\run_source.bat` から起動します。Windows配布物の利用者は `build_exe.bat` と `run_dist.bat` を使ってください。
 
-文書は日本語を正本とし、[`docs/jp/現状.md`](docs/jp/現状.md)で現在の能力と既知制約を、[`docs/jp/責務マップ.md`](docs/jp/責務マップ.md)で責務から探す場所を確認できます。利用者向けの英語版は[`docs/en/README.md`](docs/en/README.md)から、[ビルド手順](docs/en/Building.md)、[GUIガイド](docs/en/GUI-Usage.md)、[CLIリファレンス](docs/en/CLI-Reference.md)を参照できます。
+文書は日本語を正本とし、[`docs/jp/現状.md`](docs/jp/%E7%8F%BE%E7%8A%B6.md)で現在の能力と既知制約を、[`docs/jp/責務マップ.md`](docs/jp/%E8%B2%AC%E5%8B%99%E3%83%9E%E3%83%83%E3%83%97.md)で責務から探す場所を確認できます。利用者向けの英語版は[`docs/en/README.md`](docs/en/README.md)から、[ビルド手順](docs/en/Building.md)、[GUIガイド](docs/en/GUI-Usage.md)、[CLIリファレンス](docs/en/CLI-Reference.md)を参照できます。
 
 ## Windowsでのセットアップと起動
 
@@ -109,18 +113,20 @@ Python参照実装は `python -m Src.app` または `scripts\build\run_source.ba
 - .NET 10 SDK: [Microsoft .NETダウンロード](https://dotnet.microsoft.com/download/dotnet/10.0)。C# Roslyn helperのself-contained buildに使います。配布物の利用者は.NETを別途用意する必要がありません。
 - JDK 25: Java parser helperのbuildとprivate runtime作成に使います。配布物の利用者はJavaを別途用意する必要がありません。
 - Apache Maven: [Mavenの配布案内](https://maven.apache.org/download.cgi)。JavaParser helperのbuildに使います。利用者向けartifactにはMavenを含めません。
-- Python 3.11以降: [Windows向けPython配布](https://www.python.org/downloads/windows/)。source実行、test、parser helperのbuildに使います。配布物はCPython runtimeを同梱します。
+- CPython安定版: 3.11系列は3.11.18以降、3.12系列は3.12.16以降、3.13系列は3.13.18以降、3.14系列は3.14.10以降、3.15系列は3.15.2以降。入手先は[Windows向けPython配布](https://www.python.org/downloads/windows/)です。source実行、test、parser helperのbuildに使います。配布物はCPython runtimeを同梱します。
+- WindowsのPython install managerから導入する場合は3.14.10または3.15.2以降を選んでください。3.11.18、3.12.16、3.13.18はsource-onlyのsecurity releaseで、Windows installerはありません（[公式release案内](https://blog.python.org/2026/10/python-3152-31410-31318-31216-31118/)）。
+- setup時のsecurity checkerは、修正済みpatch floorを登録していないCPython minor系列を受け入れません。公式の修正版を確認後、対応patch floorを登録します。
 
-Go版EXEと全parser helperのbuildにはGo 1.27.x、Python 3.11以降、.NET 10 SDK、JDK 25、Apache Mavenと `scripts\build\setup.bat` が必要です。配布物の利用者はこれらの開発toolchainを別途用意する必要がありません。
+Go版EXEと全parser helperのbuildにはGo 1.27.x、上記のsecurity patchを含むPython、.NET 10 SDK、JDK 25、Apache Mavenと `scripts\build\setup.bat` が必要です。配布物の利用者はこれらの開発toolchainを別途用意する必要がありません。
 
-`scripts\build\setup.bat` はリポジトリ内の `.venv` を作り、source testとPyInstaller helper buildに必要なpackageをインストールします。ソース版を起動する場合は `scripts\build\run_source.bat` を使います。Pythonや依存packageをglobal環境へインストールしません。
+`scripts\build\setup.bat` はリポジトリ内の `.venv` を作り、source testとPyInstaller helper buildに必要なpackageをインストールします。既存の `.venv` も最初にCPythonのsecurity floorを確認し、SHA-256固定したpipとcertifiのwheelで更新してからtrust storeを検査します。ソース版を起動する場合は `scripts\build\run_source.bat` を使います。Pythonや依存packageをglobal環境へインストールしません。
 
 ```bat
 build_exe.bat
 run_dist.bat
 ```
 
-`build_exe.bat` はGo CLI、CPython/GDScript、Roslyn C#、Clang C++、JavaParser helperを作り、`run_dist.bat` はGo CLIを起動します。Java helperはjlinkで作成したprivate runtimeを同梱します。Go CLIの現在の対応機能と使い方は[CLI利用ガイド](docs/jp/CLI利用ガイド.md)を確認してください。GitHub Actionsの `Go EXE` workflowは配布物をbuildし、helper呼出しと5種類の解析結果を確認してからartifactとして公開します。
+`build_exe.bat` はGo CLI、CPython/GDScript、Roslyn C#、Clang C++、JavaParser helperを作り、`run_dist.bat` はGo CLIを起動します。Java helperはjlinkで作成したprivate runtimeを同梱します。Go CLIの現在の対応機能と使い方は[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)を確認してください。GitHub Actionsの `Go EXE` workflowは配布物をbuildし、helper呼出しと5種類の解析結果を確認してからartifactとして公開します。
 
 `scripts\build\verify.bat` はGo EXEと全parser helperのbuild・起動smoke、Python source test、policy checkを実行します。v1.0.0のrelease workflowはGo移行が完了するまで用意しません。
 
@@ -134,18 +140,18 @@ scripts\dev\prepare_work.bat
 
 Linux/macOSでは `./scripts/dev/prepare_work.sh` を使います。これは優先Issueの選択、Task Capsule作成、remote delta確認、Context Pack生成を行います。
 
-| コマンド | 用途 |
-| --- | --- |
-| `scripts\dev\next_issue.bat` | 最優先の actionable Issue をTask Capsule化 |
-| `scripts\dev\context.bat profile` | repo規模とcontext使用量を確認 |
-| `scripts\dev\context.bat remote-delta` | ahead/behindとリモート変更を確認 |
-| `scripts\dev\context.bat validation-plan` | 変更ファイルから検証を選ぶ |
-| `scripts\dev\context.bat policy-check` | architecture boundaryを確認 |
-| `scripts\dev\context.bat context-pack` | 一時Context Packを生成 |
-| `scripts\dev\reducer.bat setup` | 開発専用reducerを準備 |
-| `scripts\dev\pull_request.bat` | 検証、commit、push、PR作成 |
+| コマンド                                  | 用途                                       |
+| ----------------------------------------- | ------------------------------------------ |
+| `scripts\dev\next_issue.bat`              | 最優先の actionable Issue をTask Capsule化 |
+| `scripts\dev\context.bat profile`         | repo規模とcontext使用量を確認              |
+| `scripts\dev\context.bat remote-delta`    | ahead/behindとリモート変更を確認           |
+| `scripts\dev\context.bat validation-plan` | 変更ファイルから検証を選ぶ                 |
+| `scripts\dev\context.bat policy-check`    | architecture boundaryを確認                |
+| `scripts\dev\context.bat context-pack`    | 一時Context Packを生成                     |
+| `scripts\dev\reducer.bat setup`           | 開発専用reducerを準備                      |
+| `scripts\dev\pull_request.bat`            | 検証、commit、push、PR作成                 |
 
-他のcontextコマンドは `scripts\dev\context.bat --help` を参照してください。Linux/macOSでは同じ場所の `context.sh`、`reducer.sh`、`prepare_work.sh` を使います。詳細は [`docs/jp/開発運用.md`](docs/jp/開発運用.md) を参照してください。
+他のcontextコマンドは `scripts\dev\context.bat --help` を参照してください。Linux/macOSでは同じ場所の `context.sh`、`reducer.sh`、`prepare_work.sh` を使います。詳細は [`docs/jp/開発運用.md`](docs/jp/%E9%96%8B%E7%99%BA%E9%81%8B%E7%94%A8.md) を参照してください。
 
 ## AI向け作業方針
 

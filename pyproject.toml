@@ -13,6 +13,7 @@ authors = [
     { name = "tomiya7688" }
 ]
 dependencies = [
+    "certifi>=2026.10.19",
     "PyYAML>=6.0",
     "tree-sitter>=0.26,<0.27",
     "tree-sitter-gdscript==6.1.0",
