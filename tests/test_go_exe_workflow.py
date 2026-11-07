@@ -17,3 +17,5 @@ def test_go_workflow_checks_formatter_changes_and_limits_token_permissions() -> 
         paths = workflow["on"][event_name]["paths"]
         assert "tools/web-format/**" in paths
         assert "tools/verify_distribution.py" in paths
+        assert "scripts/build/generate_app_icon.ps1" in paths
+        assert "assets/characters/atlas-kun/**" in paths
