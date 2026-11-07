@@ -33,7 +33,9 @@ run_dist.bat
 .build\dist\backends\go\tomiya-go-backend.exe
 ```
 
-The Go EXE workflow uploads the `tomiya-code-atlas-go-windows-x64` artifact after the CLI distribution smoke test and before the GUI startup smoke test and one-dir E2E check. Download it from the workflow run's Artifacts section in GitHub Actions. If a later GUI or E2E check fails, the artifact remains available when the upload step succeeded. Its presence does not mean those later checks passed.
+The Go EXE workflow uploads the `tomiya-code-atlas-go-windows-x64` artifact only after the CLI, GUI startup, and one-dir E2E smoke checks pass. On pushes (including pull request branches) and manual runs, it creates a ZIP of the one-dir distribution, SHA-256 manifests for the ZIP and bundled binaries, and GitHub OIDC provenance attestations for the ZIP, manifests, and bundled binaries. Pull request events validate the build but do not publish an artifact or attestation. If a smoke check or attestation fails, the workflow does not upload the distribution artifact.
+
+Extract the GitHub Actions artifact and find the distribution ZIP and `SHA256SUMS.txt`. In an environment with GitHub CLI installed, verify ZIP provenance with `gh attestation verify tomiya-code-atlas-windows-x64.zip -R tomiya7688/tomiya_code_atlas --signer-workflow tomiya7688/tomiya_code_atlas/.github/workflows/go-exe.yml`. The `SHA256SUMS.txt` inside the ZIP lets you verify the extracted parser binaries. Provenance attestations establish the build source and integrity; they do not add a Windows Authenticode Publisher signature. Authenticode signing for official releases remains unavailable until a trusted signing certificate is provisioned.
 
 To run the packaged command-line application, pass arguments through the launcher:
 

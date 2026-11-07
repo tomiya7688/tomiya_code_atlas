@@ -273,11 +273,11 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert "smoke_python_backend.py" in go_workflow
     assert "build_csharp_backend.bat" in go_workflow
     assert "csharp_backend_smoke.py" in go_workflow
-    assert ".build/dist/backends/csharp/" in go_workflow
+    assert "tools/package_windows_distribution.py" in go_workflow
+    assert ".build/release/tomiya-code-atlas-windows-x64.zip" in go_workflow
     assert "build_cpp_backend.bat" in go_workflow
     assert "cpp_backend_smoke.py" in go_workflow
     assert "cpp\\tomiya-cpp-backend\\tomiya-cpp-backend.exe" in go_workflow
-    assert ".build/dist/backends/cpp/" in go_workflow
     assert "build_java_backend.bat" in go_workflow
     assert "java_backend_smoke.py" in go_workflow
     assert "go_backend_smoke.py" in go_workflow
@@ -285,10 +285,8 @@ def test_go_distribution_workflow_builds_and_uploads_windows_artifacts() -> None
     assert "GoとPythonのformat check" in go_workflow
     assert "gofmt -l $goSources" in go_workflow
     assert "ruff format --check tools\\go_cli_smoke.py" in go_workflow
-    assert ".build/dist/backends/go/" in go_workflow
     assert "setup-java@v5" in go_workflow
-    assert ".build/dist/backends/java/" in go_workflow
-    assert "Go版Windows EXEをartifactとして保存" in go_workflow
+    assert "署名済みprovenance付き配布ZIPをartifactとして保存" in go_workflow
     assert not (ROOT / ".github/workflows/python-exe.yml").exists()
     assert not (ROOT / ".github/workflows/build.yml").exists()
     assert not (ROOT / ".github/workflows/release.yml").exists()

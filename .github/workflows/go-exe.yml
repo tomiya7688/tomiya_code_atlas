@@ -32,6 +32,8 @@ on:
       - "internal/**"
       - "tools/web-format/**"
       - "tools/verify_distribution.py"
+      - "tools/package_windows_distribution.py"
+      - "tests/test_package_windows_distribution.py"
       - "scripts/build/build_go.bat"
       - "scripts/build/build_go_parser_backend.bat"
       - "scripts/build/build_python_backend.bat"
@@ -93,6 +95,8 @@ on:
       - "internal/**"
       - "tools/web-format/**"
       - "tools/verify_distribution.py"
+      - "tools/package_windows_distribution.py"
+      - "tests/test_package_windows_distribution.py"
       - "scripts/build/build_go.bat"
       - "scripts/build/build_go_parser_backend.bat"
       - "scripts/build/build_python_backend.bat"
@@ -136,6 +140,10 @@ on:
 jobs:
   build-windows-exe:
     runs-on: windows-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
 
     steps:
       - name: ソースを取得
@@ -348,21 +356,6 @@ jobs:
           & .\.venv\Scripts\python.exe tools\go_cli_smoke.py ".build\dist\tomiya-code-atlas.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Go版Windows EXEをartifactとして保存
-        uses: actions/upload-artifact@v7
-        with:
-          name: tomiya-code-atlas-go-windows-x64
-          path: |
-            .build/dist/tomiya-code-atlas.exe
-            .build/dist/assets/
-            .build/dist/backends/manifest.json
-            .build/dist/backends/tomiya-python-backend/
-            .build/dist/backends/csharp/
-            .build/dist/backends/cpp/
-            .build/dist/backends/java/
-            .build/dist/backends/go/
-          if-no-files-found: error
-
       - name: Go GUIの配布起動をsmoke test
         timeout-minutes: 3
         shell: pwsh
@@ -377,4 +370,32 @@ jobs:
         run: |
           & .\.venv\Scripts\python.exe tools\verify_distribution.py --exe ".build\dist\tomiya-code-atlas.exe" --gui
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Windows one-dir配布ZIPとSHA-256 manifestを作成
+        run: python tools/package_windows_distribution.py
+
+      - name: 配布ZIP・manifest・内包binaryのprovenanceを署名
+        if: github.event_name != 'pull_request'
+        uses: actions/attest@v4
+        with:
+          subject-checksums: .build/release/ATTESTED-SUBJECTS.txt
+
+      - name: 配布ZIPのprovenance attestationを検証
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh attestation verify .build/release/tomiya-code-atlas-windows-x64.zip
+          --repo tomiya7688/tomiya_code_atlas
+          --signer-workflow tomiya7688/tomiya_code_atlas/.github/workflows/go-exe.yml
+
+      - name: 署名済みprovenance付き配布ZIPをartifactとして保存
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: tomiya-code-atlas-go-windows-x64
+          path: |
+            .build/release/tomiya-code-atlas-windows-x64.zip
+            .build/release/SHA256SUMS.txt
+          if-no-files-found: error
 
