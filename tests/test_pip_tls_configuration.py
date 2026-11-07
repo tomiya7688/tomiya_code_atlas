@@ -1,6 +1,6 @@
 import os
 import ntpath
-from pathlib import Path, PureWindowsPath
+from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
 
 from tools.pip_tls_configuration import (
     discover_pip_ca_bundles,
@@ -8,7 +8,7 @@ from tools.pip_tls_configuration import (
 )
 
 
-def _windows_paths(paths: list[Path]) -> set[PureWindowsPath]:
+def _windows_paths(paths: list[PurePath]) -> set[PureWindowsPath]:
     return {PureWindowsPath(str(path)) for path in paths}
 
 
@@ -36,6 +36,14 @@ def test_windows_pip_config_uses_userprofile_when_home_differs(
         _expected_windows_pip_config(ntpath.join("Z:", "\\different-profile"))
         not in windows_paths
     )
+
+
+def test_windows_path_normalization_accepts_posix_paths_with_backslashes() -> None:
+    posix_path = PurePosixPath(r"C:\Users\tester") / "pip" / "pip.ini"
+
+    assert _windows_paths([posix_path]) == {
+        _expected_windows_pip_config(r"C:\Users\tester")
+    }
 
 
 def test_windows_pip_config_uses_home_drive_and_path_without_userprofile(
