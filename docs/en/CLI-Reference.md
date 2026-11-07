@@ -1,15 +1,22 @@
 # Command-line reference
 
-The Go CLI supports recursive project scanning, call graphs, class diagrams, commented source copies, static specifications, and design-quality reports. Each file is parsed independently; cross-file name and type resolution is not available yet. YAML configuration is excluded from source parsing; a YAML-only input reports that no supported source was found. Internal deployment configuration discovery continues to recognize YAML. The Windows executable opens a GUI for call graphs and class diagrams without arguments. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) and the [GUI guide](GUI-Usage.md).
+The Go CLI supports recursive project scanning, call graphs, class diagrams, sequence diagrams, commented source copies, static specifications, and design-quality reports. Each discovered source file is parsed independently and its Common IR facts are combined; cross-file name and type resolution is not available yet. YAML configuration is excluded from source parsing; a YAML-only input reports that no supported source was found. Internal deployment configuration discovery continues to recognize YAML. The Windows executable opens a Japanese GUI for call graphs and class diagrams without arguments. See the [Japanese Go CLI guide](../jp/CLI利用ガイド.md) and [GUI guide](GUI-Usage.md).
 
-The [Japanese Go CLI guide](../jp/CLI利用ガイド.md) is the canonical guide for the Go CLI. The Python reference implementation has separate commands described below.
+Japanese source: [README](../../README.md). This guide documents the commands currently exposed by `Src.app`; run `python -m Src.app <command> --help` for the live option list.
 
 ## Start here
+
+From the repository root, use Python:
+
+```text
+python -m Src.app --help
+python -m Src.app --version
+```
 
 The Go CLI command is available through `run_dist.bat` or the packaged executable:
 
 ```bat
-run_dist.bat analyze sample.py --operation call-graph --operation class-diagram --operation comments --operation static-spec --operation design-quality --output-dir atlas-output
+run_dist.bat analyze sample.py --operation call-graph --operation class-diagram --operation sequence-diagram --operation comments --operation static-spec --operation design-quality --output-dir atlas-output
 ```
 
 The current Go command accepts one source file or project folder and requires at least one `--operation` and an `--output-dir`. A folder is scanned recursively. Diagram, specification, and quality outputs are Markdown files in the output folder. The `comments` operation writes language-specific comments into copies under `comments/`; directory inputs keep their relative paths, and a single file is named `<file>_commented.<extension>`. The input files are not modified. For directory input with `comments`, `<output-dir>/comments` and the input folder must be separate, non-overlapping trees: neither path can equal, contain, or be nested under the other. The CLI rejects overlapping paths before scanning to prevent generated copies from being rediscovered and to keep inputs separate from outputs. Use a separate output folder such as `atlas-output`. The parser helper and `backends/manifest.json` must be next to the executable. Run `run_dist.bat analyze --help` for the option list.
@@ -80,4 +87,4 @@ This documents one Python file or recursively scans a Python project (excluding 
 
 ## Japanese source
 
-The Japanese Go CLI guide is authoritative: [../jp/CLI利用ガイド.md](../jp/CLI利用ガイド.md). This English reference is its translation and must not define different behavior.
+The Japanese README is authoritative: [../../README.md](../../README.md). English guides are translations and must not define different behavior.

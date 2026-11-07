@@ -1,3 +1,4 @@
 go/internal/ui/web/app.css text eol=lf
 .github/workflows/go-exe.yml whitespace=cr-at-eol
-scripts/build/build_go.bat whitespace=cr-at-eol
+*.bat whitespace=cr-at-eol
+*.md whitespace=cr-at-eol

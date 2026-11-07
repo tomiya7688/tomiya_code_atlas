@@ -31,7 +31,9 @@ jobs:
     assert workflow.jobs[1].needs == ("test",)
 
 
-def test_github_actions_supports_multiline_triggers_commands_needs_and_unnamed_steps() -> None:
+def test_github_actions_supports_multiline_triggers_commands_needs_and_unnamed_steps() -> (
+    None
+):
     workflow = parse_github_actions("""
 name: Standard YAML
 on:
@@ -94,9 +96,22 @@ def test_tomiya_ci_workflow_parses_as_regression_fixture() -> None:
     jobs = {job.name: job for job in workflow.jobs}
     assert {"test", "oop-design"} <= set(jobs)
     test_steps = {step.name: step for step in jobs["test"].steps}
+    tls_setup = test_steps["PythonのpipとCA bundleを安全な版へ更新"]
+    tls_command = tls_setup.command or ""
+    assert "python tools/python_tls_floor.py" in tls_command
+    assert (
+        "python -m pip install --upgrade --require-hashes -r "
+        "tools/requirements-pip-bootstrap.txt"
+    ) in tls_command
+    assert (
+        "python -m pip install --upgrade --require-hashes -r "
+        "tools/requirements-python-tls.txt"
+    ) in tls_command
+    assert "python tools/verify_python_tls.py" in tls_command
     install = test_steps["projectとtest用ツールをinstall"]
-    assert "python -m pip install --upgrade pip" in (install.command or "")
     assert 'python -m pip install -e ".[test]"' in (install.command or "")
+    step_names = [step.name for step in jobs["test"].steps]
+    assert step_names.index(tls_setup.name) < step_names.index(install.name)
     assert test_steps["全testを実行"].command == "python -m pytest"
 
 
@@ -118,6 +133,10 @@ def test_go_windows_artifact_is_smoke_tested_before_upload() -> None:
     assert "call build_exe.bat" in (steps["Windows EXEをbuild"].command or "")
     assert "配布EXEのhelpとversionをsmoke test" in steps
     assert "Go版Windows EXEをartifactとして保存" in steps
+    names = [step.name for step in workflow.jobs[0].steps]
+    assert names.index("Go版Windows EXEをartifactとして保存") > names.index(
+        "配布EXEのhelpとversionをsmoke test"
+    )
     assert '$helpText = $help -join "`n"' in source
     assert "cache-dependency-path: go/go.mod" in source
     assert "tomiya-code-atlas-go-windows-x64" in source

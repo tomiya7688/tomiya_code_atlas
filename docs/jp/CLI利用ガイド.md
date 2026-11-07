@@ -11,13 +11,13 @@ Windows配布物またはGitHub Actionsが公開するGo配布artifactを展開�
 コマンドプロンプトで次のように実行します。
 
 ```bat
-tomiya-code-atlas.exe analyze path\to\project --operation call-graph --operation class-diagram --operation comments --operation static-spec --operation design-quality --output-dir atlas-output
+tomiya-code-atlas.exe analyze path\to\project --operation call-graph --operation class-diagram --operation sequence-diagram --operation comments --operation static-spec --operation design-quality --output-dir atlas-output
 ```
 
 リポジトリ内でbuildした配布物は、rootからlauncherを使って実行できます。
 
 ```bat
-run_dist.bat analyze path\to\source.go --operation call-graph --operation class-diagram --operation comments --operation static-spec --operation design-quality --output-dir atlas-output
+run_dist.bat analyze path\to\source.go --operation call-graph --operation class-diagram --operation sequence-diagram --operation comments --operation static-spec --operation design-quality --output-dir atlas-output
 ```
 
 `--operation`を必要な結果ごとに繰り返し、`--output-dir`へ保存folderを指定してください。入力には一つのsource fileまたはproject folderを指定できます。folderを指定すると対応するsourceを下位folderまで再帰的に探索し、各fileを拡張子に対応するmanifest上のparser helperで個別に解析してCommon IRを統合します。複数file間の型解決やpackage単位の意味解析はまだ行いません。通常のソース解析ではYAML設定を対象外にします。YAMLだけを指定すると、対応ソースがないことを案内します。デプロイメント設定の内部探索ではYAMLを引き続き扱います。
@@ -34,4 +34,4 @@ parserが失敗した場合も、原因と次の確認手順を日本語で案�
 
 ## 現在の範囲
 
-現在のGo CLIは `call-graph`、`class-diagram`、`comments`、`static-spec`、`design-quality` に対応します。GUIでは呼び出し図とクラス図を選べます。プロジェクトフォルダー内の各ファイルは個別に解析してCommon IRを集約します。コメント付きコピーは元のソースを変更しません。ファイル間の名前・型解決、その他の図、GitHub Actions解析は移行中です。GUIの使い方は[GUI操作ガイド](GUI操作ガイド.md)を参照してください。
+現在のGo CLIが対応するoperationは`call-graph`、`class-diagram`、`sequence-diagram`、`comments`、`static-spec`、`design-quality`です。project folderを指定した場合も各fileを独立して解析し、宣言などのCommon IR情報を集約します。comment copyは各言語用のcomment prefixを使い、元sourceを上書きしません。fileをまたぐ名前・型解決、その他の図、GitHub Actions解析は後続の移行Issueで対応します。Windows版EXEは引数なしでGUIを開き、呼び出し図とクラス図を選べます。詳しくは[GUI操作ガイド](GUI操作ガイド.md)を参照してください。

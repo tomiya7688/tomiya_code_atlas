@@ -35,6 +35,14 @@ Tomiya Code Atlasは、アプリケーション全体でUI / Process / Dataの�
 
 各moduleを必ず`Commander`または`Messenger`と命名する必要はありません。責務のルールは必須ですが、名前は規範ではありません。
 
+## Required（必須）: 図の意味modelとRendererの境界
+
+1. AnalyzerとGeneratorは、Mermaid、PlantUMLなど特定Rendererの構文やnode IDを論理modelへ格納してはいけません。
+2. 図の論理modelは、実装が生成した要素・関係・順序・条件の意味を保持し、出力先が変わっても再利用できる契約にします。modelは表現対象として宣言した意味範囲を明記し、UMLの完全なmetamodelと誤認させてはいけません。
+3. Rendererごとに忠実に表現できる範囲、別形式による近似、未対応をCapability Matrixで明示します。近似先のsyntaxへ黙って置換し、UML準拠の図として扱ってはいけません。
+4. cycle、confidence、design warning、high fan-in、shared group、diagram continuationなど製品固有の情報は、UML要素・関係の意味と分離したoverlayまたはpresentation metadataとして扱います。
+5. 図をpartitionする場合、元の意味関係を削除・変更してはいけません。境界参照はpresentation上の案内であり、元の関係情報の代わりにはなりません。
+
 ## Required（必須）: 情報の責務
 
 1. `README.md`は人向けの概要と入口であり、詳細仕様をすべて載せる場所ではありません。
@@ -99,7 +107,6 @@ Required規則の例外は、Issue/PRまたは専用文書へ次の情報を記�
 - 正本への参照
 
 例外は明示した範囲だけに適用します。一般規則を暗黙に変更してはいけません。
-
 
 ## Required（必須）: ソースコメント
 

@@ -2,15 +2,23 @@ package generators
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/tomiya7688/tomiya_code_atlas/internal/analyzers"
 	"github.com/tomiya7688/tomiya_code_atlas/internal/commonir"
 )
 
 type ObjectField struct{ Name, Value string }
+
+//	{
+//	  責務: [ObjectNode: object instanceまたは系列境界の参照stubを保持する]
+//	  フィールド: [Key: stable object key, Name: object名, TypeName: 型名, Fields: 表示field, External: 別diagramのnodeであること, ReferenceOutput: 続きのdiagram名]
+//	}
 type ObjectNode struct {
 	Key, Name, TypeName string
 	Fields              []ObjectField
+	External            bool
+	ReferenceOutput     string
 }
 type ObjectReference struct{ Source, Target, Label string }
 type ObjectDiagram struct {
@@ -37,7 +45,7 @@ func BuildObjectDiagramBundle(module commonir.Module, fanInThreshold int) (Objec
 	if err != nil {
 		return ObjectDiagramBundle{}, err
 	}
-	partition, err := analyzers.PartitionGraph(relation, fanInThreshold, 3)
+	partition, err := analyzers.PartitionGraph(relation, fanInThreshold, analyzers.DefaultMinChildSeriesSize)
 	if err != nil {
 		return ObjectDiagramBundle{}, err
 	}
@@ -46,7 +54,10 @@ func BuildObjectDiagramBundle(module commonir.Module, fanInThreshold int) (Objec
 		instances[objectKey(instance)] = instance
 	}
 	nodeModel := func(key string) ObjectNode {
-		instance := instances[key]
+		instance, exists := instances[key]
+		if !exists {
+			return ObjectNode{Key: key, Name: key, TypeName: "external", External: true}
+		}
 		node := ObjectNode{Key: key, Name: instance.Name, TypeName: instance.TypeName}
 		for _, pair := range instance.Values {
 			if len(pair) >= 2 {
@@ -55,40 +66,86 @@ func BuildObjectDiagramBundle(module commonir.Module, fanInThreshold int) (Objec
 		}
 		return node
 	}
+	sharedOutputs := map[string]string{}
+	for _, shared := range partition.Shared {
+		sharedOutputs[shared] = stableOutputName("shared", shared, "object")
+	}
+	seriesOutputs := map[string]string{}
+	for index, series := range partition.Series {
+		name := stableOutputName(fmt.Sprintf("series_%d", index+1), partition.SeriesRoots[index], "object")
+		for _, key := range series {
+			seriesOutputs[key] = name
+		}
+	}
 	result := ObjectDiagramBundle{Statistics: partitionStatistics(partition)}
 	for i, series := range partition.Series {
 		selected := stringSet(series)
 		references := []ObjectReference{}
+		boundaryNodes := map[string]ObjectNode{}
 		for _, edge := range graph.Edges() {
-			_, a := selected[edge.Caller]
-			_, b := selected[edge.Callee]
-			if a && b {
+			_, sourceInside := selected[edge.Caller]
+			if sourceInside {
 				references = append(references, ObjectReference{edge.Caller, edge.Callee, edge.Label})
+				if _, targetInside := selected[edge.Callee]; !targetInside {
+					referenceOutput := seriesOutputs[edge.Callee]
+					if referenceOutput == "" {
+						referenceOutput = sharedOutputs[edge.Callee]
+					}
+					boundaryNode := nodeModel(edge.Callee)
+					boundaryNode.Fields = []ObjectField{}
+					boundaryNode.External = true
+					boundaryNode.ReferenceOutput = referenceOutput
+					boundaryNodes[edge.Callee] = boundaryNode
+				}
 			}
 		}
 		nodes := make([]ObjectNode, 0, len(series))
 		for _, key := range series {
 			nodes = append(nodes, nodeModel(key))
 		}
-		name := stableOutputName(fmt.Sprintf("series_%d", i+1), partition.SeriesRoots[i], "object")
+		boundaryKeys := make([]string, 0, len(boundaryNodes))
+		for key := range boundaryNodes {
+			boundaryKeys = append(boundaryKeys, key)
+		}
+		sort.Strings(boundaryKeys)
+		for _, key := range boundaryKeys {
+			nodes = append(nodes, boundaryNodes[key])
+		}
+		name := seriesOutputs[partition.SeriesRoots[i]]
 		result.Diagrams = append(result.Diagrams, ObjectDiagram{Name: name, Nodes: nodes, References: references})
 		result.Placements = append(result.Placements, regularPlacement(name, partition, i))
 	}
 	for _, shared := range partition.Shared {
-		selected := map[string]struct{}{shared: {}}
+		selected := map[string]ObjectNode{shared: nodeModel(shared)}
 		references := []ObjectReference{}
 		for _, edge := range graph.Edges() {
 			if edge.Caller == shared || edge.Callee == shared {
-				selected[edge.Caller] = struct{}{}
-				selected[edge.Callee] = struct{}{}
+				for _, endpoint := range []string{edge.Caller, edge.Callee} {
+					if endpoint == shared {
+						continue
+					}
+					boundaryNode := nodeModel(endpoint)
+					boundaryNode.Fields = []ObjectField{}
+					boundaryNode.External = true
+					boundaryNode.ReferenceOutput = seriesOutputs[endpoint]
+					if boundaryNode.ReferenceOutput == "" {
+						boundaryNode.ReferenceOutput = sharedOutputs[endpoint]
+					}
+					selected[endpoint] = boundaryNode
+				}
 				references = append(references, ObjectReference{edge.Caller, edge.Callee, edge.Label})
 			}
 		}
 		nodes := []ObjectNode{}
-		for _, key := range sortedSet(selected) {
-			nodes = append(nodes, nodeModel(key))
+		selectedKeys := make([]string, 0, len(selected))
+		for key := range selected {
+			selectedKeys = append(selectedKeys, key)
 		}
-		name := stableOutputName("shared", shared, "object")
+		sort.Strings(selectedKeys)
+		for _, key := range selectedKeys {
+			nodes = append(nodes, selected[key])
+		}
+		name := sharedOutputs[shared]
 		result.Diagrams = append(result.Diagrams, ObjectDiagram{Name: name, Nodes: nodes, References: references})
 		result.Placements = append(result.Placements, sharedPlacement(name, shared))
 	}

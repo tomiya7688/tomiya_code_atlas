@@ -255,11 +255,27 @@ func appendModule(target *commonir.Module, source commonir.Module) {
 func renderAnalysisOutput(module commonir.Module, operation, sourceName string) (string, error) {
 	switch operation {
 	case "call-graph":
-		graph, err := generators.BuildCallGraph(module, nil, nil)
+		bundle, err := generators.BuildCallGraphBundle(module, 3, nil, nil)
 		if err != nil {
 			return "", fmt.Errorf("呼び出し図を生成できません: %w", err)
 		}
-		return "# 呼び出し図\n\n```mermaid\n" + renderers.RenderCallGraphMermaid(graph, "LR") + "```\n", nil
+		var output strings.Builder
+		output.WriteString("# 呼び出し図\n")
+		if len(bundle.Diagrams) == 0 {
+			output.WriteString("\n```mermaid\n")
+			output.WriteString(renderers.RenderCallGraphMermaid(generators.CallGraph{}, "LR"))
+			output.WriteString("```\n")
+			return output.String(), nil
+		}
+		if len(bundle.Diagrams) == 1 {
+			return "# 呼び出し図\n\n```mermaid\n" + renderers.RenderCallGraphMermaid(bundle.Diagrams[0].Graph, "LR") + "```\n", nil
+		}
+		for _, diagram := range bundle.Diagrams {
+			fmt.Fprintf(&output, "\n## %s\n\n```mermaid\n", diagram.Name)
+			output.WriteString(renderers.RenderCallGraphMermaid(diagram.Graph, "LR"))
+			output.WriteString("```\n")
+		}
+		return output.String(), nil
 	case "class-diagram":
 		bundle, err := generators.BuildClassDiagramBundle(module, 3, nil)
 		if err != nil {
@@ -270,6 +286,19 @@ func renderAnalysisOutput(module commonir.Module, operation, sourceName string) 
 		for _, diagram := range bundle.Diagrams {
 			fmt.Fprintf(&output, "\n## %s\n\n```mermaid\n", diagram.Name)
 			output.WriteString(renderers.RenderClassDiagramMermaid(diagram))
+			output.WriteString("```\n")
+		}
+		return output.String(), nil
+	case "sequence-diagram":
+		bundle, err := generators.BuildSequenceDiagramBundle(module, 3, 8, nil)
+		if err != nil {
+			return "", fmt.Errorf("シーケンス図を生成できません: %w", err)
+		}
+		var output strings.Builder
+		output.WriteString("# シーケンス図\n")
+		for _, diagram := range bundle.Diagrams {
+			fmt.Fprintf(&output, "\n## %s\n\n```mermaid\n", diagram.Name)
+			output.WriteString(renderers.RenderSequenceDiagramMermaid(diagram))
 			output.WriteString("```\n")
 		}
 		return output.String(), nil

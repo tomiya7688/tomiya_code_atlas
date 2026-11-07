@@ -1,4 +1,10 @@
-from tools.next_issue import extract_sections, priority, route_working_set, select_issue
+from tools.next_issue import (
+    extract_sections,
+    priority,
+    related_specs,
+    route_working_set,
+    select_issue,
+)
 
 
 def test_priority_uses_label_before_title() -> None:
@@ -90,3 +96,21 @@ def test_route_working_set_uses_title_for_existing_unlabeled_issues() -> None:
     assert "Src/analyzers/" in route["source"]
     assert "Src/renderers/" in route["source"]
     assert "docs/jp/機能仕様/図表生成.md" in route["docs"]
+
+
+def test_related_specs_routes_series_partition_label_without_replacing_diagram_specs() -> (
+    None
+):
+    issue = {
+        "number": 21,
+        "title": "系列分割を仕様化する",
+        "labels": [
+            {"name": "spec:series-partition"},
+            {"name": "spec:sequence-diagram"},
+        ],
+    }
+
+    assert set(related_specs(issue)) == {
+        "docs/jp/機能仕様/図表生成.md",
+        "docs/jp/機能仕様/図の系列分割.md",
+    }

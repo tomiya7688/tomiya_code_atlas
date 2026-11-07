@@ -4,7 +4,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 目的は、コードを読む前に「何があるか」「どこから呼ばれるか」「何に依存するか」「どこが複雑か」を短時間で把握できる状態を作ることです。
 
-製品本体はGoへ移行中です。Windows版Go EXEは引数なしで日本語GUIを開き、呼び出し図とクラス図を生成します。Go CLIはさらにコメント付きソースのコピー、静的仕様書、設計品質レポートを生成できます。入力ファイルは個別に解析し、ファイル間の名前・型解決やその他の図は未移植です。コメント生成では元のソースを変更しません。実行方法は[CLI利用ガイド](docs/jp/CLI利用ガイド.md)、GUI操作は[GUI操作ガイド](docs/jp/GUI操作ガイド.md)を参照してください。移行の進捗は [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで管理します。
+製品本体はGoへ移行中です。Windows版Go EXEは引数なしで日本語GUIを開き、呼び出し図とクラス図を生成します。Go CLIはsource fileまたはproject folderを再帰解析し、呼び出し図・クラス図・シーケンス図・コメント付きsource copy・静的仕様書・設計品質レポートを生成できます。各fileは個別解析され、file間の名前・型解決やその他の図は未移植です。コメント生成では元のソースを変更しません。実行方法は[CLI利用ガイド](docs/jp/CLI利用ガイド.md)、GUI操作は[GUI操作ガイド](docs/jp/GUI操作ガイド.md)を参照してください。移行の進捗は [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで管理します。
 
 ## 主な機能
 

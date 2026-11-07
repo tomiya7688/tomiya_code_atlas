@@ -43,6 +43,8 @@ def main() -> int:
         "--operation",
         "class-diagram",
         "--operation",
+        "sequence-diagram",
+        "--operation",
         "comments",
         "--operation",
         "static-spec",
@@ -76,6 +78,7 @@ def main() -> int:
             "n_Runner --> n_Normalize",
         ),
         "go_project_class-diagram.md": ("classDiagram", "Result"),
+        "go_project_sequence-diagram.md": ("sequenceDiagram", "Runner"),
         "go_project_static-spec.md": ("## 宣言一覧", "Runner"),
         "go_project_design-quality.md": ("# 設計品質レポート", "## 指標"),
     }
@@ -158,8 +161,169 @@ def main() -> int:
         )
         return 1
 
+    recursion_fixture = ROOT / "tests/fixtures/distribution_e2e/sequence_recursion.go"
+    recursion_source = smoke_directory / recursion_fixture.name
+    shutil.copyfile(recursion_fixture, recursion_source)
+    recursion_output = smoke_directory / "sequence-recursion-output"
+    recursion_output.mkdir(parents=True, exist_ok=False)
+    recursion_command = [
+        str(executable),
+        "analyze",
+        str(recursion_source),
+        "--operation",
+        "sequence-diagram",
+        "--output-dir",
+        str(recursion_output),
+    ]
+    try:
+        recursion_result = subprocess.run(
+            recursion_command,
+            cwd=executable.parent,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=90,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        print(
+            "[エラー] 再帰sequenceの解析が90秒以内に完了しませんでした。",
+            file=sys.stderr,
+        )
+        return 1
+    if recursion_result.returncode != 0:
+        print("[エラー] 再帰sequenceの解析に失敗しました。", file=sys.stderr)
+        print(recursion_result.stderr, file=sys.stderr)
+        return 1
+    recursion_markdown = recursion_output / "sequence_recursion_sequence-diagram.md"
+    if not recursion_markdown.is_file():
+        print(
+            "[エラー] 再帰sequenceのMarkdown出力が一件ではありません。", file=sys.stderr
+        )
+        return 1
+    recursion_contents = recursion_markdown.read_text(encoding="utf-8")
+    for recursive_call in ("[recursive] alpha", "[recursive] self"):
+        if recursive_call not in recursion_contents:
+            print(
+                f"[エラー] 配布EXE出力に再帰呼び出しがありません: {recursive_call}",
+                file=sys.stderr,
+            )
+            return 1
+    if "sequenceDiagram" not in recursion_contents:
+        print(
+            "[エラー] 再帰sequence出力にMermaid sequenceDiagramがありません。",
+            file=sys.stderr,
+        )
+        return 1
+
+    partition_fixture = ROOT / "tests/fixtures/distribution_e2e/sequence_partition.go"
+    partition_source = smoke_directory / partition_fixture.name
+    shutil.copyfile(partition_fixture, partition_source)
+    partition_output = smoke_directory / "sequence-partition-output"
+    partition_output.mkdir(parents=True, exist_ok=False)
+    partition_command = [
+        str(executable),
+        "analyze",
+        str(partition_source),
+        "--operation",
+        "call-graph",
+        "--operation",
+        "sequence-diagram",
+        "--output-dir",
+        str(partition_output),
+    ]
+    try:
+        partition_result = subprocess.run(
+            partition_command,
+            cwd=executable.parent,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=90,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        print(
+            "[エラー] 系列分割の解析が90秒以内に完了しませんでした。", file=sys.stderr
+        )
+        return 1
+    if partition_result.returncode != 0:
+        print("[エラー] 系列分割の解析に失敗しました。", file=sys.stderr)
+        print(partition_result.stderr, file=sys.stderr)
+        return 1
+
+    call_graph_path = partition_output / "sequence_partition_call-graph.md"
+    sequence_path = partition_output / "sequence_partition_sequence-diagram.md"
+    if not call_graph_path.is_file() or not sequence_path.is_file():
+        print(
+            "[エラー] 系列分割のcall graphまたはsequence出力がありません。",
+            file=sys.stderr,
+        )
+        return 1
+    call_graph_contents = call_graph_path.read_text(encoding="utf-8")
+    sequence_contents = sequence_path.read_text(encoding="utf-8")
+    for contents, diagram_name in (
+        (call_graph_contents, "call graph"),
+        (sequence_contents, "sequence diagram"),
+    ):
+        if contents.count("## series_") < 3 or "## shared_" not in contents:
+            print(
+                f"[エラー] {diagram_name}が3系列とshared diagramに分割されていません。",
+                file=sys.stderr,
+            )
+            return 1
+        if "続き" not in contents:
+            print(
+                f"[エラー] {diagram_name}に分割先への境界参照がありません。",
+                file=sys.stderr,
+            )
+            return 1
+        for function_name in (
+            "AlphaStart",
+            "AlphaMiddle",
+            "AlphaWrite",
+            "BetaStart",
+            "BetaMiddle",
+            "BetaWrite",
+            "GammaStart",
+            "GammaMiddle",
+            "GammaWrite",
+            "SharedLogger",
+        ):
+            if function_name not in contents:
+                print(
+                    f"[エラー] {diagram_name}から関係先が欠落しています: {function_name}",
+                    file=sys.stderr,
+                )
+                return 1
+
+    expected_edges = (
+        "n_AlphaStart --> n_AlphaMiddle",
+        "n_AlphaMiddle --> n_AlphaWrite",
+        "n_BetaStart --> n_BetaMiddle",
+        "n_BetaMiddle --> n_BetaWrite",
+        "n_GammaStart --> n_GammaMiddle",
+        "n_GammaMiddle --> n_GammaWrite",
+    )
+    if any(edge not in call_graph_contents for edge in expected_edges):
+        print(
+            "[エラー] 系列分割後のcall graphから内部relationが欠落しています。",
+            file=sys.stderr,
+        )
+        return 1
+    expected_shared_edges = (
+        "n_AlphaWrite --> n_SharedLogger",
+        "n_BetaWrite --> n_SharedLogger",
+        "n_GammaWrite --> n_SharedLogger",
+    )
+    if any(call_graph_contents.count(edge) != 2 for edge in expected_shared_edges):
+        print(
+            "[エラー] 3系列の共有境界relationがseriesとsharedの両方に保持されていません。",
+            file=sys.stderr,
+        )
+        return 1
     print(
-        "Go CLI smoke testに成功しました。YAML混在のrecursive project scan、4種類のMarkdown出力、コメント付きsource copyを確認しました。"
+        "Go CLI smoke testに成功しました。YAML混在project scan、5種類のMarkdown出力、系列分割のrelation保持、自己・相互再帰sequence、コメント付きsource copyを確認しました。"
     )
     return 0
 

@@ -15,8 +15,16 @@ func RenderCallGraphMermaid(graph generators.CallGraph, direction string) string
 	lines := []string{"flowchart " + direction}
 	nodes := append([]string(nil), graph.Nodes...)
 	sort.Strings(nodes)
+	references := map[string]string{}
+	for _, reference := range graph.References {
+		references[reference.Node] = reference.OutputName
+	}
 	for _, node := range nodes {
-		lines = append(lines, fmt.Sprintf("    %s[\"%s\"]", callNodeID(node), node))
+		label := node
+		if outputName := references[node]; outputName != "" {
+			label += "<br/>続き: " + outputName
+		}
+		lines = append(lines, fmt.Sprintf("    %s[\"%s\"]", callNodeID(node), label))
 	}
 	for _, edge := range graph.Edges {
 		lines = append(lines, fmt.Sprintf("    %s --> %s", callNodeID(edge.Caller), callNodeID(edge.Callee)))
@@ -40,8 +48,14 @@ func RenderClassDiagramMermaid(diagram generators.ClassDiagram) string {
 	for _, node := range diagram.Nodes {
 		id := ids[node.Name]
 		label := escapeQuote(node.Name)
+		if node.External && node.ReferenceOutput != "" {
+			label += "<br/>続き: " + escapeQuote(node.ReferenceOutput)
+		}
 		if len(node.Members) == 0 {
 			lines = append(lines, fmt.Sprintf("    class %s[\"%s\"]", id, label))
+			if node.External {
+				lines = append(lines, fmt.Sprintf("    class %s <<external>>", id))
+			}
 			continue
 		}
 		lines = append(lines, fmt.Sprintf("    class %s[\"%s\"] {", id, label))

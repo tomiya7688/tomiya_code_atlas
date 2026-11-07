@@ -1,6 +1,16 @@
 @echo off
+goto :main
+
+:try_python_version
+py -%1 tools\python_tls_floor.py >nul 2>nul
+if errorlevel 1 exit /b 0
+set "PYTHON=py -%1"
+exit /b 0
+
+:main
 chcp 65001 >nul
 setlocal
+set "PYTHON="
 cd /d "%~dp0\..\.."
 
 if not exist ".build\temp" mkdir ".build\temp"
@@ -9,20 +19,23 @@ set "TMP=%TEMP%"
 
 where py >nul 2>nul
 if not errorlevel 1 (
-    py -3.12 -c "import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 12) else 1)" >nul 2>nul
-    if not errorlevel 1 set "PYTHON=py -3.12"
+    call :try_python_version 3.15
+    if not defined PYTHON call :try_python_version 3.14
+    if not defined PYTHON call :try_python_version 3.13
+    if not defined PYTHON call :try_python_version 3.12
+    if not defined PYTHON call :try_python_version 3.11
 )
 
 if not defined PYTHON (
     where python >nul 2>nul
     if errorlevel 1 (
-        echo [エラー] Python 3.11以降が見つかりません。PythonをインストールしてPATHに追加してください。
+        echo [エラー] 対応する安定版CPythonが見つかりません。3.11.18、3.12.16、3.13.18、3.14.10、3.15.2以降をインストールしてください。
         echo 入手先: https://www.python.org/downloads/windows/
         exit /b 1
     )
     python -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)" >nul 2>nul
     if errorlevel 1 (
-        echo [エラー] Python 3.11以降が必要です。Python 3.12または3.11以降をインストールしてください。
+        echo [エラー] 対応する安定版CPythonが必要です。3.11.18、3.12.16、3.13.18、3.14.10、3.15.2以降をインストールしてください。
         echo 入手先: https://www.python.org/downloads/windows/
         exit /b 1
     )
@@ -32,6 +45,12 @@ if not defined PYTHON (
 %PYTHON% -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)" >nul 2>nul
 if errorlevel 1 (
     echo [エラー] Python 3.11以降を起動できません。Pythonのインストールを確認してください。
+    exit /b 1
+)
+
+%PYTHON% tools\python_tls_floor.py
+if errorlevel 1 (
+    echo [エラー] 安全なpip更新の前に、必要なCPython安定版patch levelを満たすPythonへ切り替えてください。
     exit /b 1
 )
 
@@ -49,6 +68,12 @@ if errorlevel 1 (
     exit /b 1
 )
 
+".venv\Scripts\python.exe" tools\python_tls_floor.py
+if errorlevel 1 (
+    echo [エラー] 既存の .venv は安全なpip更新に必要なCPython安定版patch levelを満たしません。.venv を対応Pythonで作り直してください。
+    exit /b 1
+)
+
 ".venv\Scripts\python.exe" -m pip --version >nul 2>nul
 if errorlevel 1 (
     echo pipが見つからないため、Python標準のensurepipで修復しています。
@@ -62,9 +87,21 @@ if errorlevel 1 (
 if not exist ".build\metadata" mkdir ".build\metadata"
 if errorlevel 1 exit /b 1
 
-".venv\Scripts\python.exe" -m pip install --upgrade pip
+".venv\Scripts\python.exe" -m pip install --upgrade --require-hashes -r tools\requirements-pip-bootstrap.txt
 if errorlevel 1 (
-    echo [エラー] pipを更新できませんでした。ネットワーク接続と一時フォルダーへの書き込み権限を確認してください。
+    echo [エラー] SHA-256固定のpipを導入できませんでした。ネットワーク接続と一時フォルダーへの書き込み権限を確認してください。
+    exit /b 1
+)
+".venv\Scripts\python.exe" -m pip install --upgrade --require-hashes -r tools\requirements-python-tls.txt
+if errorlevel 1 (
+    echo [エラー] 修正版certifiを導入できませんでした。ネットワーク接続と一時フォルダーへの書き込み権限を確認してください。
+    exit /b 1
+)
+".venv\Scripts\python.exe" tools\verify_python_tls.py
+if errorlevel 1 (
+    echo [エラー] Python、package version、またはCA trust storeがTLS security floorを満たしていません。
+    echo [確認] Python 3.11.18、3.12.16、3.13.18、3.14.10、3.15.2以降の安定版を使用してください。
+    echo [確認] Windows Updateでシステムのroot certificateを更新してから再実行してください。
     exit /b 1
 )
 ".venv\Scripts\python.exe" -m pip install -e ".[test,parser-build,cpp-parser,format]"

@@ -27,10 +27,23 @@ type SequenceMessage struct {
 	Kind                  string
 }
 
+const (
+	SequenceCallMessage      = "call"
+	SequenceAsyncCallMessage = "async_call"
+	SequenceReturnMessage    = "return"
+	SequenceRecursiveCall    = "recursive_call"
+	SequenceDepthTruncated   = "depth_truncated"
+)
+
+//	{
+//	  責務: [SequenceDiagram: ordered message、participants、系列境界参照を保持する]
+//	  フィールド: [Name: 図名, Participants: 表示順のparticipant, Messages: ordered call, References: 続きのdiagram参照]
+//	}
 type SequenceDiagram struct {
 	Name         string
 	Participants []string
 	Messages     []SequenceMessage
+	References   []DiagramReference
 }
 
 type SequenceDiagramBundle struct {
@@ -41,7 +54,7 @@ type SequenceDiagramBundle struct {
 
 //	{
 //	  責務: [BuildSequenceDiagramBundle: ordered Common IR callからbounded sequence diagramsを作る]
-//	  処理: [1: call sequenceを解決, 2: 内部relationをpartition, 3: cycle edgeを展開対象外にする, 4: rootごとに順序付きmessageを作る]
+//	  処理: [1: call sequenceを解決, 2: 内部relationをpartition, 3: rootごとにrecursionとdepth truncationを区別した順序付きmessageを作る]
 //	}
 func BuildSequenceDiagramBundle(module commonir.Module, fanInThreshold, maxDepth int, options *SequenceDiagramOptions) (SequenceDiagramBundle, error) {
 	if maxDepth < 0 {
@@ -57,11 +70,20 @@ func BuildSequenceDiagramBundle(module commonir.Module, fanInThreshold, maxDepth
 	if err != nil {
 		return SequenceDiagramBundle{}, err
 	}
-	partition, err := analyzers.PartitionGraph(relation, fanInThreshold, 3)
+	partition, err := analyzers.PartitionGraph(relation, fanInThreshold, analyzers.DefaultMinChildSeriesSize)
 	if err != nil {
 		return SequenceDiagramBundle{}, err
 	}
-	blocked := cycleEdges(graph.Cycles())
+	sharedOutputs := map[string]string{}
+	for _, shared := range partition.Shared {
+		sharedOutputs[shared] = stableOutputName("shared", shared, "sequence")
+	}
+	seriesOutputs := map[string]string{}
+	//	{
+	//	  背景: [shared partitionは個別のtraversal pathを持たない]
+	//	  処理: [グラフ上のcycleに含まれるedgeをrecursive messageとして識別する]
+	//	}
+	cycleEdges := cycleEdges(graph.Cycles())
 	incoming := map[string]map[string]struct{}{}
 	for _, node := range graph.Nodes() {
 		incoming[node] = map[string]struct{}{}
@@ -70,6 +92,8 @@ func BuildSequenceDiagramBundle(module commonir.Module, fanInThreshold, maxDepth
 		incoming[edge.Callee][edge.Caller] = struct{}{}
 	}
 	result := SequenceDiagramBundle{Statistics: partitionStatistics(partition)}
+	rootOutputs := map[string]string{}
+	continuationOutputs := map[string]string{}
 	for i, series := range partition.Series {
 		selected := stringSet(series)
 		roots := []string{}
@@ -88,62 +112,188 @@ func BuildSequenceDiagramBundle(module commonir.Module, fanInThreshold, maxDepth
 		if len(roots) == 0 && len(series) > 0 {
 			roots = []string{series[0]}
 		}
+		seriesStart := len(result.Diagrams)
 		for _, root := range roots {
-			messages := expandSequence(root, sequences, selected, maxDepth, resolvedOptions, blocked)
 			name := stableOutputName(fmt.Sprintf("series_%d", i+1), root, "sequence")
-			result.Diagrams = append(result.Diagrams, SequenceDiagram{Name: name, Participants: sequenceParticipants(root, messages), Messages: messages})
+			diagram := buildSequenceDiagram(root, name, sequences, selected, maxDepth, resolvedOptions)
+			result.Diagrams = append(result.Diagrams, diagram)
+			rootOutputs[root] = name
 			result.Placements = append(result.Placements, regularPlacement(name, partition, i))
 		}
+		// 深さ上限で省いたcallのtargetを新しい図のrootにし、全internal edgeを有限回で展開します。
+		queue := sequenceContinuationTargets(result.Diagrams[seriesStart:], sequences)
+		continuationNumber := 0
+		for queueIndex := 0; queueIndex < len(queue); queueIndex++ {
+			root := queue[queueIndex]
+			if rootOutputs[root] != "" || len(sequences[root]) == 0 {
+				continue
+			}
+			continuationNumber++
+			name := stableOutputName(fmt.Sprintf("series_%d_continuation_%d", i+1, continuationNumber), root, "sequence")
+			diagram := buildSequenceDiagram(root, name, sequences, selected, maxDepth, resolvedOptions)
+			result.Diagrams = append(result.Diagrams, diagram)
+			result.Placements = append(result.Placements, regularPlacement(name, partition, i))
+			rootOutputs[root] = name
+			continuationOutputs[root] = name
+			queue = append(queue, sequenceContinuationTargets([]SequenceDiagram{diagram}, sequences)...)
+		}
+		for _, node := range series {
+			output := rootOutputs[node]
+			if output == "" {
+				output = continuationOutputs[node]
+			}
+			if output == "" {
+				for _, diagram := range result.Diagrams[seriesStart:] {
+					if containsString(diagram.Participants, node) {
+						output = diagram.Name
+						break
+					}
+				}
+			}
+			if output != "" {
+				seriesOutputs[node] = output
+			}
+		}
+	}
+	for diagramIndex := range result.Diagrams {
+		diagram := &result.Diagrams[diagramIndex]
+		if diagramIndex >= len(result.Placements) || result.Placements[diagramIndex].Shared {
+			continue
+		}
+		seriesIndex := indexOfSeriesRoot(partition, result.Placements[diagramIndex].SeriesRoot)
+		if seriesIndex < 0 {
+			continue
+		}
+		references := partitionReferences(partition, seriesIndex, sharedOutputs, seriesOutputs)
+		for _, message := range diagram.Messages {
+			if message.Kind != SequenceDepthTruncated {
+				continue
+			}
+			output := continuationOutputs[message.Callee]
+			if output == "" {
+				output = rootOutputs[message.Callee]
+			}
+			if output != "" && output != diagram.Name {
+				references = append(references, DiagramReference{Node: message.Callee, OutputName: output})
+			}
+		}
+		diagram.References = filterDiagramReferences(references, diagram.Participants)
 	}
 	for _, shared := range partition.Shared {
 		messages := []SequenceMessage{}
 		emitted := map[string]struct{}{}
 		callers := sortedSet(incoming[shared])
 		for _, caller := range callers {
-			if blocked[[2]string{caller, shared}] {
-				continue
-			}
 			label := firstCallLabel(caller, shared, sequences)
-			if appendSequenceCall(&messages, emitted, caller, shared, label, 0, resolvedOptions) && resolvedOptions.ShowReturns {
-				messages = append(messages, SequenceMessage{Caller: shared, Callee: caller, Label: "return", Depth: 0, Kind: "return"})
+			kind := SequenceCallMessage
+			if cycleEdges[[2]string{caller, shared}] {
+				kind = SequenceRecursiveCall
+			}
+			_, sharedIsInternal := sequences[shared]
+			if appendSequenceCall(&messages, emitted, caller, shared, label, 0, kind, resolvedOptions) && resolvedOptions.ShowReturns && sharedIsInternal {
+				messages = append(messages, SequenceMessage{Caller: shared, Callee: caller, Label: "return", Depth: 0, Kind: SequenceReturnMessage})
 			}
 		}
 		for _, call := range sequences[shared] {
-			if blocked[[2]string{shared, call.Target}] {
-				continue
+			kind := SequenceCallMessage
+			if cycleEdges[[2]string{shared, call.Target}] {
+				kind = SequenceRecursiveCall
 			}
-			if appendSequenceCall(&messages, emitted, shared, call.Target, call.Raw, 1, resolvedOptions) && resolvedOptions.ShowReturns {
+			if appendSequenceCall(&messages, emitted, shared, call.Target, call.Raw, 1, kind, resolvedOptions) && resolvedOptions.ShowReturns {
 				if _, internal := sequences[call.Target]; internal {
-					messages = append(messages, SequenceMessage{Caller: call.Target, Callee: shared, Label: "return", Depth: 1, Kind: "return"})
+					messages = append(messages, SequenceMessage{Caller: call.Target, Callee: shared, Label: "return", Depth: 1, Kind: SequenceReturnMessage})
 				}
 			}
 		}
 		name := stableOutputName("shared", shared, "sequence")
-		result.Diagrams = append(result.Diagrams, SequenceDiagram{Name: name, Participants: sequenceParticipants(shared, messages), Messages: messages})
+		participants := sequenceParticipants(shared, messages)
+		result.Diagrams = append(result.Diagrams, SequenceDiagram{Name: name, Participants: participants, Messages: messages, References: filterDiagramReferences(sharedDiagramReferences(shared, partition, sharedOutputs, seriesOutputs), participants)})
 		result.Placements = append(result.Placements, sharedPlacement(name, shared))
 	}
 	return result, nil
 }
 
-func expandSequence(root string, sequences map[string][]analyzers.ResolvedCall, allowed map[string]struct{}, maxDepth int, options SequenceDiagramOptions, blocked map[[2]string]bool) []SequenceMessage {
+//	{
+//	  責務: [buildSequenceDiagram: 指定rootから深さ制限付きsequence図を構築する]
+//	}
+func buildSequenceDiagram(root, name string, sequences map[string][]analyzers.ResolvedCall, selected map[string]struct{}, maxDepth int, options SequenceDiagramOptions) SequenceDiagram {
+	messages := expandSequence(root, sequences, selected, maxDepth, options)
+	return SequenceDiagram{Name: name, Participants: sequenceParticipants(root, messages), Messages: messages}
+}
+
+//	{
+//	  責務: [sequenceContinuationTargets: 深さ省略callから追加図のrootを順序付きで集める]
+//	}
+func sequenceContinuationTargets(diagrams []SequenceDiagram, sequences map[string][]analyzers.ResolvedCall) []string {
+	targets := []string{}
+	seen := map[string]struct{}{}
+	for _, diagram := range diagrams {
+		for _, message := range diagram.Messages {
+			if message.Kind != SequenceDepthTruncated || len(sequences[message.Callee]) == 0 {
+				continue
+			}
+			if _, exists := seen[message.Callee]; exists {
+				continue
+			}
+			seen[message.Callee] = struct{}{}
+			targets = append(targets, message.Callee)
+		}
+	}
+	return targets
+}
+
+//	{
+//	  責務: [containsString: 図に含まれるparticipantを検索する]
+//	}
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+
+//	{
+//	  責務: [indexOfSeriesRoot: placementのseries rootからpartition indexを検索する]
+//	}
+func indexOfSeriesRoot(partition analyzers.GraphPartition, root string) int {
+	for index, seriesRoot := range partition.SeriesRoots {
+		if seriesRoot == root {
+			return index
+		}
+	}
+	return -1
+}
+
+//	{
+//	  責務: [expandSequence: recursionをcycle-closing messageとして残し、深さ制限で省く展開を明示する]
+//	}
+func expandSequence(root string, sequences map[string][]analyzers.ResolvedCall, allowed map[string]struct{}, maxDepth int, options SequenceDiagramOptions) []SequenceMessage {
 	messages := []SequenceMessage{}
 	emitted := map[string]struct{}{}
 	var walk func(string, int, map[string]struct{})
 	walk = func(caller string, depth int, active map[string]struct{}) {
 		if depth >= maxDepth {
+			appendDepthTruncations(&messages, caller, depth, sequences[caller], sequences, allowed, active, emitted, options)
 			return
 		}
 		for _, call := range sequences[caller] {
-			if blocked[[2]string{caller, call.Target}] {
-				continue
+			kind := SequenceCallMessage
+			_, cycleClosing := active[call.Target]
+			if cycleClosing {
+				kind = SequenceRecursiveCall
 			}
-			if _, seen := active[call.Target]; seen {
-				continue
-			}
-			if !appendSequenceCall(&messages, emitted, caller, call.Target, call.Raw, depth, options) {
+			if !appendSequenceCall(&messages, emitted, caller, call.Target, call.Raw, depth, kind, options) {
 				continue
 			}
 			_, internal := sequences[call.Target]
+			if cycleClosing {
+				if options.ShowReturns && internal {
+					messages = append(messages, SequenceMessage{Caller: call.Target, Callee: caller, Label: "return", Depth: depth, Kind: SequenceReturnMessage})
+				}
+				continue
+			}
 			if _, permitted := allowed[call.Target]; permitted && internal {
 				next := make(map[string]struct{}, len(active)+1)
 				for name := range active {
@@ -153,7 +303,7 @@ func expandSequence(root string, sequences map[string][]analyzers.ResolvedCall, 
 				walk(call.Target, depth+1, next)
 			}
 			if options.ShowReturns && internal {
-				messages = append(messages, SequenceMessage{Caller: call.Target, Callee: caller, Label: "return", Depth: depth, Kind: "return"})
+				messages = append(messages, SequenceMessage{Caller: call.Target, Callee: caller, Label: "return", Depth: depth, Kind: SequenceReturnMessage})
 			}
 		}
 	}
@@ -161,15 +311,47 @@ func expandSequence(root string, sequences map[string][]analyzers.ResolvedCall, 
 	return messages
 }
 
-func appendSequenceCall(messages *[]SequenceMessage, emitted map[string]struct{}, caller, callee, label string, depth int, options SequenceDiagramOptions) bool {
-	key := caller + "\x00" + callee + "\x00" + label
+//	{
+//	  背景: [depth上限を越えるtargetの処理は展開していない]
+//	  責務: [appendDepthTruncations: 未展開callを注記し、実行されていないcall/returnを描かない]
+//	}
+func appendDepthTruncations(messages *[]SequenceMessage, caller string, depth int, calls []analyzers.ResolvedCall, sequences map[string][]analyzers.ResolvedCall, allowed, active map[string]struct{}, emitted map[string]struct{}, options SequenceDiagramOptions) {
+	for _, call := range calls {
+		if _, activeTarget := active[call.Target]; activeTarget {
+			if !appendSequenceCall(messages, emitted, caller, call.Target, call.Raw, depth, SequenceRecursiveCall, options) {
+				continue
+			}
+			_, internal := sequences[call.Target]
+			if options.ShowReturns && internal {
+				*messages = append(*messages, SequenceMessage{Caller: call.Target, Callee: caller, Label: "return", Depth: depth, Kind: SequenceReturnMessage})
+			}
+			continue
+		}
+		if _, inSeries := allowed[call.Target]; !inSeries {
+			if appendSequenceCall(messages, emitted, caller, call.Target, call.Raw, depth, SequenceCallMessage, options) {
+				_, internal := sequences[call.Target]
+				if options.ShowReturns && internal {
+					*messages = append(*messages, SequenceMessage{Caller: call.Target, Callee: caller, Label: "return", Depth: depth, Kind: SequenceReturnMessage})
+				}
+			}
+			continue
+		}
+		appendSequenceCall(messages, emitted, caller, call.Target, "Further calls omitted: "+call.Raw, depth, SequenceDepthTruncated, options)
+	}
+}
+
+//	{
+//	  責務: [appendSequenceCall: logical messageを重複規則に従って順序付きsequenceへ追加する]
+//	}
+func appendSequenceCall(messages *[]SequenceMessage, emitted map[string]struct{}, caller, callee, label string, depth int, kind string, options SequenceDiagramOptions) bool {
+	key := caller + "\x00" + callee + "\x00" + label + "\x00" + kind
 	if !options.ShowDuplicateCalls {
 		if _, exists := emitted[key]; exists {
 			return false
 		}
 	}
 	emitted[key] = struct{}{}
-	*messages = append(*messages, SequenceMessage{Caller: caller, Callee: callee, Label: label, Depth: depth, Kind: "call"})
+	*messages = append(*messages, SequenceMessage{Caller: caller, Callee: callee, Label: label, Depth: depth, Kind: kind})
 	return true
 }
 
@@ -187,7 +369,9 @@ func sequenceParticipants(root string, messages []SequenceMessage) []string {
 	ordered := []string{root}
 	seen := map[string]struct{}{root: {}}
 	for _, message := range messages {
-		for _, name := range []string{message.Caller, message.Callee} {
+		participants := []string{message.Caller}
+		participants = append(participants, message.Callee)
+		for _, name := range participants {
 			if _, ok := seen[name]; ok {
 				continue
 			}
@@ -208,11 +392,23 @@ func firstCallLabel(caller, callee string, sequences map[string][]analyzers.Reso
 	return parts[len(parts)-1]
 }
 
-type CommunicationMessage struct{ Source, Target, Order, Label string }
+//	{
+//	  責務: [CommunicationMessage: 呼び出し元・呼び出し先・順番とcallの意味を保持する]
+//	}
+type CommunicationMessage struct {
+	Source, Target, Order, Label string
+	Kind                         string
+}
+
+//	{
+//	  責務: [CommunicationDiagram: 順番付きcallと系列境界参照を保持する]
+//	  フィールド: [Name: 図名, Participants: 表示participant, Messages: call順序と関係, References: 続きのdiagram参照]
+//	}
 type CommunicationDiagram struct {
 	Name         string
 	Participants []string
 	Messages     []CommunicationMessage
+	References   []DiagramReference
 }
 type CommunicationDiagramBundle struct {
 	Diagrams   []CommunicationDiagram
@@ -232,7 +428,7 @@ func BuildCommunicationDiagramBundle(module commonir.Module, fanInThreshold, max
 	for _, sequence := range sequenceBundle.Diagrams {
 		calls := []SequenceMessage{}
 		for _, message := range sequence.Messages {
-			if message.Kind == "call" {
+			if isInteractionDiagramMessage(message.Kind) {
 				calls = append(calls, message)
 			}
 		}
@@ -243,11 +439,18 @@ func BuildCommunicationDiagramBundle(module commonir.Module, fanInThreshold, max
 		orders := messageOrders(depths)
 		messages := make([]CommunicationMessage, 0, len(calls))
 		for i, message := range calls {
-			messages = append(messages, CommunicationMessage{Source: communicationParticipant(message.Caller), Target: communicationParticipant(message.Callee), Order: orders[i], Label: message.Label})
+			messages = append(messages, CommunicationMessage{Source: communicationParticipant(message.Caller), Target: communicationParticipant(message.Callee), Order: orders[i], Label: message.Label, Kind: message.Kind})
 		}
-		result.Diagrams = append(result.Diagrams, CommunicationDiagram{Name: sequence.Name, Participants: communicationParticipants(sequence.Participants, messages), Messages: messages})
+		result.Diagrams = append(result.Diagrams, CommunicationDiagram{Name: sequence.Name, Participants: communicationParticipants(sequence.Participants, messages), Messages: messages, References: append([]DiagramReference(nil), sequence.References...)})
 	}
 	return result, nil
+}
+
+//	{
+//	  責務: [isInteractionDiagramMessage: interaction diagramに表示するcallと省略注記を判定する]
+//	}
+func isInteractionDiagramMessage(kind string) bool {
+	return kind == SequenceCallMessage || kind == SequenceAsyncCallMessage || kind == SequenceRecursiveCall || kind == SequenceDepthTruncated
 }
 
 func messageOrders(depths []int) []string {

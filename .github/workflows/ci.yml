@@ -16,15 +16,26 @@ jobs:
       - name: ソースを取得
         uses: actions/checkout@v7
 
+      - name: LinuxのCA trust storeを更新
+        run: |
+          sudo apt-get update
+          sudo apt-get install --only-upgrade --yes ca-certificates
+
       - name: Pythonを準備
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: PythonのpipとCA bundleを安全な版へ更新
+        run: |
+          python tools/python_tls_floor.py
+          python -m pip install --upgrade --require-hashes -r tools/requirements-pip-bootstrap.txt
+          python -m pip install --upgrade --require-hashes -r tools/requirements-python-tls.txt
+          python tools/verify_python_tls.py
+
       - name: projectとtest用ツールをinstall
         run: |
           mkdir -p .build/metadata
-          python -m pip install --upgrade pip
           python -m pip install -e ".[test]"
 
       - name: Clang parser bindingをinstall
@@ -88,6 +99,11 @@ jobs:
       - name: ソースを取得
         uses: actions/checkout@v7
 
+      - name: LinuxのCA trust storeを更新
+        run: |
+          sudo apt-get update
+          sudo apt-get install --only-upgrade --yes ca-certificates
+
       - name: .NET 10を準備
         uses: actions/setup-dotnet@v6
         with:
@@ -97,6 +113,13 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+
+      - name: PythonのpipとCA bundleを安全な版へ更新
+        run: |
+          python tools/python_tls_floor.py
+          python -m pip install --upgrade --require-hashes -r tools/requirements-pip-bootstrap.txt
+          python -m pip install --upgrade --require-hashes -r tools/requirements-python-tls.txt
+          python tools/verify_python_tls.py
 
       - name: Roslyn helperをbuild
         run: dotnet build parser-backends/csharp/Tomiya.CSharp.Backend.csproj -c Release -p:BaseIntermediateOutputPath="$GITHUB_WORKSPACE/.build/dotnet/csharp/obj/" -p:BaseOutputPath="$GITHUB_WORKSPACE/.build/dotnet/csharp/bin/"
@@ -112,6 +135,11 @@ jobs:
       - name: ソースを取得
         uses: actions/checkout@v7
 
+      - name: LinuxのCA trust storeを更新
+        run: |
+          sudo apt-get update
+          sudo apt-get install --only-upgrade --yes ca-certificates
+
       - name: Java 25を準備
         uses: actions/setup-java@v5
         with:
@@ -123,6 +151,13 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+
+      - name: PythonのpipとCA bundleを安全な版へ更新
+        run: |
+          python tools/python_tls_floor.py
+          python -m pip install --upgrade --require-hashes -r tools/requirements-pip-bootstrap.txt
+          python -m pip install --upgrade --require-hashes -r tools/requirements-python-tls.txt
+          python tools/verify_python_tls.py
 
       - name: JavaParser helperをbuild
         run: mvn -q -f parser-backends/java/pom.xml package
