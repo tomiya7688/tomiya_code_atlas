@@ -36,7 +36,11 @@ def handle_request(request: Any) -> dict[str, Any]:
         or not isinstance(request.get("source"), str)
         or ("path" in request and not isinstance(request["path"], str))
     ):
-        return _failure(envelope, "protocol_error", "contract_version 1, request_id, operation=parse, language=cpp, and source string are required")
+        return _failure(
+            envelope,
+            "protocol_error",
+            "contract_version 1, request_id, operation=parse, language=cpp, and source string are required",
+        )
 
     source = request["source"]
     source_path = Path(request.get("path") or "tomiya-code-atlas.cpp").resolve()
@@ -122,11 +126,26 @@ def _normalize_compile_command(
             continue
         if result and result[-1] in {"-I", "-isystem", "-iquote"}:
             include_path = Path(value)
-            result.append(str(include_path if include_path.is_absolute() else working_directory / include_path))
+            result.append(
+                str(
+                    include_path
+                    if include_path.is_absolute()
+                    else working_directory / include_path
+                )
+            )
             continue
         if value.startswith("/I"):
             include_path = Path(value[2:])
-            result.extend(["-I", str(include_path if include_path.is_absolute() else working_directory / include_path)])
+            result.extend(
+                [
+                    "-I",
+                    str(
+                        include_path
+                        if include_path.is_absolute()
+                        else working_directory / include_path
+                    ),
+                ]
+            )
             continue
         if value.startswith("/D"):
             result.append("-D" + value[2:])
@@ -146,9 +165,12 @@ def _normalize_compile_command(
 def _normalize_translation_unit(translation_unit: Any, source_path: Path) -> ModuleIR:
     module = ModuleIR(language="cpp")
     source_key = os.path.normcase(str(source_path.resolve()))
+
     def belongs_to_source(cursor: Any) -> bool:
         file = cursor.location.file
-        return bool(file and os.path.normcase(str(Path(file.name).resolve())) == source_key)
+        return bool(
+            file and os.path.normcase(str(Path(file.name).resolve())) == source_key
+        )
 
     def visit(cursor: Any, parent: str | None = None) -> None:
         kind = cursor.kind
@@ -164,7 +186,13 @@ def _normalize_translation_unit(translation_unit: Any, source_path: Path) -> Mod
             name = cursor.spelling or "<anonymous>"
             qualified = f"{parent}::{name}" if parent else name
             module.entities.append(
-                _entity(cursor, EntityKind.NAMESPACE, name, parent, visibility=Visibility.UNSPECIFIED)
+                _entity(
+                    cursor,
+                    EntityKind.NAMESPACE,
+                    name,
+                    parent,
+                    visibility=Visibility.UNSPECIFIED,
+                )
             )
             for child in cursor.get_children():
                 visit(child, qualified)
@@ -181,9 +209,12 @@ def _normalize_translation_unit(translation_unit: Any, source_path: Path) -> Mod
             bases = tuple(
                 child.type.spelling
                 for child in cursor.get_children()
-                if child.kind == cindex.CursorKind.CXX_BASE_SPECIFIER and child.type.spelling
+                if child.kind == cindex.CursorKind.CXX_BASE_SPECIFIER
+                and child.type.spelling
             )
-            entity = _entity(cursor, EntityKind.CLASS, name, parent, visibility=_visibility(cursor))
+            entity = _entity(
+                cursor, EntityKind.CLASS, name, parent, visibility=_visibility(cursor)
+            )
             entity.bases = bases
             entity.declaration_kind = (
                 "struct" if kind == cindex.CursorKind.STRUCT_DECL else "class"
@@ -194,9 +225,12 @@ def _normalize_translation_unit(translation_unit: Any, source_path: Path) -> Mod
                 if child.kind in _template_parameter_kinds()
             )
             module.entities.append(entity)
-            qualified = f"{parent}::{name}" if parent else name
+            qualified = f"{parent}.{name}" if parent else name
             for child in cursor.get_children():
-                if child.kind in _template_parameter_kinds() or child.kind == cindex.CursorKind.CXX_BASE_SPECIFIER:
+                if (
+                    child.kind in _template_parameter_kinds()
+                    or child.kind == cindex.CursorKind.CXX_BASE_SPECIFIER
+                ):
                     continue
                 visit(child, qualified)
             return
@@ -210,16 +244,22 @@ def _normalize_translation_unit(translation_unit: Any, source_path: Path) -> Mod
         }
         if kind in function_kinds:
             semantic_parent = cursor.semantic_parent
-            is_method = kind in {
-                cindex.CursorKind.CXX_METHOD,
-                cindex.CursorKind.CONSTRUCTOR,
-                cindex.CursorKind.DESTRUCTOR,
-            } or semantic_parent is not None and semantic_parent.kind in {
-                cindex.CursorKind.CLASS_DECL,
-                cindex.CursorKind.STRUCT_DECL,
-                cindex.CursorKind.CLASS_TEMPLATE,
-                cindex.CursorKind.CLASS_TEMPLATE_PARTIAL_SPECIALIZATION,
-            }
+            is_method = (
+                kind
+                in {
+                    cindex.CursorKind.CXX_METHOD,
+                    cindex.CursorKind.CONSTRUCTOR,
+                    cindex.CursorKind.DESTRUCTOR,
+                }
+                or semantic_parent is not None
+                and semantic_parent.kind
+                in {
+                    cindex.CursorKind.CLASS_DECL,
+                    cindex.CursorKind.STRUCT_DECL,
+                    cindex.CursorKind.CLASS_TEMPLATE,
+                    cindex.CursorKind.CLASS_TEMPLATE_PARTIAL_SPECIALIZATION,
+                }
+            )
             entity = _entity(
                 cursor,
                 EntityKind.METHOD if is_method else EntityKind.FUNCTION,
@@ -280,7 +320,11 @@ def _normalize_translation_unit(translation_unit: Any, source_path: Path) -> Mod
     for diagnostic in translation_unit.diagnostics:
         location = diagnostic.location
         message = str(diagnostic)
-        kind = "missing_header" if "file not found" in message.lower() else "compiler_diagnostic"
+        kind = (
+            "missing_header"
+            if "file not found" in message.lower()
+            else "compiler_diagnostic"
+        )
         module.diagnostics.append(
             DiagnosticIR(kind, message, location.line if location else None)
         )
@@ -391,7 +435,11 @@ def main() -> int:
     try:
         request = json.load(sys.stdin)
     except (json.JSONDecodeError, UnicodeDecodeError):
-        response = _failure({"contract_version": CONTRACT_VERSION}, "protocol_error", "invalid JSON request")
+        response = _failure(
+            {"contract_version": CONTRACT_VERSION},
+            "protocol_error",
+            "invalid JSON request",
+        )
     else:
         response = handle_request(request)
     sys.stdout.write(json.dumps(response, ensure_ascii=False, separators=(",", ":")))

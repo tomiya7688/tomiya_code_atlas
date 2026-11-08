@@ -44,13 +44,24 @@ def test_cpp_helper_parses_complete_translation_unit_and_normalizes_common_ir() 
     entities = ir["entities"]
     namespaces = [item for item in entities if item["kind"] == "namespace"]
     assert any(item["name"] == "tomiya" and item["line"] == 5 for item in namespaces)
-    worker = next(item for item in entities if item["kind"] == "class" and item["name"] == "Worker")
+    worker = next(
+        item
+        for item in entities
+        if item["kind"] == "class" and item["name"] == "Worker"
+    )
     assert worker["parent"] == "tomiya"
     assert worker["bases"] == ("BaseWorker",)
     assert worker["type_parameters"] == ("T",)
-    methods = [item for item in entities if item["kind"] == "method" and item["name"] == "helper"]
+    methods = [
+        item
+        for item in entities
+        if item["kind"] == "method" and item["name"] == "helper"
+    ]
     assert len(methods) == 2
-    run = next(item for item in entities if item["kind"] == "method" and item["name"] == "run")
+    assert all(item["parent"] == "tomiya.Worker" for item in methods)
+    run = next(
+        item for item in entities if item["kind"] == "method" and item["name"] == "run"
+    )
     assert run["call_sequence"].count("helper") == 2
     assert run["line"] == 11
     assert "support.hpp" in ir["imports"]

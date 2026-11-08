@@ -64,7 +64,16 @@ func (host ParserHost) Parse(ctx context.Context, backendID string, language str
 	if err != nil {
 		return commonir.Payload{}, newBackendError("failure", err.Error(), backendID, false)
 	}
-	return host.helperClient.Parse(ctx, executablePath, backendID, language, source, sourcePath)
+	if backend.RuntimeExecutable == "" {
+		return host.helperClient.Parse(ctx, executablePath, backendID, language, source, sourcePath)
+	}
+	runtimePath, err := data.ResolveBackendRuntimeExecutable(host.applicationRoot, host.manifest, backendID)
+	if err != nil {
+		return commonir.Payload{}, newBackendError("failure", err.Error(), backendID, false)
+	}
+	runtimeArguments := append([]string(nil), backend.RuntimeArguments...)
+	runtimeArguments = append(runtimeArguments, executablePath)
+	return host.helperClient.Parse(ctx, runtimePath, backendID, language, source, sourcePath, runtimeArguments...)
 }
 
 //	{

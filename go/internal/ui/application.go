@@ -2,12 +2,16 @@ package ui
 
 import (
 	"context"
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/tomiya7688/tomiya_code_atlas/internal/process"
@@ -21,20 +25,22 @@ import (
 //	{
 //	  責務: [sourceFileFilterPattern: GUIで選択できる解析対象の拡張子を表す,],
 //	}
-const sourceFileFilterPattern = "*.py;*.gd;*.cs;*.cpp;*.cc;*.cxx;*.hpp;*.hxx;*.java;*.go"
+const sourceFileFilterPattern = "*.py;*.gd;*.cs;*.cpp;*.cc;*.cxx;*.hpp;*.hxx;*.java;*.go;*.yml;*.yaml"
 
 const smokeProfileCleanupAttempts = 40
 const smokeProfileCleanupInterval = 250 * time.Millisecond
+const guiSmokeAnalysisEvent = "gui-smoke-analyze"
+const guiSmokeAnalysisTimeout = 60 * time.Second
 
 //go:embed web/*
 var embeddedWebFiles embed.FS
 
 //	{
 //	  責務: [
-//	    DiagramGenerator: UIとProcess間で図生成の要求と結果を受け渡す契約,
+//	    AnalysisGenerator: UIとProcess間で解析結果生成の要求と結果を受け渡す契約,
 //	  ],
 //	}
-type DiagramGenerator interface {
+type AnalysisGenerator interface {
 	Generate(context.Context, process.AnalysisRequest) ([]string, error)
 }
 
@@ -56,24 +62,26 @@ type AnalysisResult struct {
 //	  責務: [
 //	    Application: 画面入力を受け、解析serviceとWails runtimeをつなぐ,
 //	  ],
-//	  状態: [
-//	    generator: Processの図生成契約,
-//	    context: file dialogとwindow制御に使うruntime情報,
-//	    smokeMode: CI smoke時にDOM読込後GUIを閉じる設定,
-//	  ],
+//	  状態: [generator: Processの解析結果生成契約, context: file dialogとwindow制御に使うruntime情報, smokeMode: CI smoke時にDOM読込後GUIを閉じる設定, smokeAnalysis: GUI起動後に画面へ渡すsmoke解析要求, smokeResult: smoke解析の終了結果をRunへ返すchannel, smokeCompleted: 完了通知とtimeoutの二重送信を防ぐonce]
 //	}
 type Application struct {
-	generator DiagramGenerator
-	context   context.Context
-	smokeMode bool
+	generator      AnalysisGenerator
+	context        context.Context
+	smokeMode      bool
+	smokeAnalysis  *process.AnalysisRequest
+	smokeResult    chan error
+	smokeCompleted sync.Once
 }
 
 //	{
 //	  責務: [
-//	    Run: 埋込み画面を解析serviceへ接続し、desktop windowを起動する,
+//	    Run: 埋込み画面を解析serviceへ接続し、desktop windowまたはsmoke解析を起動する,
 //	  ],
 //	}
-func Run(generator DiagramGenerator, smokeMode bool) (runError error) {
+func Run(generator AnalysisGenerator, smokeMode bool, smokeAnalysis *process.AnalysisRequest) (runError error) {
+	if smokeAnalysis != nil && !smokeMode {
+		return fmt.Errorf("GUI解析smoke testはsmoke modeでのみ実行できます")
+	}
 	webFiles, err := fs.Sub(embeddedWebFiles, "web")
 	if err != nil {
 		return fmt.Errorf("GUIの埋込みassetを開けません: %w", err)
@@ -93,9 +101,28 @@ func Run(generator DiagramGenerator, smokeMode bool) (runError error) {
 				runError = errors.Join(runError, fmt.Errorf("smoke test用WebView2 profileを削除できません: %w", cleanupError))
 			}
 		}()
+	} else {
+		executablePath, executableError := os.Executable()
+		if executableError != nil {
+			return fmt.Errorf("実行ファイルの場所を取得できません: %w", executableError)
+		}
+		userConfigDirectory, configError := os.UserConfigDir()
+		if configError != nil {
+			return fmt.Errorf("利用者設定フォルダーを取得できません: %w", configError)
+		}
+		webviewUserDataPath, err = resolveWebviewUserDataPath(executablePath, userConfigDirectory)
+		if err != nil {
+			return fmt.Errorf("WebView2プロファイルのパスを決められません: %w", err)
+		}
+		if err := os.MkdirAll(webviewUserDataPath, 0o700); err != nil {
+			return fmt.Errorf("WebView2プロファイルを準備できません: %w", err)
+		}
 	}
-	application := &Application{generator: generator, smokeMode: smokeMode}
-	return wails.Run(&options.App{
+	application := &Application{generator: generator, smokeMode: smokeMode, smokeAnalysis: smokeAnalysis}
+	if smokeAnalysis != nil {
+		application.smokeResult = make(chan error, 1)
+	}
+	runError = wails.Run(&options.App{
 		Title:     "Tomiya Code Atlas",
 		Width:     1040,
 		Height:    760,
@@ -109,6 +136,37 @@ func Run(generator DiagramGenerator, smokeMode bool) (runError error) {
 		Bind:       []interface{}{application},
 		Windows:    &windows.Options{WebviewUserDataPath: webviewUserDataPath},
 	})
+	if runError != nil || application.smokeResult == nil {
+		return runError
+	}
+	return <-application.smokeResult
+}
+
+//	{
+//	  責務: [resolveWebviewUserDataPath: 配布先ごとに分離したWebView2プロファイルの保存先を作る,]
+//	  処理: [1: 実行ファイルのsymlinkを解決して配置フォルダーを決める, 2: OS別に配置先の実体を識別する, 3: 利用者設定内のprofile保存先を返す,]
+//	  引数: [executablePath: 実行中のファイルのパス, userConfigDirectory: OSが返した利用者設定フォルダー,]
+//	  戻り値: [string: 配置フォルダーを識別するprofileのパス, error: 必須pathまたは実行ファイルの実体を解決できない場合の説明,]
+//	}
+func resolveWebviewUserDataPath(executablePath, userConfigDirectory string) (string, error) {
+	if strings.TrimSpace(executablePath) == "" || strings.TrimSpace(userConfigDirectory) == "" {
+		return "", fmt.Errorf("実行ファイルと利用者設定フォルダーを指定してください")
+	}
+	resolvedExecutablePath, err := filepath.EvalSymlinks(executablePath)
+	if err != nil {
+		return "", fmt.Errorf("実行ファイルの実体パスを解決できません: %w", err)
+	}
+	executableDirectory, err := filepath.Abs(filepath.Dir(resolvedExecutablePath))
+	if err != nil {
+		return "", fmt.Errorf("実行ファイルのフォルダーを解決できません: %w", err)
+	}
+	configDirectory, err := filepath.Abs(userConfigDirectory)
+	if err != nil {
+		return "", fmt.Errorf("利用者設定フォルダーを解決できません: %w", err)
+	}
+	installIdentity := webviewInstallIdentity(executableDirectory)
+	profileIdentity := sha256.Sum256([]byte(installIdentity))
+	return filepath.Join(configDirectory, "Tomiya Code Atlas", "WebView2", hex.EncodeToString(profileIdentity[:])), nil
 }
 
 //	{
@@ -139,7 +197,7 @@ func (application *Application) startup(runtimeContext context.Context) {
 
 //	{
 //	  責務: [
-//	    domReady: smoke modeで埋込み画面の読込完了を確認してからGUIを閉じる,
+//	    domReady: smoke modeで埋込み画面を読み込み、必要ならGUIのAnalyze bindingを実行して終了する,
 //	  ],
 //	}
 func (application *Application) domReady(runtimeContext context.Context) {
@@ -147,8 +205,53 @@ func (application *Application) domReady(runtimeContext context.Context) {
 		return
 	}
 	wailsruntime.WindowHide(runtimeContext)
+	if application.smokeAnalysis != nil {
+		time.AfterFunc(guiSmokeAnalysisTimeout, func() {
+			application.completeSmoke("GUIの解析smoke testが時間内に完了しませんでした")
+		})
+		wailsruntime.EventsEmit(runtimeContext, guiSmokeAnalysisEvent, map[string]interface{}{
+			"sourcePath":              application.smokeAnalysis.SourcePath,
+			"operations":              application.smokeAnalysis.Operations,
+			"outputDirectory":         application.smokeAnalysis.OutputDirectory,
+			"allCompatibleOperations": len(application.smokeAnalysis.Operations) == 0,
+		})
+		return
+	}
 	time.AfterFunc(1500*time.Millisecond, func() {
 		wailsruntime.Quit(runtimeContext)
+	})
+}
+
+//	{
+//	  責務: [ReportSmokeResult: 埋込み画面で完了したGUI smoke解析の結果をRunへ返す]
+//	  引数: [errorMessage: 画面の互換性検証または解析が失敗した理由。成功時は空文字]
+//	  戻り値: [error: 通常GUIからの誤用を拒否した場合の説明]
+//	}
+func (application *Application) ReportSmokeResult(errorMessage string) error {
+	if !application.smokeMode || application.smokeResult == nil {
+		return fmt.Errorf("GUI解析smoke test以外から結果を通知できません")
+	}
+	application.completeSmoke(errorMessage)
+	return nil
+}
+
+//	{
+//	  責務: [completeSmoke: GUI smoke解析の結果を一度だけRunへ通知し、隠しwindowを閉じる]
+//	  引数: [errorMessage: 失敗理由または成功時の空文字]
+//	}
+func (application *Application) completeSmoke(errorMessage string) {
+	if application.smokeResult == nil {
+		return
+	}
+	application.smokeCompleted.Do(func() {
+		var smokeError error
+		if strings.TrimSpace(errorMessage) != "" {
+			smokeError = errors.New(errorMessage)
+		}
+		application.smokeResult <- smokeError
+		if application.context != nil {
+			wailsruntime.Quit(application.context)
+		}
 	})
 }
 
@@ -160,7 +263,7 @@ func (application *Application) OpenSourceFile() (string, error) {
 	return wailsruntime.OpenFileDialog(application.runtimeContext(), wailsruntime.OpenDialogOptions{
 		Title: "解析するソースファイルを選択",
 		Filters: []wailsruntime.FileFilter{{
-			DisplayName: "対応するソースファイル",
+			DisplayName: "対応するソース・GitHub Actions workflowファイル",
 			Pattern:     sourceFileFilterPattern,
 		}},
 	})
@@ -187,12 +290,27 @@ func (application *Application) ChooseOutputFolder() (string, error) {
 }
 
 //	{
+//	  責務: [GetCompatibleOperations: 選択した入力で実行できる操作を画面へ返す]
+//	  引数: [sourcePath: fileまたはproject folderのpath]
+//	  戻り値: [operations: 入力に対応する操作ID, error: 入力調査が失敗した理由]
+//	}
+func (application *Application) GetCompatibleOperations(sourcePath string) ([]string, error) {
+	provider, supportsInputCompatibility := application.generator.(interface {
+		CompatibleOperations(string) ([]string, error)
+	})
+	if !supportsInputCompatibility {
+		return process.SupportedOperationIDs(), nil
+	}
+	return provider.CompatibleOperations(sourcePath)
+}
+
+//	{
 //	  責務: [
-//	    Analyze: 選択された複数図をProcess serviceへ渡し、生成pathを画面に返す,
+//	    Analyze: 選択された複数の解析操作をProcess serviceへ渡し、生成fileのpathを画面に返す,
 //	  ],
 //	  引数: [
 //	    sourcePath: 解析するfileまたはproject folder,
-//	    operations: 生成する図のID一覧,
+//	    operations: 生成する成果物のID一覧,
 //	    outputDirectory: 生成fileの保存先,
 //	  ],
 //	  戻り値: [
@@ -208,15 +326,15 @@ func (application *Application) Analyze(sourcePath string, operations []string, 
 		return AnalysisResult{}, fmt.Errorf("解析するファイルまたはプロジェクトフォルダーを選んでください")
 	}
 	if len(operations) == 0 {
-		return AnalysisResult{}, fmt.Errorf("作りたい図を一つ以上選んでください")
+		return AnalysisResult{}, fmt.Errorf("作りたい成果物を一つ以上選んでください")
 	}
 	seenOperations := make(map[string]struct{}, len(operations))
 	for _, operation := range operations {
-		if operation != "call-graph" && operation != "class-diagram" {
-			return AnalysisResult{}, fmt.Errorf("未対応の図です: %s", operation)
+		if !process.IsSupportedOperation(operation) {
+			return AnalysisResult{}, fmt.Errorf("未対応の操作です: %s", operation)
 		}
 		if _, duplicate := seenOperations[operation]; duplicate {
-			return AnalysisResult{}, fmt.Errorf("同じ図が重複して選ばれています: %s", operation)
+			return AnalysisResult{}, fmt.Errorf("同じ操作が重複して選ばれています: %s", operation)
 		}
 		seenOperations[operation] = struct{}{}
 	}
@@ -234,7 +352,7 @@ func (application *Application) Analyze(sourcePath string, operations []string, 
 	}
 	return AnalysisResult{
 		OutputPaths: outputPaths,
-		Message:     fmt.Sprintf("解析が完了しました。%d件の図を保存しました。", len(outputPaths)),
+		Message:     fmt.Sprintf("解析が完了しました。%d件の成果物を保存しました。", len(outputPaths)),
 	}, nil
 }
 

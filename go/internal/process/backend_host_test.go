@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -42,7 +43,7 @@ func TestParserHostSelectsManifestBackendAndReturnsCommonIR(t *testing.T) {
 		t.Fatalf("NewParserHost() error = %v", err)
 	}
 	var invokedPath string
-	host.helperClient.createCommand = func(ctx context.Context, executablePath string) *exec.Cmd {
+	host.helperClient.createCommand = func(ctx context.Context, executablePath string, _ ...string) *exec.Cmd {
 		invokedPath = executablePath
 		command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestHelperClientProcess$")
 		command.Env = append(os.Environ(), helperProcessEnvironmentName+"=1")
@@ -58,6 +59,55 @@ func TestParserHostSelectsManifestBackendAndReturnsCommonIR(t *testing.T) {
 	}
 	if payload.Language != "go" {
 		t.Fatalf("parsed module language = %q, want go", payload.Language)
+	}
+}
+
+//	{
+//	  責務: [TestParserHostInvokesJavaJarThroughDeclaredRuntime: manifestのruntimeとJAR pathを分けて起動する]
+//	  処理: [1: Java runtimeとJARを配布rootに置く, 2: runtime option付きmanifestを読む, 3: runtime pathと引数がhelper commandへ渡ることを確認する]
+//	  引数: [t: Go test runner]
+//	  戻り値: []
+//	}
+func TestParserHostInvokesJavaJarThroughDeclaredRuntime(t *testing.T) {
+	t.Setenv(helperModeEnvironmentName, "success")
+	applicationRoot := t.TempDir()
+	jarPath := writeParserHostTestExecutable(t, applicationRoot, "java/tomiya-java-backend.jar")
+	runtimePath := writeParserHostTestExecutable(t, applicationRoot, "java/runtime/bin/java.exe")
+	manifest := data.BackendManifest{
+		ManifestVersion:              "1",
+		ParserBackendContractVersion: ParserBackendContractVersion,
+		Backends: []data.Backend{{
+			BackendID:         "java-test-helper",
+			Language:          "java",
+			Kind:              "helper",
+			Path:              "java/tomiya-java-backend.jar",
+			RuntimeExecutable: "java/runtime/bin/java.exe",
+			RuntimeArguments:  []string{"-jar"},
+		}},
+	}
+	writeParserHostTestManifest(t, applicationRoot, manifest)
+	host, err := NewParserHost(applicationRoot, 10*time.Second)
+	if err != nil {
+		t.Fatalf("NewParserHost() error = %v", err)
+	}
+	var invokedPath string
+	var invokedArguments []string
+	host.helperClient.createCommand = func(ctx context.Context, executablePath string, arguments ...string) *exec.Cmd {
+		invokedPath = executablePath
+		invokedArguments = append([]string(nil), arguments...)
+		command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestHelperClientProcess$")
+		command.Env = append(os.Environ(), helperProcessEnvironmentName+"=1")
+		return command
+	}
+	if _, err := host.Parse(context.Background(), "java-test-helper", "java", "class Worker {}", nil); err != nil {
+		t.Fatalf("ParserHost.Parse() error = %v", err)
+	}
+	if invokedPath != runtimePath {
+		t.Fatalf("runtime path = %q, want %q", invokedPath, runtimePath)
+	}
+	wantArguments := []string{"-jar", jarPath}
+	if !slices.Equal(invokedArguments, wantArguments) {
+		t.Fatalf("runtime arguments = %#v, want %#v", invokedArguments, wantArguments)
 	}
 }
 
@@ -86,6 +136,15 @@ func TestParserHostRunsRepositoryGoParserHelper(t *testing.T) {
 	}
 	buildCommand := exec.Command("go", "build", "-o", helperPath, ".")
 	buildCommand.Dir = helperModuleDirectory
+	buildCacheDirectory := filepath.Join(repositoryRoot, ".build", "go-cache-parser-test")
+	// 親のgo testとは別の永続cacheを使い、child buildの再compileを避ける。
+	buildCommand.Env = make([]string, 0, len(os.Environ())+1)
+	for _, environmentVariable := range os.Environ() {
+		if !strings.HasPrefix(strings.ToUpper(environmentVariable), "GOCACHE=") {
+			buildCommand.Env = append(buildCommand.Env, environmentVariable)
+		}
+	}
+	buildCommand.Env = append(buildCommand.Env, "GOCACHE="+buildCacheDirectory)
 	buildOutput, err := buildCommand.CombinedOutput()
 	if err != nil {
 		t.Fatalf("build Go parser helper: %v\n%s", err, buildOutput)

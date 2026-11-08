@@ -63,19 +63,27 @@ def _environment(workspace: Path) -> dict[str, str]:
     env["PATH"] = os.pathsep.join(
         (str(workspace), str(Path(system_root) / "System32"), system_root)
     )
+    env["APPDATA"] = str(workspace / "app-data")
     env["TEMP"] = str(workspace)
     env["TMP"] = str(workspace)
     return env
 
 
 def _run(
-    exe: Path, workspace: Path, *arguments: str, expected: int = 0
+    exe: Path,
+    workspace: Path,
+    *arguments: str,
+    expected: int = 0,
+    extra_environment: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     command = [str(exe), *arguments]
+    environment = _environment(workspace)
+    if extra_environment:
+        environment.update(extra_environment)
     result = subprocess.run(
         command,
         cwd=workspace,
-        env=_environment(workspace),
+        env=environment,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -554,6 +562,97 @@ def _verify_gui_launch(exe: Path, workspace: Path) -> None:
                 process.wait(timeout=5)
 
 
+def _verify_gui_analysis(exe: Path, workspace: Path) -> None:
+    # {
+    #   責務: [_verify_gui_analysis: GUIの実選択・解析bindingでPython file用12成果物を作成する]
+    #   処理: [1: 複数の解析要素を持つfixtureを保存する, 2: smoke modeで12 operationを実行する, 3: 各成果物の実内容を検証する]
+    #   引数: [exe: 検証する配布EXE, workspace: fixtureと出力を作る隔離folder]
+    # }
+    """Run every Python-file GUI operation against a representative source fixture."""
+    source = workspace / "gui-smoke.py"
+    source.write_text(
+        "from enum import Enum\n"
+        "import asyncio\n\n"
+        "class State(Enum):\n"
+        '    IDLE = "idle"\n'
+        '    RUNNING = "running"\n'
+        '    DONE = "done"\n\n'
+        "class GuiSmoke:\n"
+        "    def __init__(self):\n"
+        "        self.state = State.IDLE\n"
+        '        self.button = Button(text="Run", command=self.run)\n\n'
+        "    def run(self):\n"
+        "        if self.state == State.IDLE:\n"
+        "            self.state = State.RUNNING\n"
+        "        return self.helper()\n\n"
+        "    async def load(self):\n"
+        "        await asyncio.sleep(1)\n"
+        "        return await self.helper_async()\n\n"
+        "    async def helper_async(self):\n"
+        "        return None\n\n"
+        "    def finish(self):\n"
+        "        if self.state == State.RUNNING:\n"
+        "            self.state = State.DONE\n\n"
+        "    def helper(self):\n"
+        "        return None\n\n"
+        "smoke = GuiSmoke()\n",
+        encoding="utf-8",
+    )
+    output_directory = workspace / "gui-analysis"
+    _run(
+        exe,
+        workspace,
+        "--gui-smoke",
+        extra_environment={
+            "TOMIYA_CODE_ATLAS_GUI_SMOKE_SOURCE": str(source),
+            "TOMIYA_CODE_ATLAS_GUI_SMOKE_OUTPUT": str(output_directory),
+        },
+    )
+    expected_outputs = {
+        "gui-smoke_call-graph.md": ("# 呼び出し図", "flowchart", "GuiSmoke.run"),
+        "gui-smoke_class-diagram.md": ("# クラス図", "classDiagram", "GuiSmoke"),
+        "gui-smoke_sequence-diagram.md": (
+            "# シーケンス図",
+            "sequenceDiagram",
+            "GuiSmoke.run",
+        ),
+        "gui-smoke_object-diagram.md": ("# オブジェクト図", "smoke : GuiSmoke"),
+        "gui-smoke_communication-diagram.md": (
+            "# コミュニケーション図",
+            "flowchart",
+            "GuiSmoke_run",
+        ),
+        "gui-smoke_state-diagram.md": (
+            "# 状態図",
+            "stateDiagram-v2",
+            "IDLE",
+            "RUNNING",
+        ),
+        "gui-smoke_timing-chart.md": (
+            "# タイミングチャート",
+            "sequenceDiagram",
+            "GuiSmoke.load",
+            "async flow",
+        ),
+        "gui-smoke_use-case-diagram.md": ("# ユースケース図", "User", "Run"),
+        "gui-smoke_responsibility-table.md": (
+            "# 責務表",
+            "| Class | Responsibility |",
+            "| GuiSmoke |",
+        ),
+        "gui-smoke_static-spec.md": ("# gui-smoke", "## 宣言一覧", "class: `GuiSmoke`"),
+        "gui-smoke_design-quality.md": ("# 設計品質レポート", "## 指標"),
+    }
+    for relative_path, markers in expected_outputs.items():
+        _require(output_directory / relative_path, *markers)
+    _require(
+        output_directory / "comments" / "gui-smoke_commented.py",
+        "class GuiSmoke",
+        "def run",
+        "状態と処理をまとめます。",
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -562,7 +661,7 @@ def main() -> int:
     parser.add_argument(
         "--gui",
         action="store_true",
-        help="Also perform a bounded GUI startup smoke test",
+        help="Also check GUI startup and GUI-bound analysis for the Go build",
     )
     args = parser.parse_args()
     exe = args.exe.resolve()
@@ -586,6 +685,8 @@ def main() -> int:
                 _verify_python_features(exe, workspace)
             if args.gui:
                 _verify_gui_launch(exe, workspace)
+                if "Tomiya Code Atlas (Go)" in version.stdout:
+                    _verify_gui_analysis(exe, workspace)
         except (
             DistributionCheckError,
             OSError,

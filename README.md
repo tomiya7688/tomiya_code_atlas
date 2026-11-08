@@ -4,24 +4,11 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 目的は、コードを読む前に「何があるか」「どこから呼ばれるか」「何に依存するか」「どこが複雑か」を短時間で把握できる状態を作ることです。
 
-製品本体はGoへ移行中です。Windows版Go EXEは引数なしで日本語GUIを開き、呼び出し図とクラス図を生成します。Go CLIはsource fileまたはproject folderを再帰解析し、呼び出し図・クラス図・シーケンス図・コメント付きsource copy・静的仕様書・設計品質レポートを生成できます。各fileは個別解析され、file間の名前・型解決やその他の図は未移植です。コメント生成では元のソースを変更しません。実行方法は[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)、GUI操作は[GUI操作ガイド](docs/jp/GUI%E6%93%8D%E4%BD%9C%E3%82%AC%E3%82%A4%E3%83%89.md)を参照してください。移行の進捗は [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで管理します。
+製品本体はGoへ移行中です。Go CLIには16個のoperation IDを登録し、Windows GUIは入力形式・言語parser・workflowや配置設定に応じて実行できる成果物を選べるようにします。オブジェクト図、状態図、タイミングチャート、ユースケース図は現時点でPython sourceを含む入力が対象です。project folder内のsource fileは個別に解析するため、file間の名前・型解決はまだ行いません。コメント生成では元のソースを変更しません。実行方法は[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)、GUI操作は[GUI操作ガイド](docs/jp/GUI%E6%93%8D%E4%BD%9C%E3%82%AC%E3%82%A4%E3%83%89.md)を参照してください。Goへの移行状況は [Issue #27](https://github.com/tomiya7688/tomiya_code_atlas/issues/27) と子Issueで管理します。
 
 ## 主な機能
 
-主な対象:
-
-- コメント生成
-- クラス / オブジェクト / シーケンス / コミュニケーション図
-- 状態遷移 / アクティビティ / タイミング / ユースケース図
-- パッケージ / コンポーネント / デプロイメント図
-- コールグラフ
-- [静的仕様書](docs/jp/%E6%A9%9F%E8%83%BD%E4%BB%95%E6%A7%98/%E9%9D%99%E7%9A%84%E4%BB%95%E6%A7%98%E6%9B%B8.md)（Pythonファイル／プロジェクト）
-- 静的仕様書（Python単一ファイル）
-- クラス責務表
-- CI 解析
-- 設計評価
-
-図表の標準出力は Mermaid とし、PlantUML 等は Renderer の差し替えで追加できる構造を目指します。Go版のコメント生成は元ソースを変更せず、コメント付きコピーを出力します。
+対応する成果物と入力条件は、[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)と[GUI操作ガイド](docs/jp/GUI%E6%93%8D%E4%BD%9C%E3%82%AC%E3%82%A4%E3%83%89.md)で確認できます。Go版のコメント生成は元ソースを変更せず、コメント付きコピーを出力します。
 
 ## 主な解析対象
 
@@ -38,13 +25,13 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 ## Windows配布アプリをビルドする
 
-Go版への移行を進めています。ルートで `build_exe.bat` を実行すると、Go CLIと各言語のparser helper・必要runtimeを含むone-dir配布物を作成します。Go CLIではsource fileまたはproject folderから5種類の解析結果を生成できます。[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)を参照してください。GitHub Actionsの `Go EXE` workflowからWindows配布artifactを取得できます。
+ルートで`build_exe.bat`を実行すると、GUIとCLIを同じ`tomiya-code-atlas.exe`で提供し、各言語のparser helperと必要なruntimeを含むone-dir配布物を作成します。GitHub Actionsの`Go EXE` workflowからWindows配布artifactを取得できます。
 
 Python版は移行期間中の参照用ソースとして残します。Python parser helperはCPython標準ASTで文法を解析し、配布時はPyInstaller one-dir内へ対応するCPython runtimeを同梱します。アーキテクチャ規則として、全言語の構造解析backendで対象言語の実文法parserまたはcompiler ASTを使います。
 
 ### Windows配布artifactの取得と検証
 
-正規repositoryのGitHub Actionsで、成功した`Go EXE` workflow runを開き、`tomiya-code-atlas-go-windows-x64` artifactをダウンロードしてください。pull request eventとforkでは最終配布artifactを公開しません。ZIPを展開してから、GitHub CLIでrunに表示されたworkflow runに表示されたsource refとcommit SHAを指定して検証してください。
+PRの動作確認では、対象pull requestの成功した`Go EXE` workflow runを開き、`tomiya-code-atlas-windows-x64-pr-<番号>` artifactをダウンロードしてください。この検証用ZIPとchecksumは7日間保持し、provenance attestationはありません。正式配布artifactは、正規repositoryへのpushまたはworkflow手動実行が成功した後に`tomiya-code-atlas-go-windows-x64`として保存します。forkのpull requestではartifactを公開しません。
 
 ```powershell
 gh attestation verify tomiya-code-atlas-windows-x64.zip -R tomiya7688/tomiya_code_atlas --signer-workflow tomiya7688/tomiya_code_atlas/.github/workflows/go-exe.yml --source-ref <source-ref> --source-digest <commit-sha>
@@ -140,7 +127,7 @@ build_exe.bat
 run_dist.bat
 ```
 
-`build_exe.bat` はGo CLI、CPython/GDScript、Roslyn C#、Clang C++、JavaParser helperを作り、`run_dist.bat` はGo CLIを起動します。Java helperはjlinkで作成したprivate runtimeを同梱します。Go CLIの現在の対応機能と使い方は[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)を確認してください。GitHub Actionsの `Go EXE` workflowは配布物をbuildし、helper呼出しと5種類の解析結果を確認してからartifactとして公開します。
+`build_exe.bat` は`tomiya-code-atlas.exe`（引数なしでGUI、CLI command指定でconsole CLI）とCPython/GDScript、Roslyn C#、Clang C++、JavaParser helperを作り、`run_dist.bat` はGUIまたはconsole CLIを起動します。Java helperはjlinkで作成したprivate runtimeを同梱します。GitHub Actionsの`Go EXE` workflowは配布物をbuildし、helperと解析結果を確認してからartifactとして公開します。
 
 `scripts\build\verify.bat` はGo EXEと全parser helperのbuild・起動smoke、Python source test、policy checkを実行します。v1.0.0のrelease workflowはGo移行が完了するまで用意しません。
 

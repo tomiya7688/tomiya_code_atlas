@@ -129,6 +129,46 @@ func (scanner ProjectFileScanner) DiscoverDeploymentFiles(rootPath string) ([]st
 }
 
 //	{
+//	  責務: [DiscoverCIWorkflowFiles: YAML file選択またはproject folderの.github/workflowsからCI図の入力fileを列挙する]
+//	  処理: [1: 選択fileがYAMLなら単一入力として返す, 2: folderなら.github/workflows配下のYAMLだけを選びpath順に返す]
+//	  引数: [rootPath: YAML fileまたは解析するproject folder]
+//	  戻り値: [filePaths: CI図候補のpath, error: file・folderを列挙できない場合の説明]
+//	}
+func (scanner ProjectFileScanner) DiscoverCIWorkflowFiles(rootPath string) ([]string, error) {
+	rootInfo, err := os.Stat(rootPath)
+	if err != nil {
+		return nil, fmt.Errorf("inspect CI input %q: %w", rootPath, err)
+	}
+	if !rootInfo.IsDir() {
+		extension := strings.ToLower(filepath.Ext(rootPath))
+		if extension == ".yml" || extension == ".yaml" {
+			return []string{rootPath}, nil
+		}
+		return []string{}, nil
+	}
+	filePaths, err := scanner.walkProjectFiles(rootPath)
+	if err != nil {
+		return nil, err
+	}
+	workflows := make([]string, 0)
+	for _, filePath := range filePaths {
+		extension := strings.ToLower(filepath.Ext(filePath))
+		if extension != ".yml" && extension != ".yaml" {
+			continue
+		}
+		relativePath, err := filepath.Rel(rootPath, filePath)
+		if err != nil {
+			return nil, fmt.Errorf("CI workflow pathをproject相対に変換できません (%s): %w", filePath, err)
+		}
+		segments := strings.Split(strings.ToLower(filepath.ToSlash(relativePath)), "/")
+		if len(segments) == 3 && segments[0] == ".github" && segments[1] == "workflows" {
+			workflows = append(workflows, filePath)
+		}
+	}
+	return workflows, nil
+}
+
+//	{
 //	  責務: [walkProjectFiles: root fileまたはdirectoryからregular fileを再帰列挙し、生成・tooling directoryを除外する]
 //	  処理: [1: rootの種類を検証する, 2: ignored directoryへ入らずregular fileを収集する, 3: 大文字小文字に依存しないpath順で返す]
 //	  引数: [rootPath: 単一fileまたはproject directory]

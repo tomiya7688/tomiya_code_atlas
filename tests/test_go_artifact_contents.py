@@ -26,6 +26,12 @@ def test_windows_distribution_is_attested_after_smoke_checks() -> None:
         == "tomiya-code-atlas-windows-x64-attestation-input"
     )
     intermediate_upload = build_steps[intermediate_upload_index]
+    pr_upload_index = next(
+        index
+        for index, step in enumerate(build_steps)
+        if step.get("name") == "PR検証用Windows配布artifactを保存"
+    )
+    pr_upload = build_steps[pr_upload_index]
     package_index = next(
         index
         for index, step in enumerate(build_steps)
@@ -49,7 +55,7 @@ def test_windows_distribution_is_attested_after_smoke_checks() -> None:
     gui_smoke_index = next(
         index
         for index, step in enumerate(build_steps)
-        if step.get("name") == "Go GUIの配布起動をsmoke test"
+        if step.get("name") == "Go GUIの配布起動と解析をsmoke test"
     )
     distribution_e2e_index = next(
         index
@@ -66,7 +72,21 @@ def test_windows_distribution_is_attested_after_smoke_checks() -> None:
         ".build/release/SHA256SUMS.txt",
     }
     assert distribution_e2e_index < package_index < intermediate_upload_index
+    assert package_index < pr_upload_index < intermediate_upload_index
     assert gui_smoke_index < distribution_e2e_index
+    assert pr_upload["if"] == (
+        "github.event_name == 'pull_request' && "
+        "github.event.pull_request.head.repo.full_name == 'tomiya7688/tomiya_code_atlas'"
+    )
+    assert pr_upload["uses"] == "actions/upload-artifact@v7"
+    assert pr_upload["with"]["name"] == (
+        "tomiya-code-atlas-windows-x64-pr-${{ github.event.pull_request.number }}"
+    )
+    assert pr_upload["with"]["path"].splitlines() == [
+        ".build/release/tomiya-code-atlas-windows-x64.zip",
+        ".build/release/SHA256SUMS.txt",
+    ]
+    assert pr_upload["with"]["retention-days"] == 7
     assert build_steps[package_index]["run"] == (
         "python scripts/build/package_windows_distribution.py"
     )
@@ -87,6 +107,35 @@ def test_windows_distribution_is_attested_after_smoke_checks() -> None:
         ".build/dist/",
         ".build/release/",
     ]
+    cli_smoke = (
+        Path(__file__).resolve().parents[1] / "tools/go_cli_smoke.py"
+    ).read_text(encoding="utf-8")
+    expected_operations = {
+        "call-graph",
+        "class-diagram",
+        "sequence-diagram",
+        "object-diagram",
+        "communication-diagram",
+        "state-diagram",
+        "timing-chart",
+        "use-case-diagram",
+        "responsibility-table",
+        "package-diagram",
+        "component-diagram",
+        "deployment-diagram",
+        "ci-graph",
+        "comments",
+        "static-spec",
+        "design-quality",
+    }
+    assert all(
+        f'"--operation",\n        "{operation}"' in cli_smoke
+        for operation in expected_operations
+    )
+    assert all(
+        f'"go_project_{operation}.md"' in cli_smoke
+        for operation in expected_operations - {"comments"}
+    )
     download_step = attest_steps[0]
     assert download_step["uses"] == "actions/download-artifact@v8"
     assert download_step["with"]["path"] == ".build"

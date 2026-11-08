@@ -217,7 +217,7 @@ func TestHelperClientProcess(t *testing.T) {
 //	}
 func newTestHelperClient(timeout time.Duration) HelperClient {
 	client := NewHelperClient(timeout)
-	client.createCommand = func(ctx context.Context, _ string) *exec.Cmd {
+	client.createCommand = func(ctx context.Context, _ string, _ ...string) *exec.Cmd {
 		command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestHelperClientProcess$")
 		command.Env = append(os.Environ(), helperProcessEnvironmentName+"=1")
 		return command

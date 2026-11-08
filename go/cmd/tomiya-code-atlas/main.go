@@ -97,7 +97,7 @@ func runWithGUI(args []string, stdout, stderr io.Writer, launch func(bool) error
 
 //	{
 //	  責務: [
-//	    launchGUI: CLIと共有する解析serviceをGUIへ渡してdesktop windowを起動する,
+//	    launchGUI: CLIと共有する解析serviceをGUIへ渡し、通常起動またはsmoke解析を起動する,
 //	  ],
 //	}
 func launchGUI(smokeMode bool) error {
@@ -105,7 +105,39 @@ func launchGUI(smokeMode bool) error {
 	if err != nil {
 		return err
 	}
-	return ui.Run(service, smokeMode)
+	smokeAnalysis, err := guiSmokeAnalysisFromEnvironment(smokeMode, os.Getenv)
+	if err != nil {
+		return err
+	}
+	return ui.Run(service, smokeMode, smokeAnalysis)
+}
+
+const guiSmokeSourceEnvironment = "TOMIYA_CODE_ATLAS_GUI_SMOKE_SOURCE"
+const guiSmokeOutputEnvironment = "TOMIYA_CODE_ATLAS_GUI_SMOKE_OUTPUT"
+
+//	{
+//	  責務: [guiSmokeAnalysisFromEnvironment: smoke mode専用の環境変数を検証済みAnalysisRequestへ変換し、通常GUIへ影響させない]
+//	  処理: [1: 入力と保存先を検証する, 2: GUIの互換性照会結果からsmoke対象operationを選ぶ, 3: 検証済み要求を返す]
+//	  引数: [smokeMode: smoke実行か, lookup: 環境変数の値を取得する関数]
+//	  戻り値: [request: GUI起動後に実行する解析要求またはnil, error: 片方のみ指定または空白pathの場合の説明]
+//	}
+func guiSmokeAnalysisFromEnvironment(smokeMode bool, lookup func(string) string) (*process.AnalysisRequest, error) {
+	if !smokeMode {
+		return nil, nil
+	}
+	sourcePath := strings.TrimSpace(lookup(guiSmokeSourceEnvironment))
+	outputDirectory := strings.TrimSpace(lookup(guiSmokeOutputEnvironment))
+	if sourcePath == "" && outputDirectory == "" {
+		return nil, nil
+	}
+	if sourcePath == "" || outputDirectory == "" {
+		return nil, fmt.Errorf("GUI解析smoke testには入力と出力先の両方が必要です")
+	}
+	return &process.AnalysisRequest{
+		SourcePath:      sourcePath,
+		Operations:      []string{},
+		OutputDirectory: outputDirectory,
+	}, nil
 }
 
 //	{
@@ -246,6 +278,8 @@ func writeAnalyzeHelp(w io.Writer) {
 	fmt.Fprintln(w, "--operationは作成する解析結果ごとに繰り返し指定できます。")
 	fmt.Fprintln(w, "入力にフォルダーを指定すると、対応するソースファイルを配下から再帰的に探します。")
 	fmt.Fprintln(w, "各ファイルを拡張子に対応する解析補助プログラムで調べ、選択した結果を保存します。")
+	fmt.Fprintln(w, "入力形式・言語・workflowや配置設定により利用できるoperationは変わり、対応しない指定は利用可能な一覧とともに拒否します。")
+	fmt.Fprintln(w, "オブジェクト図・状態図・タイミングチャート・ユースケース図は、現在Python sourceを含む入力に対応します。")
 	fmt.Fprintln(w, "commentsは元ソースを変更せず、commentsフォルダーへコメントを追加したコピーを保存します。")
 	for _, operation := range process.SupportedOperationIDs() {
 		fmt.Fprintf(w, "  %-14s %s\n", operation, analysisOperationDescription(operation))
@@ -267,6 +301,26 @@ func analysisOperationDescription(operation string) string {
 		return "クラス図を生成"
 	case "sequence-diagram":
 		return "シーケンス図を生成"
+	case "object-diagram":
+		return "オブジェクト図を生成"
+	case "communication-diagram":
+		return "コミュニケーション図を生成"
+	case "state-diagram":
+		return "状態図を生成"
+	case "timing-chart":
+		return "タイミングチャートを生成"
+	case "use-case-diagram":
+		return "ユースケース図を生成"
+	case "responsibility-table":
+		return "責務表を生成"
+	case "package-diagram":
+		return "パッケージ図を生成"
+	case "component-diagram":
+		return "コンポーネント図を生成"
+	case "deployment-diagram":
+		return "配置図を生成"
+	case "ci-graph":
+		return "GitHub Actionsの処理図を生成"
 	case "comments":
 		return "コメントを追加したsource copyを保存"
 	case "static-spec":

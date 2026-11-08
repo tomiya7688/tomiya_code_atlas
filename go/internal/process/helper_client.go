@@ -51,7 +51,7 @@ type BackendError struct {
 //	}
 type HelperClient struct {
 	timeout       time.Duration
-	createCommand func(context.Context, string) *exec.Cmd
+	createCommand func(context.Context, string, ...string) *exec.Cmd
 }
 
 type boundedCapture struct {
@@ -178,8 +178,8 @@ func NewHelperClient(timeout time.Duration) HelperClient {
 	}
 	return HelperClient{
 		timeout: timeout,
-		createCommand: func(ctx context.Context, executablePath string) *exec.Cmd {
-			return exec.CommandContext(ctx, executablePath)
+		createCommand: func(ctx context.Context, executablePath string, arguments ...string) *exec.Cmd {
+			return exec.CommandContext(ctx, executablePath, arguments...)
 		},
 	}
 }
@@ -187,10 +187,10 @@ func NewHelperClient(timeout time.Duration) HelperClient {
 //	{
 //	  責務: [Parse: helperを起動し、契約を検証したCommon IRまたは正規化失敗を返す]
 //	  処理: [1: request IDとJSON requestを作る, 2: timeout付きでhelperを直接起動する, 3: process失敗を分類する, 4: response versionとrequest IDを検証する, 5: helper errorまたはCommon IRを検証して返す]
-//	  引数: [parentContext: 呼出元のcancel・deadline, executablePath: manifestから解決したhelper path, backendID: registry上の識別子, language: 解析対象language ID, source: parserへ渡す内容, sourcePath: 任意のsource path]
+//	  引数: [parentContext: 呼出元のcancel・deadline, executablePath: manifestから解決したhelperまたはruntime path, backendID: registry上の識別子, language: 解析対象language ID, source: parserへ渡す内容, sourcePath: 任意のsource path, arguments: runtimeまたはhelperへ渡す起動引数]
 //	  戻り値: [payload: version検証済みCommon IR, error: processまたはprotocol failure]
 //	}
-func (client HelperClient) Parse(parentContext context.Context, executablePath string, backendID string, language string, source string, sourcePath *string) (commonir.Payload, error) {
+func (client HelperClient) Parse(parentContext context.Context, executablePath string, backendID string, language string, source string, sourcePath *string, arguments ...string) (commonir.Payload, error) {
 	requestID, err := newRequestID()
 	if err != nil {
 		return commonir.Payload{}, newBackendError("failure", fmt.Sprintf("create parser request id: %v", err), backendID, false)
@@ -215,13 +215,13 @@ func (client HelperClient) Parse(parentContext context.Context, executablePath s
 	}
 	createCommand := client.createCommand
 	if createCommand == nil {
-		createCommand = func(ctx context.Context, helperPath string) *exec.Cmd {
-			return exec.CommandContext(ctx, helperPath)
+		createCommand = func(ctx context.Context, helperPath string, helperArguments ...string) *exec.Cmd {
+			return exec.CommandContext(ctx, helperPath, helperArguments...)
 		}
 	}
 	runContext, cancel := context.WithTimeout(parentContext, timeout)
 	defer cancel()
-	command := createCommand(runContext, executablePath)
+	command := createCommand(runContext, executablePath, arguments...)
 	command.Stdin = bytes.NewReader(append(requestBytes, '\n'))
 	standardOutput := newBoundedCapture(maxHelperStdoutBytes)
 	standardError := newBoundedCapture(maxHelperStderrBytes)

@@ -13,8 +13,11 @@ if errorlevel 1 (
 if not exist ".build\dist" mkdir ".build\dist"
 if not exist ".build\go-cache" mkdir ".build\go-cache"
 if not exist ".build\go-temp" mkdir ".build\go-temp"
+if not exist ".build\temp" mkdir ".build\temp"
 set "GOCACHE=%CD%\.build\go-cache"
 set "GOTMPDIR=%CD%\.build\go-temp"
+set "TEMP=%CD%\.build\temp"
+set "TMP=%TEMP%"
 if not exist ".venv\Scripts\python.exe" (
     call scripts\build\setup.bat
     if errorlevel 1 exit /b 1

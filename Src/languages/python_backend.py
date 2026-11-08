@@ -11,6 +11,8 @@ from Src.languages.backend import (
     ParserBackendKind,
     normalize_backend_exception,
 )
+from Src.languages.python_timing import PythonTimingLanguageAdapter
+from Src.languages.python_usecase import PythonUseCaseLanguageAdapter
 from Src.languages.python_project import PythonProjectLanguageAdapter
 
 
@@ -25,7 +27,14 @@ class PythonStdlibBackend:
 
     def parse(self, source: str, path: str | None = None) -> ModuleIR:
         try:
-            return PythonProjectLanguageAdapter().parse(source)
+            module = PythonProjectLanguageAdapter().parse(source)
+            module.timing_flows = (
+                PythonTimingLanguageAdapter().parse(source).timing_flows
+            )
+            module.input_events = (
+                PythonUseCaseLanguageAdapter().parse(source).input_events
+            )
+            return module
         except SyntaxError as error:
             raise ParserBackendError(
                 ParserBackendFailure(

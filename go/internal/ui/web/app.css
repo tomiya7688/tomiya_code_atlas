@@ -132,13 +132,13 @@ label {
 .secondary:hover {
   background: #e1eef7;
 }
-.diagram-grid {
+.output-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-left: 35px;
 }
-.diagram {
+.output-option {
   display: flex;
   align-items: flex-start;
   gap: 11px;
@@ -146,22 +146,31 @@ label {
   border: 1px solid #dce4ec;
   border-radius: 8px;
 }
-.diagram:has(input:checked) {
+.output-option:has(input:checked) {
   border-color: #3384bc;
   background: #f3f9fd;
 }
-.diagram input {
+.output-option input {
   margin-top: 3px;
   accent-color: #1769aa;
 }
-.diagram strong,
-.diagram small {
+.output-option strong,
+.output-option small {
   display: block;
 }
-.diagram strong {
+.output-option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.compatibility {
+  margin: 0 0 12px 35px;
+  color: #46596c;
+  font-size: 13px;
+}
+.output-option strong {
   font-size: 14px;
 }
-.diagram small {
+.output-option small {
   margin-top: 4px;
   color: #4f6072;
   font-size: 12px;
@@ -237,13 +246,13 @@ footer {
   }
   .hint,
   .choice-row,
-  .diagram-grid {
+  .output-grid {
     margin-left: 0;
   }
   .choice-row {
     flex-wrap: wrap;
   }
-  .diagram-grid {
+  .output-grid {
     grid-template-columns: 1fr;
   }
 }

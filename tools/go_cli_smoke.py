@@ -32,6 +32,53 @@ def main() -> int:
     shutil.copytree(fixture, source)
     yaml_marker = "atlas-yaml-configuration-sentinel"
     (source / "settings.yaml").write_text(f"name: {yaml_marker}\n", encoding="utf-8")
+    (source / "Dockerfile").write_text("FROM python:3.14-slim\n", encoding="utf-8")
+    (source / "compose.yaml").write_text(
+        "services:\n  atlas:\n    build: .\n", encoding="utf-8"
+    )
+    workflow = source / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(
+        "name: CI\non: [push]\njobs:\n  verify:\n    steps:\n      - run: go test ./...\n",
+        encoding="utf-8",
+    )
+    python_source = source / "atlas_ui.py"
+    python_source_text = """from enum import Enum
+import asyncio
+import tkinter as tk
+from tkinter import ttk
+
+class State(Enum):
+    IDLE = "idle"
+    RUNNING = "running"
+
+class Repository:
+    pass
+
+class Service:
+    def __init__(self):
+        self.state = State.IDLE
+
+    def start(self):
+        if self.state == State.IDLE:
+            self.state = State.RUNNING
+
+def build_service():
+    repository = Repository(path="atlas.db")
+    service = Service()
+    service.repository = repository
+    return service
+
+async def refresh():
+    await asyncio.sleep(1)
+
+def on_refresh():
+    asyncio.create_task(refresh())
+
+root = tk.Tk()
+button = ttk.Button(text="Refresh", command=on_refresh)
+"""
+    python_source.write_text(python_source_text, encoding="utf-8")
     output_directory = smoke_directory / "output"
     output_directory.mkdir(parents=True, exist_ok=False)
     command = [
@@ -50,6 +97,26 @@ def main() -> int:
         "static-spec",
         "--operation",
         "design-quality",
+        "--operation",
+        "object-diagram",
+        "--operation",
+        "communication-diagram",
+        "--operation",
+        "state-diagram",
+        "--operation",
+        "timing-chart",
+        "--operation",
+        "use-case-diagram",
+        "--operation",
+        "responsibility-table",
+        "--operation",
+        "package-diagram",
+        "--operation",
+        "component-diagram",
+        "--operation",
+        "deployment-diagram",
+        "--operation",
+        "ci-graph",
         "--output-dir",
         str(output_directory),
     ]
@@ -79,6 +146,16 @@ def main() -> int:
         ),
         "go_project_class-diagram.md": ("classDiagram", "Result"),
         "go_project_sequence-diagram.md": ("sequenceDiagram", "Runner"),
+        "go_project_object-diagram.md": ("flowchart LR", "repository : Repository"),
+        "go_project_communication-diagram.md": ("flowchart LR", "Runner"),
+        "go_project_state-diagram.md": ("stateDiagram-v2", "IDLE --> RUNNING"),
+        "go_project_timing-chart.md": ("sequenceDiagram", "asyncio.sleep"),
+        "go_project_use-case-diagram.md": ("flowchart LR", "Refresh"),
+        "go_project_responsibility-table.md": ("| Class | Responsibility |", "Service"),
+        "go_project_package-diagram.md": ("flowchart LR",),
+        "go_project_component-diagram.md": ("flowchart LR",),
+        "go_project_deployment-diagram.md": ("flowchart", "atlas"),
+        "go_project_ci-graph.md": ("# GitHub Actions / CI図", "ci.yml"),
         "go_project_static-spec.md": ("## 宣言一覧", "Runner"),
         "go_project_design-quality.md": ("# 設計品質レポート", "## 指標"),
     }
@@ -90,7 +167,9 @@ def main() -> int:
             )
             return 1
         contents = output_path.read_text(encoding="utf-8")
-        if "settings.yaml" in contents or yaml_marker in contents:
+        if file_name != "go_project_deployment-diagram.md" and (
+            "settings.yaml" in contents or yaml_marker in contents
+        ):
             print(f"[エラー] {file_name} にYAML設定が含まれています。", file=sys.stderr)
             return 1
         if any(marker not in contents for marker in markers):
@@ -106,6 +185,14 @@ def main() -> int:
 
     if not list((output_directory / "comments").rglob("*.go")):
         print("[エラー] Go sourceのコメント付きコピーがありません。", file=sys.stderr)
+        return 1
+    if not list((output_directory / "comments").rglob("*.py")):
+        print(
+            "[エラー] Python sourceのコメント付きコピーがありません。", file=sys.stderr
+        )
+        return 1
+    if python_source.read_text(encoding="utf-8") != python_source_text:
+        print("[エラー] CLIの解析がPython入力sourceを変更しました。", file=sys.stderr)
         return 1
 
     comment_source = smoke_directory / "comment_input.go"
