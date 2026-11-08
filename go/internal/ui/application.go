@@ -59,24 +59,25 @@ type AnalysisResult struct {
 //	  責務: [
 //	    Application: 画面入力を受け、解析serviceとWails runtimeをつなぐ,
 //	  ],
-//	  状態: [
-//	    generator: Processの解析結果生成契約,
-//	    context: file dialogとwindow制御に使うruntime情報,
-//	    smokeMode: CI smoke時にDOM読込後GUIを閉じる設定,
-//	  ],
+//	  状態: [generator: Processの解析結果生成契約, context: file dialogとwindow制御に使うruntime情報, smokeMode: CI smoke時にDOM読込後GUIを閉じる設定, smokeAnalysis: GUI起動後に実行するsmoke解析要求, smokeResult: smoke解析の終了結果をRunへ返すchannel]
 //	}
 type Application struct {
-	generator AnalysisGenerator
-	context   context.Context
-	smokeMode bool
+	generator     AnalysisGenerator
+	context       context.Context
+	smokeMode     bool
+	smokeAnalysis *process.AnalysisRequest
+	smokeResult   chan error
 }
 
 //	{
 //	  責務: [
-//	    Run: 埋込み画面を解析serviceへ接続し、desktop windowを起動する,
+//	    Run: 埋込み画面を解析serviceへ接続し、desktop windowまたはsmoke解析を起動する,
 //	  ],
 //	}
-func Run(generator AnalysisGenerator, smokeMode bool) (runError error) {
+func Run(generator AnalysisGenerator, smokeMode bool, smokeAnalysis *process.AnalysisRequest) (runError error) {
+	if smokeAnalysis != nil && !smokeMode {
+		return fmt.Errorf("GUI解析smoke testはsmoke modeでのみ実行できます")
+	}
 	webFiles, err := fs.Sub(embeddedWebFiles, "web")
 	if err != nil {
 		return fmt.Errorf("GUIの埋込みassetを開けません: %w", err)
@@ -113,8 +114,11 @@ func Run(generator AnalysisGenerator, smokeMode bool) (runError error) {
 			return fmt.Errorf("WebView2プロファイルを準備できません: %w", err)
 		}
 	}
-	application := &Application{generator: generator, smokeMode: smokeMode}
-	return wails.Run(&options.App{
+	application := &Application{generator: generator, smokeMode: smokeMode, smokeAnalysis: smokeAnalysis}
+	if smokeAnalysis != nil {
+		application.smokeResult = make(chan error, 1)
+	}
+	runError = wails.Run(&options.App{
 		Title:     "Tomiya Code Atlas",
 		Width:     1040,
 		Height:    760,
@@ -128,6 +132,10 @@ func Run(generator AnalysisGenerator, smokeMode bool) (runError error) {
 		Bind:       []interface{}{application},
 		Windows:    &windows.Options{WebviewUserDataPath: webviewUserDataPath},
 	})
+	if runError != nil || application.smokeResult == nil {
+		return runError
+	}
+	return <-application.smokeResult
 }
 
 //	{
@@ -185,7 +193,7 @@ func (application *Application) startup(runtimeContext context.Context) {
 
 //	{
 //	  責務: [
-//	    domReady: smoke modeで埋込み画面の読込完了を確認してからGUIを閉じる,
+//	    domReady: smoke modeで埋込み画面を読み込み、必要ならGUIのAnalyze bindingを実行して終了する,
 //	  ],
 //	}
 func (application *Application) domReady(runtimeContext context.Context) {
@@ -193,6 +201,18 @@ func (application *Application) domReady(runtimeContext context.Context) {
 		return
 	}
 	wailsruntime.WindowHide(runtimeContext)
+	if application.smokeAnalysis != nil {
+		go func() {
+			_, smokeError := application.Analyze(
+				application.smokeAnalysis.SourcePath,
+				application.smokeAnalysis.Operations,
+				application.smokeAnalysis.OutputDirectory,
+			)
+			application.smokeResult <- smokeError
+			wailsruntime.Quit(runtimeContext)
+		}()
+		return
+	}
 	time.AfterFunc(1500*time.Millisecond, func() {
 		wailsruntime.Quit(runtimeContext)
 	})

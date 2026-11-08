@@ -97,7 +97,7 @@ func runWithGUI(args []string, stdout, stderr io.Writer, launch func(bool) error
 
 //	{
 //	  責務: [
-//	    launchGUI: CLIと共有する解析serviceをGUIへ渡してdesktop windowを起動する,
+//	    launchGUI: CLIと共有する解析serviceをGUIへ渡し、通常起動またはsmoke解析を起動する,
 //	  ],
 //	}
 func launchGUI(smokeMode bool) error {
@@ -105,7 +105,36 @@ func launchGUI(smokeMode bool) error {
 	if err != nil {
 		return err
 	}
-	return ui.Run(service, smokeMode)
+	smokeAnalysis, err := guiSmokeAnalysisFromEnvironment(smokeMode, os.Getenv)
+	if err != nil {
+		return err
+	}
+	return ui.Run(service, smokeMode, smokeAnalysis)
+}
+
+const guiSmokeSourceEnvironment = "TOMIYA_CODE_ATLAS_GUI_SMOKE_SOURCE"
+const guiSmokeOutputEnvironment = "TOMIYA_CODE_ATLAS_GUI_SMOKE_OUTPUT"
+
+//	{
+//	  責務: [guiSmokeAnalysisFromEnvironment: smoke mode専用の環境変数を検証済みAnalysisRequestへ変換し、通常GUIへ影響させない]
+//	  引数: [smokeMode: smoke実行か, lookup: 環境変数の値を取得する関数]
+//	  戻り値: [request: GUI起動後に実行する解析要求またはnil, error: 片方のみ指定または空白pathの場合の説明]
+//	}
+func guiSmokeAnalysisFromEnvironment(smokeMode bool, lookup func(string) string) (*process.AnalysisRequest, error) {
+	if !smokeMode {
+		return nil, nil
+	}
+	sourcePath := strings.TrimSpace(lookup(guiSmokeSourceEnvironment))
+	outputDirectory := strings.TrimSpace(lookup(guiSmokeOutputEnvironment))
+	if sourcePath == "" && outputDirectory == "" {
+		return nil, nil
+	}
+	if sourcePath == "" || outputDirectory == "" {
+		return nil, fmt.Errorf("GUI解析smoke testには入力と出力先の両方が必要です")
+	}
+	return &process.AnalysisRequest{
+		SourcePath: sourcePath, Operations: []string{"call-graph", "class-diagram"}, OutputDirectory: outputDirectory,
+	}, nil
 }
 
 //	{

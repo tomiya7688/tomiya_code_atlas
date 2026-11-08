@@ -70,13 +70,20 @@ def _environment(workspace: Path) -> dict[str, str]:
 
 
 def _run(
-    exe: Path, workspace: Path, *arguments: str, expected: int = 0
+    exe: Path,
+    workspace: Path,
+    *arguments: str,
+    expected: int = 0,
+    extra_environment: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     command = [str(exe), *arguments]
+    environment = _environment(workspace)
+    if extra_environment:
+        environment.update(extra_environment)
     result = subprocess.run(
         command,
         cwd=workspace,
-        env=_environment(workspace),
+        env=environment,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -555,6 +562,29 @@ def _verify_gui_launch(exe: Path, workspace: Path) -> None:
                 process.wait(timeout=5)
 
 
+def _verify_gui_analysis(exe: Path, workspace: Path) -> None:
+    """Run the GUI's bound Analyze method against an isolated fixture."""
+    source = workspace / "gui-smoke.py"
+    source.write_text(
+        "class GuiSmoke:\n    def run(self):\n        return self.helper()\n    def helper(self):\n        return None\n",
+        encoding="utf-8",
+    )
+    output_directory = workspace / "gui-analysis"
+    _run(
+        exe,
+        workspace,
+        "--gui-smoke",
+        extra_environment={
+            "TOMIYA_CODE_ATLAS_GUI_SMOKE_SOURCE": str(source),
+            "TOMIYA_CODE_ATLAS_GUI_SMOKE_OUTPUT": str(output_directory),
+        },
+    )
+    _require(output_directory / "gui-smoke_call-graph.md", "flowchart", "run")
+    _require(
+        output_directory / "gui-smoke_class-diagram.md", "classDiagram", "GuiSmoke"
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -563,7 +593,7 @@ def main() -> int:
     parser.add_argument(
         "--gui",
         action="store_true",
-        help="Also perform a bounded GUI startup smoke test",
+        help="Also check GUI startup and GUI-bound analysis for the Go build",
     )
     args = parser.parse_args()
     exe = args.exe.resolve()
@@ -587,6 +617,8 @@ def main() -> int:
                 _verify_python_features(exe, workspace)
             if args.gui:
                 _verify_gui_launch(exe, workspace)
+                if "Tomiya Code Atlas (Go)" in version.stdout:
+                    _verify_gui_analysis(exe, workspace)
         except (
             DistributionCheckError,
             OSError,

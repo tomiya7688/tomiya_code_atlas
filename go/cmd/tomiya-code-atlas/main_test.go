@@ -76,6 +76,37 @@ func TestRunWithGUIOpensDesktopAndSmokeMode(t *testing.T) {
 }
 
 //	{
+//	  責務: [TestGUISmokeAnalysisRequiresBothPathsAndOnlyRunsInSmokeMode: GUI smoke解析requestの環境変数境界を検証する]
+//	}
+func TestGUISmokeAnalysisRequiresBothPathsAndOnlyRunsInSmokeMode(t *testing.T) {
+	values := map[string]string{
+		guiSmokeSourceEnvironment: " source.py ",
+		guiSmokeOutputEnvironment: " output ",
+	}
+	lookup := func(name string) string { return values[name] }
+	request, err := guiSmokeAnalysisFromEnvironment(false, lookup)
+	if err != nil || request != nil {
+		t.Fatalf("normal GUI smoke request = %#v, error = %v; want nil, nil", request, err)
+	}
+	request, err = guiSmokeAnalysisFromEnvironment(true, func(string) string { return "" })
+	if err != nil || request != nil {
+		t.Fatalf("empty GUI smoke request = %#v, error = %v; want nil, nil", request, err)
+	}
+	delete(values, guiSmokeOutputEnvironment)
+	if _, err := guiSmokeAnalysisFromEnvironment(true, lookup); err == nil {
+		t.Fatal("GUI smoke request with one path was accepted")
+	}
+	values[guiSmokeOutputEnvironment] = " output "
+	request, err = guiSmokeAnalysisFromEnvironment(true, lookup)
+	if err != nil {
+		t.Fatalf("complete GUI smoke request failed: %v", err)
+	}
+	if request.SourcePath != "source.py" || request.OutputDirectory != "output" || len(request.Operations) != 2 || request.Operations[0] != "call-graph" || request.Operations[1] != "class-diagram" {
+		t.Fatalf("GUI smoke request = %#v", request)
+	}
+}
+
+//	{
 //	  責務: [TestRunAnalyzeReportsStableUsageAndRuntimeExitCodes: command引数誤りと実行環境失敗のexit codeを検証する]
 //	}
 func TestRunAnalyzeReportsStableUsageAndRuntimeExitCodes(t *testing.T) {
