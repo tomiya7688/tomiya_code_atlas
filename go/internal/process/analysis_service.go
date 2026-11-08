@@ -169,9 +169,14 @@ func (service AnalysisService) CompatibleOperations(sourcePath string) ([]string
 	if err != nil {
 		return nil, err
 	}
+	validCIWorkflows := false
+	if len(ciWorkflowFiles) > 0 {
+		_, parseErr := readCIWorkflowFiles(sourcePath, isDirectory, scanner)
+		validCIWorkflows = parseErr == nil
+	}
 	if !isDirectory && (strings.EqualFold(filepath.Ext(sourcePath), ".yaml") ||
 		strings.EqualFold(filepath.Ext(sourcePath), ".yml")) {
-		if len(ciWorkflowFiles) == 0 {
+		if !validCIWorkflows {
 			return []string{}, nil
 		}
 		return []string{"ci-graph"}, nil
@@ -211,7 +216,7 @@ func (service AnalysisService) CompatibleOperations(sourcePath string) ([]string
 			available["deployment-diagram"] = struct{}{}
 		}
 	}
-	if len(ciWorkflowFiles) > 0 {
+	if validCIWorkflows {
 		available["ci-graph"] = struct{}{}
 	}
 	operations := make([]string, 0, len(available))

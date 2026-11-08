@@ -8,20 +8,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 ## 主な機能
 
-主な対象:
-
-- コメント生成
-- クラス / オブジェクト / シーケンス / コミュニケーション図
-- 状態遷移 / アクティビティ / タイミング / ユースケース図
-- パッケージ / コンポーネント / デプロイメント図
-- コールグラフ
-- [静的仕様書](docs/jp/%E6%A9%9F%E8%83%BD%E4%BB%95%E6%A7%98/%E9%9D%99%E7%9A%84%E4%BB%95%E6%A7%98%E6%9B%B8.md)（Pythonファイル／プロジェクト）
-- 静的仕様書（Python単一ファイル）
-- クラス責務表
-- CI 解析
-- 設計評価
-
-図表の標準出力は Mermaid とし、PlantUML 等は Renderer の差し替えで追加できる構造を目指します。Go版のコメント生成は元ソースを変更せず、コメント付きコピーを出力します。
+対応する成果物と入力条件は、[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)と[GUI操作ガイド](docs/jp/GUI%E6%93%8D%E4%BD%9C%E3%82%AC%E3%82%A4%E3%83%89.md)で確認できます。Go版のコメント生成は元ソースを変更せず、コメント付きコピーを出力します。
 
 ## 主な解析対象
 
@@ -38,7 +25,7 @@ Tomiya Code Atlas は、ソースコードの構造・振る舞い・依存関�
 
 ## Windows配布アプリをビルドする
 
-ルートで`build_exe.bat`を実行すると、GUIとCLIを同じ`tomiya-code-atlas.exe`で提供し、各言語のparser helper、必要なruntimeを含むone-dir配布物を作成します。CLIの16個のoperation IDのうち、実際に実行できるものは入力形式・言語parser・workflowや配置設定で変わります。GUIは入力を選ぶと対応する成果物だけを有効にします。[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)と[GUI操作ガイド](docs/jp/GUI%E6%93%8D%E4%BD%9C%E3%82%AC%E3%82%A4%E3%83%89.md)を参照してください。GitHub Actionsの`Go EXE` workflowからWindows配布artifactを取得できます。
+ルートで`build_exe.bat`を実行すると、GUIとCLIを同じ`tomiya-code-atlas.exe`で提供し、各言語のparser helperと必要なruntimeを含むone-dir配布物を作成します。GitHub Actionsの`Go EXE` workflowからWindows配布artifactを取得できます。
 
 Python版は移行期間中の参照用ソースとして残します。Python parser helperはCPython標準ASTで文法を解析し、配布時はPyInstaller one-dir内へ対応するCPython runtimeを同梱します。アーキテクチャ規則として、全言語の構造解析backendで対象言語の実文法parserまたはcompiler ASTを使います。
 
@@ -140,7 +127,7 @@ build_exe.bat
 run_dist.bat
 ```
 
-`build_exe.bat` は`tomiya-code-atlas.exe`（引数なしでGUI、CLI command指定でconsole CLI）とCPython/GDScript、Roslyn C#、Clang C++、JavaParser helperを作り、`run_dist.bat` は引数なしでGUIを、CLI引数ありでconsole CLIを起動します。Java helperはjlinkで作成したprivate runtimeを同梱します。Go CLIには16個のoperation IDを登録し、GitHub Actionsの`Go EXE` workflowは配布物をbuildしてhelperと解析結果を確認してからartifactとして公開します。operationの一覧と入力条件は[CLI利用ガイド](docs/jp/CLI%E5%88%A9%E7%94%A8%E3%82%AC%E3%82%A4%E3%83%89.md)を確認してください。
+`build_exe.bat` は`tomiya-code-atlas.exe`（引数なしでGUI、CLI command指定でconsole CLI）とCPython/GDScript、Roslyn C#、Clang C++、JavaParser helperを作り、`run_dist.bat` はGUIまたはconsole CLIを起動します。Java helperはjlinkで作成したprivate runtimeを同梱します。GitHub Actionsの`Go EXE` workflowは配布物をbuildし、helperと解析結果を確認してからartifactとして公開します。
 
 `scripts\build\verify.bat` はGo EXEと全parser helperのbuild・起動smoke、Python source test、policy checkを実行します。v1.0.0のrelease workflowはGo移行が完了するまで用意しません。
 

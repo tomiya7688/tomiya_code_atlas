@@ -1,5 +1,6 @@
 const selected = { source: "", output: "" };
 let compatibleOperations = new Set();
+let compatibilityRequestId = 0;
 const sourcePath = document.querySelector("#source-path");
 const outputPath = document.querySelector("#output-path");
 const result = document.querySelector("#result");
@@ -18,11 +19,14 @@ function updateOperationCompatibility() {
 }
 
 async function loadCompatibleOperations(path) {
+  const requestId = ++compatibilityRequestId;
   try {
-    compatibleOperations = new Set(
-      await window.go.ui.Application.GetCompatibleOperations(path),
-    );
+    const operations =
+      await window.go.ui.Application.GetCompatibleOperations(path);
+    if (requestId !== compatibilityRequestId) return;
+    compatibleOperations = new Set(operations);
   } catch (error) {
+    if (requestId !== compatibilityRequestId) return;
     compatibleOperations = new Set();
     showMessage(String(error), "error");
   }
@@ -62,6 +66,7 @@ document.querySelector("#choose-source").addEventListener("click", async () => {
 
 document.querySelectorAll('input[name="input-kind"]').forEach((input) =>
   input.addEventListener("change", (event) => {
+    compatibilityRequestId += 1;
     document.querySelector("#choose-source").innerHTML =
       `${event.target.value === "file" ? "ファイルを選ぶ" : "フォルダーを選ぶ"} <kbd>Alt+O</kbd>`;
     selected.source = "";

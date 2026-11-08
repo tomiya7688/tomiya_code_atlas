@@ -45,9 +45,11 @@ def test_gui_controls_expose_names_and_live_status() -> None:
         "呼び出し図",
         "クラス図",
         "保存先を選ぶ",
-        "解析して図を作る",
+        "解析して結果を作る",
     ):
         assert visible_name in markup
+    assert "単一のソースファイルでは基本8種類" in markup
+    assert "Pythonファイルでは12種類" in markup
     assert 'role="status" aria-live="polite"' in markup
 
 

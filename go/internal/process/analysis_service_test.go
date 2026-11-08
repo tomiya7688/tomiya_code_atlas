@@ -214,6 +214,29 @@ func TestCompatibleOperationsReflectInputLanguageAndProjectFiles(t *testing.T) {
 }
 
 //	{
+//	  責務: [TestCompatibleOperationsRejectsNonWorkflowYAML: GitHub Actions構造を持たないYAMLをCI diagram入力として案内しない]
+//	}
+func TestCompatibleOperationsRejectsNonWorkflowYAML(t *testing.T) {
+	root := t.TempDir()
+	for fileName, source := range map[string]string{
+		"compose.yml":   "services:\n  app:\n    image: example/app\n",
+		"settings.yaml": "jobs: []\n",
+	} {
+		path := filepath.Join(root, fileName)
+		if err := os.WriteFile(path, []byte(source), 0o600); err != nil {
+			t.Fatalf("write %s: %v", fileName, err)
+		}
+		operations, err := (AnalysisService{}).CompatibleOperations(path)
+		if err != nil {
+			t.Fatalf("CompatibleOperations(%s) error: %v", fileName, err)
+		}
+		if slices.Contains(operations, "ci-graph") {
+			t.Errorf("CompatibleOperations(%s) = %#v; non-workflow YAML must not enable ci-graph", fileName, operations)
+		}
+	}
+}
+
+//	{
 //	  責務: [TestRenderAnalysisOutputProducesStaticSpecificationAndDesignQualityDocuments: Common IRから静的仕様書・設計品質のMarkdownを生成する]
 //	}
 func TestRenderAnalysisOutputProducesStaticSpecificationAndDesignQualityDocuments(t *testing.T) {

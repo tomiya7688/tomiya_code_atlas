@@ -18,7 +18,7 @@ Windows版 `tomiya-code-atlas.exe` を引数なしで起動するとGUIを開き
 
 Windows 10/11を対象にしたGUIです。WailsはWindows上でWebView2 Runtimeを使います。Windows 11および多くのWindows 10環境には含まれていますが、未導入の環境ではMicrosoft Edge WebView2 Runtimeをインストールしてください。GUIにPython/Tkの実行環境は必要ありません。言語別解析helperは配布物に同梱されています。
 
-Go CLIには16個の操作IDがありますが、すべての入力で全操作を実行できるわけではありません。単一YAML fileではCI図を選べます。source fileでは、その言語のparserと入力内容に対応する操作だけが有効になります。オブジェクト図・状態図・タイミングチャート・ユースケース図は現時点でPython sourceを含む入力に限ります。パッケージ図・コンポーネント図はsourceを含むproject folder、配置図は配置設定を含むproject folder、CI図はworkflowを含むproject folderで有効になります。図とレポートは選んだ保存先フォルダー直下にMarkdown fileとして保存し、コメント付きcopyはその中の`comments/`へ元のfolder構成を保って保存します。元のsource fileは変更しません。入力がproject folderの場合、`<保存先>/comments/`が入力folderと同じ場所、その親、またはその子にならないよう保存先を選んでください。重なる場合は解析前にエラーで拒否します。コメント付きcopyのGUI preview編集は未対応です。配置図では、Dockerfile/Composeから読み取った設定とsource importから推定した関係を区別して統合します。配布EXEは [Go EXE workflow](https://github.com/tomiya7688/tomiya_code_atlas/actions/workflows/go-exe.yml) の成功runから取得してください。
+Go版GUIには16種類の成果物があります。単一の対応source fileでは基本8種類を選べます。Python fileではPython source向けの4種類が加わり、合計12種類を選べます。project folderではパッケージ図・コンポーネント図が加わり、workflowと配置設定がある場合はCI図・配置図も選べます。単一YAML fileではCI図を選べます。灰色の項目は選んだ入力では使えません。オブジェクト図・状態図・タイミングチャート・ユースケース図は現時点でPython sourceを含む入力に限ります。図とレポートは選んだ保存先フォルダー直下にMarkdown fileとして保存し、コメント付きcopyはその中の`comments/`へ元のfolder構成を保って保存します。元のsource fileは変更しません。入力がproject folderの場合、`<保存先>/comments/`が入力folderと同じ場所、その親、またはその子にならないよう保存先を選んでください。重なる場合は解析前にエラーで拒否します。コメント付きcopyのGUI preview編集は未対応です。配置図では、Dockerfile/Composeから読み取った設定とsource importから推定した関係を区別して統合します。配布EXEは [Go EXE workflow](https://github.com/tomiya7688/tomiya_code_atlas/actions/workflows/go-exe.yml) の成功runから取得してください。
 
 ## CLI
 

@@ -32,6 +32,7 @@ function createGuiHarness() {
     compatible: [],
     analyze: [],
   };
+  const pendingCompatibility = [];
   let resolveAnalysis;
 
   const api = {
@@ -52,6 +53,11 @@ function createGuiHarness() {
     },
     async GetCompatibleOperations(source) {
       apiCalls.compatible.push(source);
+      if (api.deferCompatibility) {
+        return new Promise((resolve, reject) =>
+          pendingCompatibility.push({ path: source, resolve, reject }),
+        );
+      }
       const all = operationInputs.map((input) => input.value);
       if (/\.ya?ml$/i.test(source)) return ["ci-graph"];
       if (source === "E:/project") return all;
@@ -115,6 +121,7 @@ function createGuiHarness() {
     analyzeButton,
     inputKinds,
     operations: operationInputs,
+    pendingCompatibility,
     outputButton,
     outputPath,
     resolveAnalysis(value) {
@@ -271,6 +278,44 @@ test("enables operations that match the selected input kind", async () => {
   assert.equal(operation("package-diagram").disabled, false);
   assert.equal(operation("deployment-diagram").disabled, false);
   assert.equal(operation("ci-graph").disabled, false);
+});
+
+test("keeps the newest compatibility response when selections overlap", async () => {
+  const gui = createGuiHarness();
+  const operation = (value) =>
+    gui.operations.find((input) => input.value === value);
+  gui.api.deferCompatibility = true;
+
+  gui.api.sourceFileResult = "E:/project/first.go";
+  const firstSelection = gui.sourceButton.click();
+  await new Promise((resolve) => setImmediate(resolve));
+  gui.api.sourceFileResult = "E:/project/second.go";
+  const secondSelection = gui.sourceButton.click();
+  await new Promise((resolve) => setImmediate(resolve));
+
+  gui.pendingCompatibility[1].resolve(["class-diagram"]);
+  await secondSelection;
+  gui.pendingCompatibility[0].resolve(["call-graph"]);
+  await firstSelection;
+
+  assert.equal(operation("class-diagram").disabled, false);
+  assert.equal(operation("call-graph").disabled, true);
+});
+
+test("ignores compatibility responses after changing input kind", async () => {
+  const gui = createGuiHarness();
+  const operation = (value) =>
+    gui.operations.find((input) => input.value === value);
+  gui.api.deferCompatibility = true;
+
+  const selection = gui.sourceButton.click();
+  await new Promise((resolve) => setImmediate(resolve));
+  gui.selectInputKind("folder");
+  gui.pendingCompatibility[0].resolve(["call-graph"]);
+  await selection;
+
+  assert.equal(operation("call-graph").disabled, true);
+  assert.equal(gui.sourcePath.textContent, "まだ選択されていません");
 });
 
 test("selects project folders and preserves paths when dialogs are cancelled", async () => {

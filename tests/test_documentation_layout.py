@@ -98,7 +98,14 @@ def test_v1_user_guides_have_english_names_and_reciprocal_japanese_links() -> No
         "CLI-Reference.md": "../jp/CLI利用ガイド.md",
     }
     for name, japanese_source in expected_links.items():
-        assert japanese_source in english_files[name].read_text(encoding="utf-8"), name
+        guide = english_files[name].read_text(encoding="utf-8")
+        local_targets = {
+            local_markdown_path(target)
+            for match in MARKDOWN_LINK.finditer(guide)
+            for target in match.groups()
+            if target
+        }
+        assert japanese_source in local_targets, name
 
     japanese_readme = (ROOT / "README.md").read_text(encoding="utf-8")
     for name in ("README.md", "Building.md", "GUI-Usage.md", "CLI-Reference.md"):
