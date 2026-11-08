@@ -1,11 +1,13 @@
 package ui
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -13,7 +15,188 @@ import (
 
 	"github.com/tomiya7688/tomiya_code_atlas/internal/data"
 	"github.com/tomiya7688/tomiya_code_atlas/internal/process"
+	"golang.org/x/net/html"
 )
+
+//	{
+//	  責務: [TestEmbeddedUIListsEverySupportedOperation: GUIの成果物選択肢とCLI operation registryの一致を確認する,]
+//	}
+func TestEmbeddedUIListsEverySupportedOperation(t *testing.T) {
+	guiHTML, err := embeddedWebFiles.ReadFile("web/index.html")
+	if err != nil {
+		t.Fatalf("read embedded GUI: %v", err)
+	}
+	document, err := html.Parse(bytes.NewReader(guiHTML))
+	if err != nil {
+		t.Fatalf("parse embedded GUI: %v", err)
+	}
+	operationIDs := process.SupportedOperationIDs()
+	supportedOperationIDs := make(map[string]struct{}, len(operationIDs))
+	for _, operationID := range operationIDs {
+		supportedOperationIDs[operationID] = struct{}{}
+	}
+	operationCheckboxes := make(map[string]int, len(operationIDs))
+	var inspectNode func(*html.Node)
+	inspectNode = func(node *html.Node) {
+		if node.Type == html.ElementNode && node.Data == "label" && hasClass(node, "output-option") {
+			var inspectOption func(*html.Node)
+			inspectOption = func(optionNode *html.Node) {
+				if optionNode.Type == html.ElementNode && optionNode.Data == "input" {
+					inputType := ""
+					inputValue := ""
+					for _, attribute := range optionNode.Attr {
+						switch attribute.Key {
+						case "type":
+							inputType = attribute.Val
+						case "value":
+							inputValue = attribute.Val
+						}
+					}
+					if strings.EqualFold(inputType, "checkbox") {
+						if inputValue == "" {
+							t.Errorf("GUI operation checkbox has no value")
+							return
+						}
+						operationCheckboxes[inputValue]++
+					}
+				}
+				for child := optionNode.FirstChild; child != nil; child = child.NextSibling {
+					inspectOption(child)
+				}
+			}
+			inspectOption(node)
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			inspectNode(child)
+		}
+	}
+	inspectNode(document)
+	if actualCount := len(operationCheckboxes); actualCount != len(operationIDs) {
+		t.Fatalf("GUI operation checkbox count = %d, registry count = %d", actualCount, len(operationIDs))
+	}
+	for operationID, actualCount := range operationCheckboxes {
+		if _, supported := supportedOperationIDs[operationID]; !supported {
+			t.Errorf("GUI checkbox contains unsupported operation %q", operationID)
+		}
+		if actualCount != 1 {
+			t.Errorf("GUI checkbox for %q occurs %d times, want once", operationID, actualCount)
+		}
+	}
+	for _, operationID := range operationIDs {
+		if actualCount := operationCheckboxes[operationID]; actualCount != 1 {
+			t.Errorf("GUI checkbox for %q occurs %d times, want once", operationID, actualCount)
+		}
+	}
+}
+
+//	{
+//	  責務: [hasClass: HTML要素に指定したclassが含まれるか確認する,]
+//	}
+func hasClass(node *html.Node, className string) bool {
+	for _, attribute := range node.Attr {
+		if attribute.Key == "class" && slices.Contains(strings.Fields(attribute.Val), className) {
+			return true
+		}
+	}
+	return false
+}
+
+//	{
+//	  責務: [TestResolveWebviewUserDataPathSeparatesInstallations: 同じ配置先は同一profile、異なる配置先は別profileを使うことを検証する,]
+//	}
+func TestResolveWebviewUserDataPathSeparatesInstallations(t *testing.T) {
+	configDirectory := filepath.Join(t.TempDir(), "config")
+	firstInstallDirectory := filepath.Join(t.TempDir(), "first")
+	if err := os.MkdirAll(firstInstallDirectory, 0o700); err != nil {
+		t.Fatalf("create first installation directory: %v", err)
+	}
+	firstExecutable := filepath.Join(firstInstallDirectory, "tomiya-code-atlas.exe")
+	if err := os.WriteFile(firstExecutable, []byte("test executable"), 0o600); err != nil {
+		t.Fatalf("create first executable: %v", err)
+	}
+	firstPath, err := resolveWebviewUserDataPath(firstExecutable, configDirectory)
+	if err != nil {
+		t.Fatalf("resolve first WebView2 profile: %v", err)
+	}
+	firstPathAgain, err := resolveWebviewUserDataPath(firstExecutable, configDirectory)
+	if err != nil {
+		t.Fatalf("resolve repeated WebView2 profile: %v", err)
+	}
+	if runtime.GOOS == "windows" {
+		firstPathDifferentCase, err := resolveWebviewUserDataPath(strings.ToUpper(firstExecutable), configDirectory)
+		if err != nil {
+			t.Fatalf("resolve case-insensitive WebView2 profile: %v", err)
+		}
+		if firstPath != firstPathDifferentCase {
+			t.Fatalf("profile changed with Windows path case: first %q, different case %q", firstPath, firstPathDifferentCase)
+		}
+	}
+	secondInstallDirectory := filepath.Join(t.TempDir(), "second")
+	if err := os.MkdirAll(secondInstallDirectory, 0o700); err != nil {
+		t.Fatalf("create second installation directory: %v", err)
+	}
+	secondExecutable := filepath.Join(secondInstallDirectory, "tomiya-code-atlas.exe")
+	if err := os.WriteFile(secondExecutable, []byte("test executable"), 0o600); err != nil {
+		t.Fatalf("create second executable: %v", err)
+	}
+	secondPath, err := resolveWebviewUserDataPath(secondExecutable, configDirectory)
+	if err != nil {
+		t.Fatalf("resolve second WebView2 profile: %v", err)
+	}
+	if !filepath.IsAbs(firstPath) {
+		t.Fatalf("profile path = %q, want an absolute path", firstPath)
+	}
+	if firstPath == secondPath {
+		t.Fatalf("profiles for different installation folders are equal: %q", firstPath)
+	}
+	if firstPath != firstPathAgain {
+		t.Fatalf("same installation profile changed: first %q, repeated %q", firstPath, firstPathAgain)
+	}
+	if !strings.HasPrefix(firstPath, configDirectory) {
+		t.Fatalf("profile path %q is outside config directory %q", firstPath, configDirectory)
+	}
+}
+
+//	{
+//	  責務: [TestResolveWebviewUserDataPathResolvesInstallAliases: 同じ実体を指すsymlink経由でも同じWebView2 profileを使うことを検証する,]
+//	}
+func TestResolveWebviewUserDataPathResolvesInstallAliases(t *testing.T) {
+	installDirectory := filepath.Join(t.TempDir(), "install")
+	if err := os.MkdirAll(installDirectory, 0o700); err != nil {
+		t.Fatalf("create installation directory: %v", err)
+	}
+	installExecutable := filepath.Join(installDirectory, "tomiya-code-atlas.exe")
+	if err := os.WriteFile(installExecutable, []byte("test executable"), 0o600); err != nil {
+		t.Fatalf("create installation executable: %v", err)
+	}
+	aliasExecutable := filepath.Join(t.TempDir(), "tomiya-code-atlas.exe")
+	if err := os.Symlink(installExecutable, aliasExecutable); err != nil {
+		t.Skipf("create installation alias: %v", err)
+	}
+	configDirectory := filepath.Join(t.TempDir(), "config")
+	installProfile, err := resolveWebviewUserDataPath(installExecutable, configDirectory)
+	if err != nil {
+		t.Fatalf("resolve installation WebView2 profile: %v", err)
+	}
+	aliasProfile, err := resolveWebviewUserDataPath(aliasExecutable, configDirectory)
+	if err != nil {
+		t.Fatalf("resolve alias WebView2 profile: %v", err)
+	}
+	if installProfile != aliasProfile {
+		t.Fatalf("profile differs for the same installation: direct %q, alias %q", installProfile, aliasProfile)
+	}
+}
+
+//	{
+//	  責務: [TestResolveWebviewUserDataPathRejectsEmptyPath: 必須pathが空ならWebView2 profileを決めないことを検証する,]
+//	}
+func TestResolveWebviewUserDataPathRejectsEmptyPath(t *testing.T) {
+	for _, paths := range [][2]string{{"", "config"}, {"app.exe", ""}} {
+		if _, err := resolveWebviewUserDataPath(paths[0], paths[1]); err == nil {
+			t.Errorf("resolveWebviewUserDataPath(%q, %q) succeeded, want error", paths[0], paths[1])
+		}
+	}
+}
 
 //	{
 //	  責務: [

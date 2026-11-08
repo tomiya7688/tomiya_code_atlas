@@ -2,11 +2,14 @@ package ui
 
 import (
 	"context"
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -93,6 +96,22 @@ func Run(generator AnalysisGenerator, smokeMode bool) (runError error) {
 				runError = errors.Join(runError, fmt.Errorf("smoke test用WebView2 profileを削除できません: %w", cleanupError))
 			}
 		}()
+	} else {
+		executablePath, executableError := os.Executable()
+		if executableError != nil {
+			return fmt.Errorf("実行ファイルの場所を取得できません: %w", executableError)
+		}
+		userConfigDirectory, configError := os.UserConfigDir()
+		if configError != nil {
+			return fmt.Errorf("利用者設定フォルダーを取得できません: %w", configError)
+		}
+		webviewUserDataPath, err = resolveWebviewUserDataPath(executablePath, userConfigDirectory)
+		if err != nil {
+			return fmt.Errorf("WebView2プロファイルのパスを決められません: %w", err)
+		}
+		if err := os.MkdirAll(webviewUserDataPath, 0o700); err != nil {
+			return fmt.Errorf("WebView2プロファイルを準備できません: %w", err)
+		}
 	}
 	application := &Application{generator: generator, smokeMode: smokeMode}
 	return wails.Run(&options.App{
@@ -109,6 +128,33 @@ func Run(generator AnalysisGenerator, smokeMode bool) (runError error) {
 		Bind:       []interface{}{application},
 		Windows:    &windows.Options{WebviewUserDataPath: webviewUserDataPath},
 	})
+}
+
+//	{
+//	  責務: [resolveWebviewUserDataPath: 配布先ごとに分離したWebView2プロファイルの保存先を作る,]
+//	  処理: [1: 実行ファイルのsymlinkを解決して配置フォルダーを決める, 2: OS別に配置先の実体を識別する, 3: 利用者設定内のprofile保存先を返す,]
+//	  引数: [executablePath: 実行中のファイルのパス, userConfigDirectory: OSが返した利用者設定フォルダー,]
+//	  戻り値: [string: 配置フォルダーを識別するprofileのパス, error: 必須pathまたは実行ファイルの実体を解決できない場合の説明,]
+//	}
+func resolveWebviewUserDataPath(executablePath, userConfigDirectory string) (string, error) {
+	if strings.TrimSpace(executablePath) == "" || strings.TrimSpace(userConfigDirectory) == "" {
+		return "", fmt.Errorf("実行ファイルと利用者設定フォルダーを指定してください")
+	}
+	resolvedExecutablePath, err := filepath.EvalSymlinks(executablePath)
+	if err != nil {
+		return "", fmt.Errorf("実行ファイルの実体パスを解決できません: %w", err)
+	}
+	executableDirectory, err := filepath.Abs(filepath.Dir(resolvedExecutablePath))
+	if err != nil {
+		return "", fmt.Errorf("実行ファイルのフォルダーを解決できません: %w", err)
+	}
+	configDirectory, err := filepath.Abs(userConfigDirectory)
+	if err != nil {
+		return "", fmt.Errorf("利用者設定フォルダーを解決できません: %w", err)
+	}
+	installIdentity := webviewInstallIdentity(executableDirectory)
+	profileIdentity := sha256.Sum256([]byte(installIdentity))
+	return filepath.Join(configDirectory, "Tomiya Code Atlas", "WebView2", hex.EncodeToString(profileIdentity[:])), nil
 }
 
 //	{
