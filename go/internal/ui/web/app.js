@@ -23,14 +23,17 @@ async function loadCompatibleOperations(path) {
   try {
     const operations =
       await window.go.ui.Application.GetCompatibleOperations(path);
-    if (requestId !== compatibilityRequestId) return;
+    if (requestId !== compatibilityRequestId) return false;
     compatibleOperations = new Set(operations);
   } catch (error) {
-    if (requestId !== compatibilityRequestId) return;
+    if (requestId !== compatibilityRequestId) return false;
     compatibleOperations = new Set();
     showMessage(String(error), "error");
+    updateOperationCompatibility();
+    return false;
   }
   updateOperationCompatibility();
+  return true;
 }
 
 function showPath(element, path) {
@@ -88,8 +91,11 @@ document.querySelector("#choose-output").addEventListener("click", async () => {
   }
 });
 
-analyzeButton.addEventListener("click", async () => {
-  if (analyzeButton.disabled) return;
+// {
+//   責務: [analyzeSelection: 選択済みの入力・成果物・保存先を検証し、画面の解析bindingを呼び出す,]
+// }
+async function analyzeSelection() {
+  if (analyzeButton.disabled) return "解析を実行中です。";
 
   const operations = [
     ...document.querySelectorAll(".output-option input:checked"),
@@ -99,15 +105,15 @@ analyzeButton.addEventListener("click", async () => {
       "解析するファイルまたはプロジェクトフォルダーを選んでください。",
       "error",
     );
-    return;
+    return "解析するファイルまたはプロジェクトフォルダーを選んでください。";
   }
   if (operations.length === 0) {
     showMessage("作りたい成果物を一つ以上選んでください。", "error");
-    return;
+    return "作りたい成果物を一つ以上選んでください。";
   }
   if (!selected.output) {
     showMessage("保存先フォルダーを選んでください。", "error");
-    return;
+    return "保存先フォルダーを選んでください。";
   }
 
   analyzeButton.disabled = true;
@@ -131,12 +137,66 @@ analyzeButton.addEventListener("click", async () => {
       ),
     );
     result.replaceChildren(message, paths);
+    return "";
   } catch (error) {
-    showMessage(String(error).replace(/^Error:\s*/, ""), "error");
+    const errorMessage = String(error).replace(/^Error:\s*/, "");
+    showMessage(errorMessage, "error");
+    return errorMessage;
   } finally {
     analyzeButton.disabled = false;
   }
-});
+}
+
+analyzeButton.addEventListener("click", analyzeSelection);
+
+// {
+//   責務: [runGuiSmoke: hidden smoke requestを画面状態へ反映し、利用者と同じ解析処理を実行して結果をGoへ返す,]
+// }
+async function runGuiSmoke(request) {
+  try {
+    if (!request?.sourcePath || !request?.outputDirectory) {
+      throw new Error("GUI smoke testの入力fileと保存先を取得できません。");
+    }
+    if (!Array.isArray(request.operations) || request.operations.length === 0) {
+      throw new Error("GUI smoke testで成果物が選ばれていません。");
+    }
+
+    selected.source = request.sourcePath;
+    showPath(sourcePath, selected.source);
+    if (!(await loadCompatibleOperations(selected.source))) {
+      throw new Error("GUI smoke testの入力に対応する成果物を調べられません。");
+    }
+    const operationInputs = [
+      ...document.querySelectorAll(".output-option input"),
+    ];
+    const knownOperations = new Set(
+      operationInputs.map((input) => input.value),
+    );
+    for (const operation of request.operations) {
+      if (
+        !knownOperations.has(operation) ||
+        !compatibleOperations.has(operation)
+      ) {
+        throw new Error(
+          `GUI smoke testの入力では成果物を選べません: ${operation}`,
+        );
+      }
+    }
+    for (const input of operationInputs) {
+      input.checked = request.operations.includes(input.value);
+    }
+    selected.output = request.outputDirectory;
+    showPath(outputPath, selected.output);
+    const errorMessage = await analyzeSelection();
+    await window.go.ui.Application.ReportSmokeResult(errorMessage);
+  } catch (error) {
+    const errorMessage = String(error).replace(/^Error:\s*/, "");
+    showMessage(errorMessage, "error");
+    await window.go.ui.Application.ReportSmokeResult(errorMessage);
+  }
+}
+
+window.runtime.EventsOn("gui-smoke-analyze", runGuiSmoke);
 
 document.addEventListener("keydown", (event) => {
   if (!event.altKey || event.ctrlKey || event.metaKey) return;

@@ -25,12 +25,14 @@ function createGuiHarness() {
       .matchAll(/type="checkbox" value="([^"]+)"/g),
   ].map((match) => Object.assign(createElement(), { value: match[1] }));
   const documentListeners = new Map();
+  const runtimeEvents = new Map();
   const apiCalls = {
     source: 0,
     folder: 0,
     output: 0,
     compatible: [],
     analyze: [],
+    smokeResults: [],
   };
   const pendingCompatibility = [];
   let resolveAnalysis;
@@ -53,6 +55,7 @@ function createGuiHarness() {
     },
     async GetCompatibleOperations(source) {
       apiCalls.compatible.push(source);
+      if (api.compatibilityError) throw api.compatibilityError;
       if (api.deferCompatibility) {
         return new Promise((resolve, reject) =>
           pendingCompatibility.push({ path: source, resolve, reject }),
@@ -89,9 +92,13 @@ function createGuiHarness() {
     },
     Analyze(source, selectedOperations, output) {
       apiCalls.analyze.push([source, selectedOperations, output]);
+      if (api.analysisError) return Promise.reject(api.analysisError);
       return new Promise((resolve) => {
         resolveAnalysis = resolve;
       });
+    },
+    async ReportSmokeResult(errorMessage) {
+      apiCalls.smokeResults.push(errorMessage);
     },
   };
 
@@ -128,7 +135,14 @@ function createGuiHarness() {
   const appPath = path.resolve(__dirname, "../go/internal/ui/web/app.js");
   vm.runInNewContext(fs.readFileSync(appPath, "utf8"), {
     document,
-    window: { go: { ui: { Application: api } } },
+    window: {
+      go: { ui: { Application: api } },
+      runtime: {
+        EventsOn(name, handler) {
+          runtimeEvents.set(name, handler);
+        },
+      },
+    },
   });
 
   return {
@@ -142,6 +156,9 @@ function createGuiHarness() {
     outputPath,
     resolveAnalysis(value) {
       resolveAnalysis(value);
+    },
+    emitRuntimeEvent(name, payload) {
+      return runtimeEvents.get(name)?.(payload);
     },
     result,
     sourceButton,
@@ -382,4 +399,109 @@ test("prevents browser defaults only for supported Alt shortcuts", async () => {
   assert.equal(gui.apiCalls.source, 1);
   assert.equal(gui.keydown("p"), true);
   assert.equal(gui.apiCalls.output, 1);
+});
+
+// {
+//   責務: [検証: 配布smoke eventが画面の互換性判定・checkbox選択・解析bindingを通ることを確認する,]
+// }
+test("runs packaged GUI smoke through frontend compatibility and Analyze flow", async () => {
+  const gui = createGuiHarness();
+  const smokeRun = gui.emitRuntimeEvent("gui-smoke-analyze", {
+    sourcePath: "E:/project/sample.py",
+    operations: ["call-graph", "class-diagram"],
+    outputDirectory: "E:/gui-output",
+  });
+
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(gui.apiCalls.compatible, ["E:/project/sample.py"]);
+  assert.equal(gui.apiCalls.analyze.length, 1);
+  assert.equal(
+    JSON.stringify(gui.apiCalls.analyze[0]),
+    JSON.stringify([
+      "E:/project/sample.py",
+      ["call-graph", "class-diagram"],
+      "E:/gui-output",
+    ]),
+  );
+  assert.equal(
+    gui.operations.find((input) => input.value === "call-graph").checked,
+    true,
+  );
+  assert.equal(
+    gui.operations.find((input) => input.value === "class-diagram").checked,
+    true,
+  );
+
+  gui.resolveAnalysis({
+    message: "解析が完了しました。2件の成果物を保存しました。",
+    outputPaths: [],
+  });
+  await smokeRun;
+  assert.deepEqual(gui.apiCalls.smokeResults, [""]);
+});
+
+// {
+//   責務: [検証: 入力に非対応なGUI smoke成果物を拒否してGoへ診断を返すことを確認する,]
+// }
+test("reports incompatible GUI smoke operations without invoking analysis", async () => {
+  const gui = createGuiHarness();
+  await gui.emitRuntimeEvent("gui-smoke-analyze", {
+    sourcePath: "E:/project/Unsupported.cs",
+    operations: ["object-diagram"],
+    outputDirectory: "E:/gui-output",
+  });
+
+  assert.equal(gui.apiCalls.analyze.length, 0);
+  assert.match(gui.apiCalls.smokeResults[0], /成果物を選べません/);
+});
+
+// {
+//   責務: [検証: GUI smoke要求・互換性確認・解析bindingの失敗理由をGoへ通知する,]
+// }
+test("reports GUI smoke failures without hiding the failing stage", async (t) => {
+  const scenarios = [
+    {
+      name: "malformed request",
+      request: { operations: [] },
+      expectedMessage: /入力fileと保存先/,
+      expectedAnalysisCalls: 0,
+    },
+    {
+      name: "compatibility lookup",
+      request: {
+        sourcePath: "E:/project/sample.py",
+        operations: ["call-graph"],
+        outputDirectory: "E:/gui-output",
+      },
+      configure(gui) {
+        gui.api.compatibilityError = new Error("入力の種類を確認できません。");
+      },
+      expectedMessage: /成果物を調べられません/,
+      expectedAnalysisCalls: 0,
+    },
+    {
+      name: "analysis binding",
+      request: {
+        sourcePath: "E:/project/sample.py",
+        operations: ["call-graph"],
+        outputDirectory: "E:/gui-output",
+      },
+      configure(gui) {
+        gui.api.analysisError = new Error("解析を完了できません。");
+      },
+      expectedMessage: /解析を完了できません/,
+      expectedAnalysisCalls: 1,
+    },
+  ];
+
+  for (const scenario of scenarios) {
+    await t.test(scenario.name, async () => {
+      const gui = createGuiHarness();
+      scenario.configure?.(gui);
+      await gui.emitRuntimeEvent("gui-smoke-analyze", scenario.request);
+
+      assert.equal(gui.apiCalls.analyze.length, scenario.expectedAnalysisCalls);
+      assert.match(gui.apiCalls.smokeResults[0], scenario.expectedMessage);
+    });
+  }
 });

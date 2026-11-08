@@ -393,6 +393,33 @@ func TestAnalyzeRejectsInvalidSelectionAndReturnsProcessError(t *testing.T) {
 }
 
 //	{
+//	  責務: [TestReportSmokeResultRejectsRegularGUIAndCompletesOnce: smoke mode限定通知と多重完了の抑止を検証する]
+//	}
+func TestReportSmokeResultRejectsRegularGUIAndCompletesOnce(t *testing.T) {
+	regularApplication := &Application{smokeResult: make(chan error, 1)}
+	if err := regularApplication.ReportSmokeResult(""); err == nil {
+		t.Fatal("regular GUI accepted a smoke result")
+	}
+
+	smokeApplication := &Application{
+		smokeMode:   true,
+		smokeResult: make(chan error, 1),
+	}
+	if err := smokeApplication.ReportSmokeResult("解析に失敗しました"); err != nil {
+		t.Fatalf("ReportSmokeResult returned error: %v", err)
+	}
+	if err := smokeApplication.ReportSmokeResult(""); err != nil {
+		t.Fatalf("duplicate ReportSmokeResult returned error: %v", err)
+	}
+	if result := <-smokeApplication.smokeResult; result == nil || result.Error() != "解析に失敗しました" {
+		t.Fatalf("first smoke result = %v, want analysis error", result)
+	}
+	if len(smokeApplication.smokeResult) != 0 {
+		t.Fatal("duplicate smoke result was enqueued")
+	}
+}
+
+//	{
 //	  責務: [TestSourceFileFilterMatchesSupportedLanguages: 各ソース言語の選択肢とscannerの判定が一致することを検証する,],
 //	}
 func TestSourceFileFilterMatchesSupportedLanguagesAndCIWorkflows(t *testing.T) {

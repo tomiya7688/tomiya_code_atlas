@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/tomiya7688/tomiya_code_atlas/internal/process"
@@ -28,6 +29,8 @@ const sourceFileFilterPattern = "*.py;*.gd;*.cs;*.cpp;*.cc;*.cxx;*.hpp;*.hxx;*.j
 
 const smokeProfileCleanupAttempts = 40
 const smokeProfileCleanupInterval = 250 * time.Millisecond
+const guiSmokeAnalysisEvent = "gui-smoke-analyze"
+const guiSmokeAnalysisTimeout = 60 * time.Second
 
 //go:embed web/*
 var embeddedWebFiles embed.FS
@@ -59,14 +62,15 @@ type AnalysisResult struct {
 //	  責務: [
 //	    Application: 画面入力を受け、解析serviceとWails runtimeをつなぐ,
 //	  ],
-//	  状態: [generator: Processの解析結果生成契約, context: file dialogとwindow制御に使うruntime情報, smokeMode: CI smoke時にDOM読込後GUIを閉じる設定, smokeAnalysis: GUI起動後に実行するsmoke解析要求, smokeResult: smoke解析の終了結果をRunへ返すchannel]
+//	  状態: [generator: Processの解析結果生成契約, context: file dialogとwindow制御に使うruntime情報, smokeMode: CI smoke時にDOM読込後GUIを閉じる設定, smokeAnalysis: GUI起動後に画面へ渡すsmoke解析要求, smokeResult: smoke解析の終了結果をRunへ返すchannel, smokeCompleted: 完了通知とtimeoutの二重送信を防ぐonce]
 //	}
 type Application struct {
-	generator     AnalysisGenerator
-	context       context.Context
-	smokeMode     bool
-	smokeAnalysis *process.AnalysisRequest
-	smokeResult   chan error
+	generator      AnalysisGenerator
+	context        context.Context
+	smokeMode      bool
+	smokeAnalysis  *process.AnalysisRequest
+	smokeResult    chan error
+	smokeCompleted sync.Once
 }
 
 //	{
@@ -202,19 +206,51 @@ func (application *Application) domReady(runtimeContext context.Context) {
 	}
 	wailsruntime.WindowHide(runtimeContext)
 	if application.smokeAnalysis != nil {
-		go func() {
-			_, smokeError := application.Analyze(
-				application.smokeAnalysis.SourcePath,
-				application.smokeAnalysis.Operations,
-				application.smokeAnalysis.OutputDirectory,
-			)
-			application.smokeResult <- smokeError
-			wailsruntime.Quit(runtimeContext)
-		}()
+		time.AfterFunc(guiSmokeAnalysisTimeout, func() {
+			application.completeSmoke("GUIの解析smoke testが時間内に完了しませんでした")
+		})
+		wailsruntime.EventsEmit(runtimeContext, guiSmokeAnalysisEvent, map[string]interface{}{
+			"sourcePath":      application.smokeAnalysis.SourcePath,
+			"operations":      application.smokeAnalysis.Operations,
+			"outputDirectory": application.smokeAnalysis.OutputDirectory,
+		})
 		return
 	}
 	time.AfterFunc(1500*time.Millisecond, func() {
 		wailsruntime.Quit(runtimeContext)
+	})
+}
+
+//	{
+//	  責務: [ReportSmokeResult: 埋込み画面で完了したGUI smoke解析の結果をRunへ返す]
+//	  引数: [errorMessage: 画面の互換性検証または解析が失敗した理由。成功時は空文字]
+//	  戻り値: [error: 通常GUIからの誤用を拒否した場合の説明]
+//	}
+func (application *Application) ReportSmokeResult(errorMessage string) error {
+	if !application.smokeMode || application.smokeResult == nil {
+		return fmt.Errorf("GUI解析smoke test以外から結果を通知できません")
+	}
+	application.completeSmoke(errorMessage)
+	return nil
+}
+
+//	{
+//	  責務: [completeSmoke: GUI smoke解析の結果を一度だけRunへ通知し、隠しwindowを閉じる]
+//	  引数: [errorMessage: 失敗理由または成功時の空文字]
+//	}
+func (application *Application) completeSmoke(errorMessage string) {
+	if application.smokeResult == nil {
+		return
+	}
+	application.smokeCompleted.Do(func() {
+		var smokeError error
+		if strings.TrimSpace(errorMessage) != "" {
+			smokeError = errors.New(errorMessage)
+		}
+		application.smokeResult <- smokeError
+		if application.context != nil {
+			wailsruntime.Quit(application.context)
+		}
 	})
 }
 
