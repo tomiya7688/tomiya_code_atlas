@@ -28,11 +28,22 @@ def main(argv: list[str] | None = None) -> int:
     assert response["request_id"] == "java-ci-smoke"
     assert response["ok"] is True
     module = response["ir"]
+    assert module["schema_version"] == "1"
     entities = module["entities"]
 
-    worker = next(item for item in entities if item["kind"] == "class" and item["name"] == "Worker")
-    interface = next(item for item in entities if item["kind"] == "class" and item["name"] == "WorkContract")
-    runs = [item for item in entities if item["kind"] == "method" and item["name"] == "run"]
+    worker = next(
+        item
+        for item in entities
+        if item["kind"] == "class" and item["name"] == "Worker"
+    )
+    interface = next(
+        item
+        for item in entities
+        if item["kind"] == "class" and item["name"] == "WorkContract"
+    )
+    runs = [
+        item for item in entities if item["kind"] == "method" and item["name"] == "run"
+    ]
     run = next(item for item in runs if item.get("parent") == "Worker")
 
     assert worker["type_parameters"] == ["T"]
@@ -43,26 +54,65 @@ def main(argv: list[str] | None = None) -> int:
     assert len(run["resolved_calls"]) >= 2
     assert "java.util.Objects" in module["imports"]
     assert "static java.util.Objects.requireNonNull" not in module["imports"]
-    assert any(item["name"] == "Pair" and item["declaration_kind"] == "record" for item in entities)
-    assert any(item["name"] == "State" and item["declaration_kind"] == "enum" for item in entities)
-    assert any(item["name"] == "Marker" and item["declaration_kind"] == "annotation" for item in entities)
-    assert any(item["name"] == "value" and item["declaration_kind"] == "annotation_member" for item in entities)
-    annotation_member = next(item for item in entities if item["name"] == "value" and item["declaration_kind"] == "annotation_member")
+    assert any(
+        item["name"] == "Pair" and item["declaration_kind"] == "record"
+        for item in entities
+    )
+    assert any(
+        item["name"] == "State" and item["declaration_kind"] == "enum"
+        for item in entities
+    )
+    assert any(
+        item["name"] == "Marker" and item["declaration_kind"] == "annotation"
+        for item in entities
+    )
+    assert any(
+        item["name"] == "value" and item["declaration_kind"] == "annotation_member"
+        for item in entities
+    )
+    annotation_member = next(
+        item
+        for item in entities
+        if item["name"] == "value" and item["declaration_kind"] == "annotation_member"
+    )
     assert annotation_member["visibility"] == "public"
-    enum_constants = {item["name"] for item in entities if item["declaration_kind"] == "enum_constant"}
+    enum_constants = {
+        item["name"] for item in entities if item["declaration_kind"] == "enum_constant"
+    }
     assert enum_constants == {"READY", "RUNNING"}
-    assert any(item["name"] == "current" and item["kind"] == "field" for item in entities)
-    constructors = [item for item in entities if item["name"] in {"Worker", "Checked"} and item["declaration_kind"] == "constructor"]
-    worker_constructor = next(item for item in constructors if item["name"] == "Worker" and len(item["parameters"]) == 1)
+    assert any(
+        item["name"] == "current" and item["kind"] == "field" for item in entities
+    )
+    constructors = [
+        item
+        for item in entities
+        if item["name"] in {"Worker", "Checked"}
+        and item["declaration_kind"] == "constructor"
+    ]
+    worker_constructor = next(
+        item
+        for item in constructors
+        if item["name"] == "Worker" and len(item["parameters"]) == 1
+    )
     assert worker_constructor["calls"] == ["requireNonNull"]
     assert "Creates a worker." in worker_constructor["docstring"]
-    generic_constructor = next(item for item in constructors if item["name"] == "Worker" and len(item["parameters"]) == 2)
+    generic_constructor = next(
+        item
+        for item in constructors
+        if item["name"] == "Worker" and len(item["parameters"]) == 2
+    )
     assert generic_constructor["type_parameters"] == ["N"]
     assert generic_constructor["type_constraints"] == ["N extends Number"]
-    compact_constructor = next(item for item in constructors if item["name"] == "Checked")
+    compact_constructor = next(
+        item for item in constructors if item["name"] == "Checked"
+    )
     assert compact_constructor["parameters"] == ["value"]
     assert compact_constructor["calls"] == ["validate"]
-    record_component = next(item for item in entities if item["name"] == "left" and item["declaration_kind"] == "record_component")
+    record_component = next(
+        item
+        for item in entities
+        if item["name"] == "left" and item["declaration_kind"] == "record_component"
+    )
     assert "Marker" in record_component["decorators"]
     native_method = next(item for item in entities if item["name"] == "read")
     assert native_method["declaration_kind"] == "method"
@@ -70,11 +120,19 @@ def main(argv: list[str] | None = None) -> int:
     assert varargs_method["parameter_types"] == [["values", "String[]"]]
     nested = next(item for item in entities if item["name"] == "Nested")
     assert nested["parent"] == "Worker"
-    run = next(item for item in entities if item["name"] == "run" and item.get("parent") == "Worker")
+    run = next(
+        item
+        for item in entities
+        if item["name"] == "run" and item.get("parent") == "Worker"
+    )
     assert run["parameter_types"] == [["item", "T"]]
     assert run["return_type"] == "T"
 
-    invalid_request = {**request, "request_id": "java-invalid-smoke", "source": "class Broken { void f( }"}
+    invalid_request = {
+        **request,
+        "request_id": "java-invalid-smoke",
+        "source": "class Broken { void f( }",
+    }
     invalid_response = invoke(command, invalid_request)
     assert invalid_response["ok"] is False
     assert invalid_response["error"]["kind"] == "unsupported_syntax"
@@ -98,4 +156,3 @@ def invoke(command: list[str], request: dict[str, object]) -> dict[str, object]:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

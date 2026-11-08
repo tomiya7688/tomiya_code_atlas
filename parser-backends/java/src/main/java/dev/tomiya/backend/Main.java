@@ -283,6 +283,7 @@ public final class Main {
     }
 
     static final class ModuleDto {
+        @SerializedName("schema_version") String schemaVersion = "1";
         String language = "java";
         List<EntityDto> entities = new ArrayList<>();
         List<String> imports = new ArrayList<>();
