@@ -26,14 +26,16 @@ type BackendManifest struct {
 
 //	{
 //	  責務: [Backend: 一つのparser helperの識別情報と実行pathを保持する]
-//	  状態: [BackendID: helperの一意な識別子, Language: 対象言語, Path: 既定path, Platforms: OS/architecture別path]
+//	  状態: [BackendID: helperの一意な識別子, Language: 対象言語, Path: 既定path, Platforms: OS/architecture別path, RuntimeExecutable: helper起動用runtime, RuntimeArguments: runtimeへ渡すhelper起動引数]
 //	}
 type Backend struct {
-	BackendID string            `json:"backend_id"`
-	Language  string            `json:"language"`
-	Kind      string            `json:"kind"`
-	Path      string            `json:"path"`
-	Platforms map[string]string `json:"platforms"`
+	BackendID         string            `json:"backend_id"`
+	Language          string            `json:"language"`
+	Kind              string            `json:"kind"`
+	Path              string            `json:"path"`
+	Platforms         map[string]string `json:"platforms"`
+	RuntimeExecutable string            `json:"runtime_executable,omitempty"`
+	RuntimeArguments  []string          `json:"runtime_arguments,omitempty"`
 }
 
 //	{
@@ -147,6 +149,17 @@ func validateBackendManifest(manifest BackendManifest) error {
 		if backend.Path == "" && len(backend.Platforms) == 0 {
 			return fmt.Errorf("backend %q has no executable path", backend.BackendID)
 		}
+		if backend.RuntimeExecutable == "" && len(backend.RuntimeArguments) > 0 {
+			return fmt.Errorf("backend %q has runtime arguments but no runtime executable", backend.BackendID)
+		}
+		if backend.RuntimeExecutable != "" && (strings.TrimSpace(backend.RuntimeExecutable) == "" || strings.TrimSpace(backend.RuntimeExecutable) != backend.RuntimeExecutable) {
+			return fmt.Errorf("backend %q has a malformed runtime executable path", backend.BackendID)
+		}
+		for _, argument := range backend.RuntimeArguments {
+			if strings.TrimSpace(argument) == "" {
+				return fmt.Errorf("backend %q has an empty runtime argument", backend.BackendID)
+			}
+		}
 		for target, path := range backend.Platforms {
 			if strings.TrimSpace(target) == "" || strings.TrimSpace(path) == "" {
 				return fmt.Errorf("backend %q has an empty platform or executable path", backend.BackendID)
@@ -154,6 +167,25 @@ func validateBackendManifest(manifest BackendManifest) error {
 		}
 	}
 	return nil
+}
+
+//	{
+//	  責務: [ResolveBackendRuntimeExecutable: manifestに宣言されたhelper runtimeの実在pathを解決する]
+//	  処理: [1: backend_idを検索する, 2: runtime_executableが宣言済みか確認する, 3: 配布root外へのpath逸脱を拒否し通常fileの絶対pathを返す]
+//	  引数: [applicationRoot: 配布root, manifest: 検証済みregistry, backendID: runtimeを使うhelper]
+//	  戻り値: [runtimePath: 実在するruntimeの絶対path, error: runtime未登録・未配布・path違反の内容]
+//	}
+func ResolveBackendRuntimeExecutable(applicationRoot string, manifest BackendManifest, backendID string) (string, error) {
+	for _, backend := range manifest.Backends {
+		if backend.BackendID != backendID {
+			continue
+		}
+		if backend.RuntimeExecutable == "" {
+			return "", fmt.Errorf("backend %q has no runtime executable", backendID)
+		}
+		return resolveManifestPath(applicationRoot, backend.RuntimeExecutable)
+	}
+	return "", fmt.Errorf("backend %q is not registered", backendID)
 }
 
 //	{

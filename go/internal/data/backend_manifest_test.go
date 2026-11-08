@@ -144,6 +144,29 @@ func TestResolveBackendExecutableReportsMissingAsset(t *testing.T) {
 }
 
 //	{
+//	  責務: [TestValidateBackendManifestRejectsWhitespaceRuntimePath: 空白だけのruntime pathをmanifestで拒否する]
+//	  処理: [1: runtime pathが空白だけのbackendを用意する, 2: manifest validationがmalformed pathとして拒否することを確認する]
+//	  引数: [t: Go test runner]
+//	  戻り値: []
+//	}
+func TestValidateBackendManifestRejectsWhitespaceRuntimePath(t *testing.T) {
+	manifest := BackendManifest{
+		ManifestVersion:              supportedManifestVersion,
+		ParserBackendContractVersion: "1",
+		Backends: []Backend{{
+			BackendID:         "test-helper",
+			Language:          "java",
+			Path:              "java/backend.jar",
+			RuntimeExecutable: " \t ",
+		}},
+	}
+
+	if err := validateBackendManifest(manifest); err == nil || !strings.Contains(err.Error(), "malformed runtime executable path") {
+		t.Fatalf("validateBackendManifest() error = %v, want malformed runtime path diagnostic", err)
+	}
+}
+
+//	{
 //	  責務: [TestLoadBackendManifestRejectsDuplicateBackendIDs: registry内のbackend_id重複を拒否することを検証する]
 //	  処理: [1: 重複IDを含むmanifestを書く, 2: manifestを読み込む, 3: 重複ID errorを検証する]
 //	  引数: [t: Go test runner]

@@ -131,6 +131,8 @@
       "parser_version": "3.28.2",
       "grammar_version": "JavaParser LanguageLevel.JAVA_26",
       "runtime": "java/runtime/bin/java.exe",
+      "runtime_executable": "java/runtime/bin/java.exe",
+      "runtime_arguments": ["-jar"],
       "licenses": [
         "java/javaparser-NOTICE.txt",
         "java/runtime/legal/"
