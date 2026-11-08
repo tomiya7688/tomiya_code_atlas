@@ -63,6 +63,7 @@ def _environment(workspace: Path) -> dict[str, str]:
     env["PATH"] = os.pathsep.join(
         (str(workspace), str(Path(system_root) / "System32"), system_root)
     )
+    env["APPDATA"] = str(workspace / "app-data")
     env["TEMP"] = str(workspace)
     env["TMP"] = str(workspace)
     return env

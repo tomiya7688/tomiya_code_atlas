@@ -12,6 +12,11 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+//	{
+//	  責務: [windowsFileIDInfo: Windows FILE_ID_INFOを受け取る構造体,]
+//	  フィールド: [volumeSerialNumber: ボリュームを識別する64-bit値, fileID: ディレクトリを識別する128-bit値,]
+//	  制約: [GetFileInformationByHandleExへunsafe.Pointerで渡すため、フィールドの順序と型をWindows FILE_ID_INFOのメモリ配置に合わせる,]
+//	}
 type windowsFileIDInfo struct {
 	volumeSerialNumber uint64
 	fileID             [16]byte
