@@ -389,7 +389,10 @@ test("selects project folders and preserves paths when dialogs are cancelled", a
   assert.equal(gui.outputPath.textContent, "E:/output");
 });
 
-test("prevents browser defaults only for supported Alt shortcuts", async () => {
+// {
+//   責務: [検証: Alt+O/P/Rを各GUI操作へ結び付け、修飾キー付きの誤操作を無視する,]
+// }
+test("routes supported Alt shortcuts to their GUI actions", async () => {
   const gui = createGuiHarness();
 
   assert.equal(gui.keydown("x"), false);
@@ -399,6 +402,22 @@ test("prevents browser defaults only for supported Alt shortcuts", async () => {
   assert.equal(gui.apiCalls.source, 1);
   assert.equal(gui.keydown("p"), true);
   assert.equal(gui.apiCalls.output, 1);
+
+  assert.equal(gui.keydown("r", { altKey: false }), false);
+  assert.equal(gui.keydown("r", { metaKey: true }), false);
+  assert.equal(gui.apiCalls.analyze.length, 0);
+
+  await gui.sourceButton.click();
+  gui.selectOperations("call-graph");
+  await gui.outputButton.click();
+  assert.equal(gui.keydown("r"), true);
+  assert.equal(gui.apiCalls.analyze.length, 1);
+  assert.equal(
+    JSON.stringify(gui.apiCalls.analyze[0]),
+    JSON.stringify(["E:/project/sample.py", ["call-graph"], "E:/output"]),
+  );
+  gui.resolveAnalysis({ message: "解析が完了しました。", outputPaths: [] });
+  await new Promise((resolve) => setImmediate(resolve));
 });
 
 // {
