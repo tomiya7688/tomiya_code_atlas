@@ -46,6 +46,8 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 .venv\Scripts\python.exe tools\go_cli_smoke.py ".build\dist\tomiya-code-atlas.exe"
 if errorlevel 1 exit /b 1
+.venv\Scripts\python.exe tools\distribution_language_smoke.py ".build\dist\tomiya-code-atlas.exe"
+if errorlevel 1 exit /b 1
 
 ".venv\Scripts\python.exe" -m compileall -q Src tests tools
 if errorlevel 1 exit /b 1
