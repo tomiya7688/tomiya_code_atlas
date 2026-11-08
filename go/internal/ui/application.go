@@ -21,7 +21,7 @@ import (
 //	{
 //	  責務: [sourceFileFilterPattern: GUIで選択できる解析対象の拡張子を表す,],
 //	}
-const sourceFileFilterPattern = "*.py;*.gd;*.cs;*.cpp;*.cc;*.cxx;*.hpp;*.hxx;*.java;*.go"
+const sourceFileFilterPattern = "*.py;*.gd;*.cs;*.cpp;*.cc;*.cxx;*.hpp;*.hxx;*.java;*.go;*.yml;*.yaml"
 
 const smokeProfileCleanupAttempts = 40
 const smokeProfileCleanupInterval = 250 * time.Millisecond
@@ -31,10 +31,10 @@ var embeddedWebFiles embed.FS
 
 //	{
 //	  責務: [
-//	    DiagramGenerator: UIとProcess間で図生成の要求と結果を受け渡す契約,
+//	    AnalysisGenerator: UIとProcess間で解析結果生成の要求と結果を受け渡す契約,
 //	  ],
 //	}
-type DiagramGenerator interface {
+type AnalysisGenerator interface {
 	Generate(context.Context, process.AnalysisRequest) ([]string, error)
 }
 
@@ -57,13 +57,13 @@ type AnalysisResult struct {
 //	    Application: 画面入力を受け、解析serviceとWails runtimeをつなぐ,
 //	  ],
 //	  状態: [
-//	    generator: Processの図生成契約,
+//	    generator: Processの解析結果生成契約,
 //	    context: file dialogとwindow制御に使うruntime情報,
 //	    smokeMode: CI smoke時にDOM読込後GUIを閉じる設定,
 //	  ],
 //	}
 type Application struct {
-	generator DiagramGenerator
+	generator AnalysisGenerator
 	context   context.Context
 	smokeMode bool
 }
@@ -73,7 +73,7 @@ type Application struct {
 //	    Run: 埋込み画面を解析serviceへ接続し、desktop windowを起動する,
 //	  ],
 //	}
-func Run(generator DiagramGenerator, smokeMode bool) (runError error) {
+func Run(generator AnalysisGenerator, smokeMode bool) (runError error) {
 	webFiles, err := fs.Sub(embeddedWebFiles, "web")
 	if err != nil {
 		return fmt.Errorf("GUIの埋込みassetを開けません: %w", err)
@@ -160,7 +160,7 @@ func (application *Application) OpenSourceFile() (string, error) {
 	return wailsruntime.OpenFileDialog(application.runtimeContext(), wailsruntime.OpenDialogOptions{
 		Title: "解析するソースファイルを選択",
 		Filters: []wailsruntime.FileFilter{{
-			DisplayName: "対応するソースファイル",
+			DisplayName: "対応するソース・GitHub Actions workflowファイル",
 			Pattern:     sourceFileFilterPattern,
 		}},
 	})
@@ -187,12 +187,27 @@ func (application *Application) ChooseOutputFolder() (string, error) {
 }
 
 //	{
+//	  責務: [GetCompatibleOperations: 選択した入力で実行できる操作を画面へ返す]
+//	  引数: [sourcePath: fileまたはproject folderのpath]
+//	  戻り値: [operations: 入力に対応する操作ID, error: 入力調査が失敗した理由]
+//	}
+func (application *Application) GetCompatibleOperations(sourcePath string) ([]string, error) {
+	provider, supportsInputCompatibility := application.generator.(interface {
+		CompatibleOperations(string) ([]string, error)
+	})
+	if !supportsInputCompatibility {
+		return process.SupportedOperationIDs(), nil
+	}
+	return provider.CompatibleOperations(sourcePath)
+}
+
+//	{
 //	  責務: [
-//	    Analyze: 選択された複数図をProcess serviceへ渡し、生成pathを画面に返す,
+//	    Analyze: 選択された複数の解析操作をProcess serviceへ渡し、生成fileのpathを画面に返す,
 //	  ],
 //	  引数: [
 //	    sourcePath: 解析するfileまたはproject folder,
-//	    operations: 生成する図のID一覧,
+//	    operations: 生成する成果物のID一覧,
 //	    outputDirectory: 生成fileの保存先,
 //	  ],
 //	  戻り値: [
@@ -208,15 +223,15 @@ func (application *Application) Analyze(sourcePath string, operations []string, 
 		return AnalysisResult{}, fmt.Errorf("解析するファイルまたはプロジェクトフォルダーを選んでください")
 	}
 	if len(operations) == 0 {
-		return AnalysisResult{}, fmt.Errorf("作りたい図を一つ以上選んでください")
+		return AnalysisResult{}, fmt.Errorf("作りたい成果物を一つ以上選んでください")
 	}
 	seenOperations := make(map[string]struct{}, len(operations))
 	for _, operation := range operations {
-		if operation != "call-graph" && operation != "class-diagram" {
-			return AnalysisResult{}, fmt.Errorf("未対応の図です: %s", operation)
+		if !process.IsSupportedOperation(operation) {
+			return AnalysisResult{}, fmt.Errorf("未対応の操作です: %s", operation)
 		}
 		if _, duplicate := seenOperations[operation]; duplicate {
-			return AnalysisResult{}, fmt.Errorf("同じ図が重複して選ばれています: %s", operation)
+			return AnalysisResult{}, fmt.Errorf("同じ操作が重複して選ばれています: %s", operation)
 		}
 		seenOperations[operation] = struct{}{}
 	}
@@ -234,7 +249,7 @@ func (application *Application) Analyze(sourcePath string, operations []string, 
 	}
 	return AnalysisResult{
 		OutputPaths: outputPaths,
-		Message:     fmt.Sprintf("解析が完了しました。%d件の図を保存しました。", len(outputPaths)),
+		Message:     fmt.Sprintf("解析が完了しました。%d件の成果物を保存しました。", len(outputPaths)),
 	}, nil
 }
 

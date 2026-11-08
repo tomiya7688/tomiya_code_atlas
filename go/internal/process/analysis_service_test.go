@@ -4,10 +4,14 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/tomiya7688/tomiya_code_atlas/internal/analyzers"
 	"github.com/tomiya7688/tomiya_code_atlas/internal/commonir"
+	"github.com/tomiya7688/tomiya_code_atlas/internal/data"
 )
 
 //	{
@@ -21,7 +25,20 @@ func TestRenderAnalysisOutputProducesSelectedDiagrams(t *testing.T) {
 			{Kind: "function", Name: "helper"},
 			{Kind: "class", Name: "Widget"},
 		},
+		Objects:       []commonir.ObjectInstance{{Name: "widget", TypeName: "Widget"}},
+		StateMachines: []commonir.StateMachine{{Owner: "Widget", StateVariable: "state", States: []string{"idle", "ready"}, Transitions: []commonir.StateTransition{{Source: "idle", Target: "ready"}}}},
+		TimingFlows:   []commonir.TimingFlow{{Owner: "main", Events: []commonir.TimingEvent{{Order: 1, Kind: "await"}}}},
+		InputEvents:   []commonir.InputEvent{{Actor: "user", Component: "app", Event: "start", Handler: "main"}},
 	}
+	moduleUnits := []analyzers.ModuleDependencyUnit{
+		{Name: "frontend.main", CommonIR: commonir.Module{Imports: []string{"backend.models"}}},
+		{Name: "backend.models", CommonIR: commonir.Module{}},
+	}
+	componentUnits := []analyzers.ComponentDependencyUnit{
+		{Module: moduleUnits[0], Component: "frontend"},
+		{Module: moduleUnits[1], Component: "backend"},
+	}
+	deploymentTopology := analyzers.ParseDockerfile("FROM golang:1.25", "Dockerfile")
 	testCases := []struct {
 		operation string
 		contains  string
@@ -29,17 +46,170 @@ func TestRenderAnalysisOutputProducesSelectedDiagrams(t *testing.T) {
 		{operation: "call-graph", contains: "flowchart LR"},
 		{operation: "class-diagram", contains: "classDiagram"},
 		{operation: "sequence-diagram", contains: "sequenceDiagram"},
+		{operation: "object-diagram", contains: "widget : Widget"},
+		{operation: "communication-diagram", contains: "flowchart LR"},
+		{operation: "state-diagram", contains: "stateDiagram-v2"},
+		{operation: "timing-chart", contains: "sequenceDiagram"},
+		{operation: "use-case-diagram", contains: "flowchart LR"},
+		{operation: "responsibility-table", contains: "| Class | Responsibility |"},
+		{operation: "package-diagram", contains: "flowchart LR"},
+		{operation: "component-diagram", contains: "flowchart LR"},
+		{operation: "deployment-diagram", contains: "flowchart"},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.operation, func(t *testing.T) {
-			output, err := renderAnalysisOutput(module, testCase.operation, "sample")
+			output, err := renderAnalysisOutput(module, testCase.operation, "sample", moduleUnits, componentUnits, deploymentTopology)
 			if err != nil {
 				t.Fatalf("renderAnalysisOutput returned error: %v", err)
 			}
-			if !strings.Contains(output, testCase.contains) || !strings.Contains(output, "```mermaid") {
-				t.Fatalf("rendered output does not contain %q Mermaid block: %q", testCase.contains, output)
+			if !strings.Contains(output, testCase.contains) {
+				t.Fatalf("rendered output does not contain %q: %q", testCase.contains, output)
+			}
+			if testCase.operation != "responsibility-table" && !strings.Contains(output, "```mermaid") {
+				t.Fatalf("rendered output does not contain a Mermaid block: %q", output)
 			}
 		})
+	}
+}
+
+//	{
+//	  責務: [TestDependencyUnitsForSourceUsesProjectRelativeNames: module・package・component識別子をsource pathから決定する]
+//	}
+func TestDependencyUnitsForSourceUsesProjectRelativeNames(t *testing.T) {
+	projectRoot := t.TempDir()
+	packageDirectory := filepath.Join(projectRoot, "frontend")
+	if err := os.MkdirAll(packageDirectory, 0o755); err != nil {
+		t.Fatalf("create package directory: %v", err)
+	}
+	sourcePath := filepath.Join(packageDirectory, "__init__.py")
+	if err := os.WriteFile(sourcePath, []byte(""), 0o600); err != nil {
+		t.Fatalf("create package source: %v", err)
+	}
+	moduleUnit, componentUnit, err := dependencyUnitsForSource(projectRoot, data.ProjectSourceFile{Path: sourcePath, Language: "python"}, commonir.Module{Language: "python"})
+	if err != nil {
+		t.Fatalf("dependencyUnitsForSource() error: %v", err)
+	}
+	if moduleUnit.Name != "frontend" || !moduleUnit.IsPackage || componentUnit.Component != "frontend" || componentUnit.Module.Name != moduleUnit.Name {
+		t.Fatalf("dependency units = %#v, %#v", moduleUnit, componentUnit)
+	}
+}
+
+//	{
+//	  責務: [TestReadDeploymentTopologyMergesDockerfileAndComposeFacts: project内のDockerfile・Compose設定からconfiguration factを集める]
+//	}
+func TestReadDeploymentTopologyMergesDockerfileAndComposeFacts(t *testing.T) {
+	projectRoot := t.TempDir()
+	files := map[string]string{
+		"Dockerfile":               "FROM golang:1.25\n",
+		"compose.yaml":             "services:\n  api:\n    image: example/api\n  worker:\n    depends_on:\n      - api\n",
+		".github/workflows/ci.yml": "name: CI\njobs: {}\n",
+	}
+	for relativePath, source := range files {
+		path := filepath.Join(projectRoot, filepath.FromSlash(relativePath))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("create settings directory: %v", err)
+		}
+		if err := os.WriteFile(path, []byte(source), 0o600); err != nil {
+			t.Fatalf("write settings file: %v", err)
+		}
+	}
+	topology, err := readDeploymentTopology(projectRoot, true, data.NewProjectFileScanner())
+	if err != nil {
+		t.Fatalf("readDeploymentTopology() error: %v", err)
+	}
+	if len(topology.Nodes) != 4 || len(topology.Connections) != 2 {
+		t.Fatalf("topology = %#v", topology)
+	}
+}
+
+//	{
+//	  責務: [TestGenerateCIWorkflowFromSelectedYAML: YAML file単独の選択からCI図Markdownを生成する]
+//	}
+func TestGenerateCIWorkflowFromSelectedYAML(t *testing.T) {
+	root := t.TempDir()
+	workflowPath := filepath.Join(root, "ci.yml")
+	source := "name: CI\non: [push, pull_request]\njobs:\n  build:\n    steps:\n      - name: Compile\n        run: go build ./...\n  test:\n    needs: build\n    steps:\n      - uses: actions/checkout@v4\n"
+	if err := os.WriteFile(workflowPath, []byte(source), 0o600); err != nil {
+		t.Fatalf("write workflow: %v", err)
+	}
+	outputDirectory := filepath.Join(root, "results")
+	service := AnalysisService{}
+	paths, err := service.Generate(context.Background(), AnalysisRequest{
+		SourcePath: workflowPath, Operations: []string{"ci-graph"}, OutputDirectory: outputDirectory,
+	})
+	if err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+	wantPath := filepath.Join(outputDirectory, "ci_ci-graph.md")
+	if !reflect.DeepEqual(paths, []string{wantPath}) {
+		t.Fatalf("output paths = %#v, want %#v", paths, []string{wantPath})
+	}
+	output, err := os.ReadFile(wantPath)
+	if err != nil {
+		t.Fatalf("read CI graph: %v", err)
+	}
+	for _, marker := range []string{"# GitHub Actions / CI図", "## ci.yml", "ci_trigger[\"pull_request, push\"]", "ci_job_6275696c64 --> ci_job_74657374"} {
+		if !strings.Contains(string(output), marker) {
+			t.Errorf("CI graph does not contain %q: %s", marker, output)
+		}
+	}
+}
+
+//	{
+//	  責務: [TestCompatibleOperationsReflectInputLanguageAndProjectFiles: 入力言語・workflow・設定fileに応じた操作だけを返す]
+//	}
+func TestCompatibleOperationsReflectInputLanguageAndProjectFiles(t *testing.T) {
+	root := t.TempDir()
+	languageFiles := map[string]string{
+		"App.cs":   "class App {}\n",
+		"app.cpp":  "class App {};\n",
+		"app.gd":   "extends Node\n",
+		"App.java": "class App {}\n",
+		"app.go":   "package main\n",
+		"app.py":   "def run(): pass\n",
+	}
+	for fileName, source := range languageFiles {
+		path := filepath.Join(root, fileName)
+		if err := os.WriteFile(path, []byte(source), 0o600); err != nil {
+			t.Fatalf("write source %s: %v", path, err)
+		}
+	}
+	service := AnalysisService{}
+	genericOperations := []string{
+		"call-graph", "class-diagram", "sequence-diagram", "communication-diagram",
+		"responsibility-table", "comments", "static-spec", "design-quality",
+	}
+	pythonSpecificOperations := []string{"object-diagram", "state-diagram", "timing-chart", "use-case-diagram"}
+	for fileName := range languageFiles {
+		path := filepath.Join(root, fileName)
+		operations, err := service.CompatibleOperations(path)
+		if err != nil {
+			t.Fatalf("CompatibleOperations(%s) error: %v", fileName, err)
+		}
+		for _, operation := range genericOperations {
+			if !slices.Contains(operations, operation) {
+				t.Errorf("%s operations = %#v; expected generic operation %s", fileName, operations, operation)
+			}
+		}
+		for _, operation := range pythonSpecificOperations {
+			if slices.Contains(operations, operation) != (filepath.Ext(fileName) == ".py") {
+				t.Errorf("%s operation %s has incorrect language compatibility: %#v", fileName, operation, operations)
+			}
+		}
+	}
+	csharpPath := filepath.Join(root, "App.cs")
+	_, err := service.Generate(context.Background(), AnalysisRequest{
+		SourcePath: csharpPath, Operations: []string{"timing-chart"}, OutputDirectory: filepath.Join(root, "output"),
+	})
+	if err == nil || !strings.Contains(err.Error(), "選択した入力では実行できない操作") {
+		t.Fatalf("Generate(C# timing-chart) error = %v, want incompatible operation error", err)
+	}
+	projectOperations, err := service.CompatibleOperations(root)
+	if err != nil {
+		t.Fatalf("CompatibleOperations(project) error: %v", err)
+	}
+	if !slices.Contains(projectOperations, "package-diagram") || !slices.Contains(projectOperations, "object-diagram") {
+		t.Fatalf("project operations = %#v; expected folder and Python outputs", projectOperations)
 	}
 }
 
@@ -64,7 +234,7 @@ func TestRenderAnalysisOutputProducesStaticSpecificationAndDesignQualityDocument
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.operation, func(t *testing.T) {
-			output, err := renderAnalysisOutput(module, testCase.operation, "sample")
+			output, err := renderAnalysisOutput(module, testCase.operation, "sample", nil, nil, analyzers.DeploymentTopology{})
 			if err != nil {
 				t.Fatalf("renderAnalysisOutput returned error: %v", err)
 			}
@@ -234,7 +404,7 @@ func TestRenderCallGraphKeepsSeriesAndSharedBoundaries(t *testing.T) {
 			{Kind: "function", Name: "SharedLogger"},
 		},
 	}
-	output, err := renderAnalysisOutput(module, "call-graph", "partition")
+	output, err := renderAnalysisOutput(module, "call-graph", "partition", nil, nil, analyzers.DeploymentTopology{})
 	if err != nil {
 		t.Fatalf("renderAnalysisOutput returned error: %v", err)
 	}
@@ -272,7 +442,7 @@ func TestRenderCallGraphKeepsSeriesAndSharedBoundaries(t *testing.T) {
 //	  処理: [1: 空のCommon IRからcall graph Markdownを生成する, 2: 空のflowchart blockが出力されることを確認する]
 //	}
 func TestRenderCallGraphPreservesEmptyDiagram(t *testing.T) {
-	output, err := renderAnalysisOutput(commonir.Module{Language: "go"}, "call-graph", "empty")
+	output, err := renderAnalysisOutput(commonir.Module{Language: "go"}, "call-graph", "empty", nil, nil, analyzers.DeploymentTopology{})
 	if err != nil {
 		t.Fatalf("renderAnalysisOutput returned error: %v", err)
 	}
@@ -293,7 +463,7 @@ func TestRenderCallGraphKeepsSingleDiagramFormat(t *testing.T) {
 			{Kind: "function", Name: "Helper"},
 		},
 	}
-	output, err := renderAnalysisOutput(module, "call-graph", "single")
+	output, err := renderAnalysisOutput(module, "call-graph", "single", nil, nil, analyzers.DeploymentTopology{})
 	if err != nil {
 		t.Fatalf("renderAnalysisOutput returned error: %v", err)
 	}

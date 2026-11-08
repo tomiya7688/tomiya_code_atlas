@@ -246,6 +246,8 @@ func writeAnalyzeHelp(w io.Writer) {
 	fmt.Fprintln(w, "--operationは作成する解析結果ごとに繰り返し指定できます。")
 	fmt.Fprintln(w, "入力にフォルダーを指定すると、対応するソースファイルを配下から再帰的に探します。")
 	fmt.Fprintln(w, "各ファイルを拡張子に対応する解析補助プログラムで調べ、選択した結果を保存します。")
+	fmt.Fprintln(w, "入力形式・言語・workflowや配置設定により利用できるoperationは変わり、対応しない指定は利用可能な一覧とともに拒否します。")
+	fmt.Fprintln(w, "オブジェクト図・状態図・タイミングチャート・ユースケース図は、現在Python sourceを含む入力に対応します。")
 	fmt.Fprintln(w, "commentsは元ソースを変更せず、commentsフォルダーへコメントを追加したコピーを保存します。")
 	for _, operation := range process.SupportedOperationIDs() {
 		fmt.Fprintf(w, "  %-14s %s\n", operation, analysisOperationDescription(operation))
@@ -267,6 +269,26 @@ func analysisOperationDescription(operation string) string {
 		return "クラス図を生成"
 	case "sequence-diagram":
 		return "シーケンス図を生成"
+	case "object-diagram":
+		return "オブジェクト図を生成"
+	case "communication-diagram":
+		return "コミュニケーション図を生成"
+	case "state-diagram":
+		return "状態図を生成"
+	case "timing-chart":
+		return "タイミングチャートを生成"
+	case "use-case-diagram":
+		return "ユースケース図を生成"
+	case "responsibility-table":
+		return "責務表を生成"
+	case "package-diagram":
+		return "パッケージ図を生成"
+	case "component-diagram":
+		return "コンポーネント図を生成"
+	case "deployment-diagram":
+		return "配置図を生成"
+	case "ci-graph":
+		return "GitHub Actionsの処理図を生成"
 	case "comments":
 		return "コメントを追加したsource copyを保存"
 	case "static-spec":

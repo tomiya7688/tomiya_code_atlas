@@ -15,10 +15,10 @@ import (
 
 //	{
 //	  責務: [
-//	    fakeDiagramGenerator: GUIから受けたrequestを記録し、テスト用pathまたはerrorを返す,
+//	    fakeAnalysisGenerator: GUIから受けたrequestを記録し、テスト用pathまたはerrorを返す,
 //	  ],
 //	}
-type fakeDiagramGenerator struct {
+type fakeAnalysisGenerator struct {
 	request process.AnalysisRequest
 	paths   []string
 	err     error
@@ -73,25 +73,43 @@ func TestRemoveSmokeProfileReportsPersistentLock(t *testing.T) {
 //	  引数: [request: 画面から渡された解析要求,],
 //	  戻り値: [paths: テスト用の出力先, error: 指定された失敗,],
 //	}
-func (generator *fakeDiagramGenerator) Generate(_ context.Context, request process.AnalysisRequest) ([]string, error) {
+func (generator *fakeAnalysisGenerator) Generate(_ context.Context, request process.AnalysisRequest) ([]string, error) {
 	generator.request = request
 	return generator.paths, generator.err
 }
 
 //	{
-//	  責務: [TestAnalyzePassesMultipleDiagramSelections: 複数選択した図と出力先が一度の解析要求として渡ることを検証する,],
+//	  責務: [TestAnalyzePassesAllSupportedOperations: 対応する解析操作一覧と出力先が一度の解析要求として渡ることを検証する,],
 //	}
-func TestAnalyzePassesMultipleDiagramSelections(t *testing.T) {
-	generator := &fakeDiagramGenerator{paths: []string{"out/sample_call-graph.md", "out/sample_class-diagram.md"}}
+func TestAnalyzePassesAllSupportedOperations(t *testing.T) {
+	operations := process.SupportedOperationIDs()
+	generator := &fakeAnalysisGenerator{paths: []string{
+		"out/sample_call-graph.md",
+		"out/sample_class-diagram.md",
+		"out/sample_sequence-diagram.md",
+		"out/sample_object-diagram.md",
+		"out/sample_communication-diagram.md",
+		"out/sample_state-diagram.md",
+		"out/sample_timing-chart.md",
+		"out/sample_use-case-diagram.md",
+		"out/sample_responsibility-table.md",
+		"out/sample_package-diagram.md",
+		"out/sample_component-diagram.md",
+		"out/sample_deployment-diagram.md",
+		"out/sample_ci-graph.md",
+		"out/comments/sample_commented.py",
+		"out/sample_static-spec.md",
+		"out/sample_design-quality.md",
+	}}
 	application := &Application{generator: generator}
-	result, err := application.Analyze("src/sample.py", []string{"call-graph", "class-diagram"}, "out")
+	result, err := application.Analyze("src/sample.py", operations, "out")
 	if err != nil {
 		t.Fatalf("Analyze returned error: %v", err)
 	}
-	if generator.request.SourcePath != "src/sample.py" || generator.request.OutputDirectory != "out" || !reflect.DeepEqual(generator.request.Operations, []string{"call-graph", "class-diagram"}) {
+	if generator.request.SourcePath != "src/sample.py" || generator.request.OutputDirectory != "out" || !reflect.DeepEqual(generator.request.Operations, operations) {
 		t.Fatalf("request = %#v", generator.request)
 	}
-	if !reflect.DeepEqual(result.OutputPaths, generator.paths) || !strings.Contains(result.Message, "2件") {
+	if !reflect.DeepEqual(result.OutputPaths, generator.paths) || !strings.Contains(result.Message, "16件") || !strings.Contains(result.Message, "成果物") {
 		t.Fatalf("result = %#v", result)
 	}
 }
@@ -112,14 +130,14 @@ func TestAnalyzeRejectsInvalidSelectionAndReturnsProcessError(t *testing.T) {
 		{name: "missing output", source: "src", operations: []string{"call-graph"}, want: "保存フォルダー"},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			application := &Application{generator: &fakeDiagramGenerator{}}
+			application := &Application{generator: &fakeAnalysisGenerator{}}
 			if _, err := application.Analyze(testCase.source, testCase.operations, testCase.output); err == nil || !strings.Contains(err.Error(), testCase.want) {
 				t.Fatalf("error = %v, want %q", err, testCase.want)
 			}
 		})
 	}
 	processError := errors.New("parserが失敗しました")
-	application := &Application{generator: &fakeDiagramGenerator{err: processError}}
+	application := &Application{generator: &fakeAnalysisGenerator{err: processError}}
 	if _, err := application.Analyze("src", []string{"call-graph"}, "out"); !errors.Is(err, processError) {
 		t.Fatalf("process error = %v", err)
 	}
@@ -128,11 +146,11 @@ func TestAnalyzeRejectsInvalidSelectionAndReturnsProcessError(t *testing.T) {
 //	{
 //	  責務: [TestSourceFileFilterMatchesSupportedLanguages: 各ソース言語の選択肢とscannerの判定が一致することを検証する,],
 //	}
-func TestSourceFileFilterMatchesSupportedLanguages(t *testing.T) {
+func TestSourceFileFilterMatchesSupportedLanguagesAndCIWorkflows(t *testing.T) {
 	scanner := data.NewProjectFileScanner()
 	patterns := strings.Split(sourceFileFilterPattern, ";")
 	sourceLanguages := []string{"python", "gdscript", "csharp", "cpp", "java", "go"}
-	for _, extension := range []string{".py", ".gd", ".cs", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hxx", ".java", ".go", ".yml", ".yaml"} {
+	for _, extension := range []string{".py", ".gd", ".cs", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hxx", ".java", ".go"} {
 		language := scanner.DetectLanguage("sample" + extension)
 		supported := slices.Contains(sourceLanguages, language)
 		selectable := slices.Contains(patterns, "*"+extension)
@@ -141,6 +159,11 @@ func TestSourceFileFilterMatchesSupportedLanguages(t *testing.T) {
 		}
 		if supported && scanner.DetectLanguage("sample"+strings.ToUpper(extension)) != language {
 			t.Errorf("uppercase extension %q has a different language", extension)
+		}
+	}
+	for _, extension := range []string{".yml", ".yaml"} {
+		if scanner.DetectLanguage("workflow"+extension) != "yaml" || !slices.Contains(patterns, "*"+extension) {
+			t.Errorf("workflow extension %q must be selectable as CI input without being a source language", extension)
 		}
 	}
 }

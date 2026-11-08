@@ -21,20 +21,35 @@
       <div class="path-row"><div id="source-path" class="path empty">まだ選択されていません</div><button id="choose-source" class="secondary">ファイルを選ぶ <kbd>Alt+O</kbd></button></div>
     </section>
     <section class="card">
-      <h2><span>2</span> 作る図</h2>
-      <p class="hint">必要な図を複数選べます。</p>
-      <div class="diagram-grid">
-        <label class="diagram"><input type="checkbox" value="call-graph"><span><strong>呼び出し図</strong><small>関数やメソッドの呼び出し関係</small></span></label>
-        <label class="diagram"><input type="checkbox" value="class-diagram"><span><strong>クラス図</strong><small>クラスとメンバーの構造</small></span></label>
+      <h2><span>2</span> 作る成果物</h2>
+      <p class="hint">必要な成果物を複数選べます。図とレポートは保存先フォルダー直下へ、コメント付きコピーは保存先の comments/ フォルダーへ保存します。</p>
+      <p id="operation-compatibility" class="compatibility" role="status">入力を選ぶと、その入力で実行できる成果物だけ有効になります。</p>
+      <div class="output-grid">
+        <label class="output-option"><input type="checkbox" value="call-graph"><span><strong>呼び出し図</strong><small>関数やメソッドの呼び出し関係</small></span></label>
+        <label class="output-option"><input type="checkbox" value="class-diagram"><span><strong>クラス図</strong><small>クラスとメンバーの構造</small></span></label>
+        <label class="output-option"><input type="checkbox" value="sequence-diagram"><span><strong>シーケンス図</strong><small>関数やメソッド間の呼び出し順序</small></span></label>
+        <label class="output-option"><input type="checkbox" value="object-diagram"><span><strong>オブジェクト図</strong><small>解析できたオブジェクトと参照関係</small></span></label>
+        <label class="output-option"><input type="checkbox" value="communication-diagram"><span><strong>コミュニケーション図</strong><small>呼び出し元と呼び出し先の連携</small></span></label>
+        <label class="output-option"><input type="checkbox" value="state-diagram"><span><strong>状態図</strong><small>状態と状態遷移</small></span></label>
+        <label class="output-option"><input type="checkbox" value="timing-chart"><span><strong>タイミングチャート</strong><small>非同期処理や待機の順序</small></span></label>
+        <label class="output-option"><input type="checkbox" value="use-case-diagram"><span><strong>ユースケース図</strong><small>入力イベントと処理の対応</small></span></label>
+        <label class="output-option"><input type="checkbox" value="responsibility-table"><span><strong>責務表</strong><small>クラスの役割の一覧</small></span></label>
+        <label class="output-option"><input type="checkbox" value="package-diagram"><span><strong>パッケージ図</strong><small>プロジェクト内モジュールのimport関係</small></span></label>
+        <label class="output-option"><input type="checkbox" value="component-diagram"><span><strong>コンポーネント図</strong><small>フォルダー単位の依存と外部package</small></span></label>
+        <label class="output-option"><input type="checkbox" value="deployment-diagram"><span><strong>配置図</strong><small>source構造とDocker・Compose設定の配置関係</small></span></label>
+        <label class="output-option"><input type="checkbox" value="ci-graph"><span><strong>GitHub Actions/CI図</strong><small>workflowの起動条件・job・依存関係</small></span></label>
+        <label class="output-option"><input type="checkbox" value="comments"><span><strong>コメント付きコピー</strong><small>説明コメントを追加したソースのコピー。元ファイルは変更しません</small></span></label>
+        <label class="output-option"><input type="checkbox" value="static-spec"><span><strong>静的仕様書</strong><small>解析から確認できる構造と宣言のMarkdown</small></span></label>
+        <label class="output-option"><input type="checkbox" value="design-quality"><span><strong>設計品質レポート</strong><small>構造上の指標と改善候補のMarkdown</small></span></label>
       </div>
     </section>
     <section class="card">
       <h2><span>3</span> 保存先</h2>
-      <p class="hint">生成したMarkdownファイルを保存するフォルダーです。</p>
+      <p class="hint">選んだ成果物の保存先です。プロジェクト全体にコメントを付ける場合、保存先の comments/ が入力フォルダーと重ならない場所を選んでください。重なる場合は解析を始める前にエラーを表示します。</p>
       <div class="path-row"><div id="output-path" class="path empty">まだ選択されていません</div><button id="choose-output" class="secondary">保存先を選ぶ <kbd>Alt+P</kbd></button></div>
     </section>
-    <div class="actions"><button id="run-analysis" class="primary">解析して図を作る <kbd>Alt+R</kbd></button></div>
-    <section id="result" class="result" role="status" aria-live="polite"><p>入力・図・保存先を選んで「解析して図を作る」を押してください。</p></section>
+    <div class="actions"><button id="run-analysis" class="primary">解析して結果を作る <kbd>Alt+R</kbd></button></div>
+    <section id="result" class="result" role="status" aria-live="polite"><p>入力・成果物・保存先を選んで「解析して結果を作る」を押してください。</p></section>
     <footer>解析はこのアプリ内で実行します。選んだソースは外部サービスへ送信しません。</footer>
   </main>
   <script src="/app.js"></script>

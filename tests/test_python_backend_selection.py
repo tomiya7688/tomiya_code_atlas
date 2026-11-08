@@ -55,10 +55,34 @@ def test_selected_python_backend_matches_conformance_fixture() -> None:
         assert entity.call_sequence.count(expected["target"]) == expected["count"]
 
 
+def test_selected_python_backend_includes_timing_and_gui_input_facts() -> None:
+    source = """
+import asyncio
+import tkinter as tk
+
+async def refresh():
+    await asyncio.sleep(1)
+
+root = tk.Tk()
+button = tk.Button(root, text="Refresh", command=refresh)
+button.pack()
+"""
+
+    module = PythonStdlibBackend().parse(source, "sample.py")
+
+    assert module.timing_flows[0].owner == "refresh"
+    assert any(
+        event.component == "button" and event.handler == "refresh"
+        for event in module.input_events
+    )
+
+
 def test_stdlib_symtable_companion_sees_fixture_scopes() -> None:
     source = (FIXTURE_ROOT / "python.py").read_text(encoding="utf-8")
     table = symtable.symtable(source, "python.py", "exec")
-    worker = next(child for child in table.get_children() if child.get_name() == "Worker")
+    worker = next(
+        child for child in table.get_children() if child.get_name() == "Worker"
+    )
 
     method_names = {child.get_name() for child in worker.get_children()}
     assert {"run", "helper", "async_probe", "nested_probe"} <= method_names

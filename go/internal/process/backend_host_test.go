@@ -86,6 +86,15 @@ func TestParserHostRunsRepositoryGoParserHelper(t *testing.T) {
 	}
 	buildCommand := exec.Command("go", "build", "-o", helperPath, ".")
 	buildCommand.Dir = helperModuleDirectory
+	buildCacheDirectory := filepath.Join(repositoryRoot, ".build", "go-cache-parser-test")
+	// 親のgo testとは別の永続cacheを使い、child buildの再compileを避ける。
+	buildCommand.Env = make([]string, 0, len(os.Environ())+1)
+	for _, environmentVariable := range os.Environ() {
+		if !strings.HasPrefix(strings.ToUpper(environmentVariable), "GOCACHE=") {
+			buildCommand.Env = append(buildCommand.Env, environmentVariable)
+		}
+	}
+	buildCommand.Env = append(buildCommand.Env, "GOCACHE="+buildCacheDirectory)
 	buildOutput, err := buildCommand.CombinedOutput()
 	if err != nil {
 		t.Fatalf("build Go parser helper: %v\n%s", err, buildOutput)

@@ -18,9 +18,20 @@ function createGuiHarness() {
   inputKinds[0].value = "file";
   inputKinds[1].value = "folder";
   let selectedInputKind = inputKinds[0];
-  const operations = [];
+  const htmlPath = path.resolve(__dirname, "../go/internal/ui/web/index.html");
+  const operationInputs = [
+    ...fs
+      .readFileSync(htmlPath, "utf8")
+      .matchAll(/type="checkbox" value="([^"]+)"/g),
+  ].map((match) => Object.assign(createElement(), { value: match[1] }));
   const documentListeners = new Map();
-  const apiCalls = { source: 0, folder: 0, output: 0, analyze: [] };
+  const apiCalls = {
+    source: 0,
+    folder: 0,
+    output: 0,
+    compatible: [],
+    analyze: [],
+  };
   let resolveAnalysis;
 
   const api = {
@@ -39,9 +50,26 @@ function createGuiHarness() {
       apiCalls.output += 1;
       return api.outputFolderResult;
     },
+    async GetCompatibleOperations(source) {
+      apiCalls.compatible.push(source);
+      const all = operationInputs.map((input) => input.value);
+      if (/\.ya?ml$/i.test(source)) return ["ci-graph"];
+      if (source === "E:/project") return all;
+      return all.filter(
+        (operation) =>
+          ![
+            "package-diagram",
+            "component-diagram",
+            "deployment-diagram",
+            "ci-graph",
+          ].includes(operation),
+      );
+    },
     Analyze(source, selectedOperations, output) {
       apiCalls.analyze.push([source, selectedOperations, output]);
-      return new Promise((resolve) => { resolveAnalysis = resolve; });
+      return new Promise((resolve) => {
+        resolveAnalysis = resolve;
+      });
     },
   };
 
@@ -52,19 +80,27 @@ function createGuiHarness() {
     ["#run-analysis", analyzeButton],
     ["#choose-source", sourceButton],
     ["#choose-output", outputButton],
+    ["#operation-compatibility", createElement()],
   ]);
   const document = {
     querySelector(selector) {
-      if (selector === 'input[name="input-kind"]:checked') return selectedInputKind;
+      if (selector === 'input[name="input-kind"]:checked')
+        return selectedInputKind;
       return elements.get(selector);
     },
     querySelectorAll(selector) {
       if (selector === 'input[name="input-kind"]') return inputKinds;
-      if (selector === ".diagram input:checked") return operations;
+      if (selector === ".output-option input") return operationInputs;
+      if (selector === ".output-option input:checked")
+        return operationInputs.filter((input) => input.checked);
       return [];
     },
-    addEventListener(name, handler) { documentListeners.set(name, handler); },
-    createElement() { return createElement(); },
+    addEventListener(name, handler) {
+      documentListeners.set(name, handler);
+    },
+    createElement() {
+      return createElement();
+    },
   };
 
   const appPath = path.resolve(__dirname, "../go/internal/ui/web/app.js");
@@ -78,16 +114,22 @@ function createGuiHarness() {
     api,
     analyzeButton,
     inputKinds,
-    operations,
+    operations: operationInputs,
     outputButton,
     outputPath,
-    resolveAnalysis(value) { resolveAnalysis(value); },
+    resolveAnalysis(value) {
+      resolveAnalysis(value);
+    },
     result,
     sourceButton,
     sourcePath,
     selectInputKind(value) {
       selectedInputKind = inputKinds.find((input) => input.value === value);
       selectedInputKind.dispatch("change", { target: selectedInputKind });
+    },
+    selectOperations(...values) {
+      for (const input of operationInputs)
+        input.checked = values.includes(input.value);
     },
     keydown(key, modifiers = {}) {
       let prevented = false;
@@ -96,7 +138,9 @@ function createGuiHarness() {
         altKey: modifiers.altKey ?? true,
         ctrlKey: modifiers.ctrlKey ?? false,
         metaKey: modifiers.metaKey ?? false,
-        preventDefault() { prevented = true; },
+        preventDefault() {
+          prevented = true;
+        },
       });
       return prevented;
     },
@@ -113,18 +157,29 @@ function createElement() {
     className: "",
     classList: { toggle() {} },
     disabled: false,
+    checked: false,
     innerHTML: "",
     textContent: "",
     value: "",
-    addEventListener(name, handler) { listeners.set(name, handler); },
-    append(child) { this.children.push(child); },
-    click() { return listeners.get("click")?.({}); },
-    dispatch(name, event) { return listeners.get(name)?.(event); },
-    replaceChildren(...children) { this.children = children; },
+    addEventListener(name, handler) {
+      listeners.set(name, handler);
+    },
+    append(child) {
+      this.children.push(child);
+    },
+    click() {
+      return listeners.get("click")?.({});
+    },
+    dispatch(name, event) {
+      return listeners.get(name)?.(event);
+    },
+    replaceChildren(...children) {
+      this.children = children;
+    },
   };
 }
 
-test("rejects missing source, diagrams, or output before calling the backend", async () => {
+test("rejects missing source, outputs, or output folder before calling the backend", async () => {
   const gui = createGuiHarness();
 
   await gui.analyzeButton.click();
@@ -132,29 +187,53 @@ test("rejects missing source, diagrams, or output before calling the backend", a
 
   await gui.sourceButton.click();
   await gui.analyzeButton.click();
-  assert.match(gui.result.children[0].textContent, /作りたい図/);
+  assert.match(gui.result.children[0].textContent, /作りたい成果物/);
 
-  gui.operations.push({ value: "call-graph" });
+  gui.selectOperations("call-graph");
   await gui.analyzeButton.click();
   assert.match(gui.result.children[0].textContent, /保存先フォルダー/);
   assert.equal(gui.apiCalls.analyze.length, 0);
 });
 
-test("submits multiple diagrams once and accepts a missing output path list", async () => {
+test("submits all supported operations once and accepts a missing output path list", async () => {
   const gui = createGuiHarness();
+  gui.selectInputKind("folder");
   await gui.sourceButton.click();
   await gui.outputButton.click();
-  gui.operations.push({ value: "call-graph" }, { value: "class-diagram" });
+  const supportedOperations = [
+    "call-graph",
+    "class-diagram",
+    "sequence-diagram",
+    "object-diagram",
+    "communication-diagram",
+    "state-diagram",
+    "timing-chart",
+    "use-case-diagram",
+    "responsibility-table",
+    "package-diagram",
+    "component-diagram",
+    "deployment-diagram",
+    "ci-graph",
+    "comments",
+    "static-spec",
+    "design-quality",
+  ];
+  const htmlPath = path.resolve(__dirname, "../go/internal/ui/web/index.html");
+  const html = fs.readFileSync(htmlPath, "utf8");
+  const renderedOperations = [
+    ...html.matchAll(/type="checkbox" value="([^"]+)"/g),
+  ].map((match) => match[1]);
+  assert.deepEqual(renderedOperations, supportedOperations);
+  gui.selectOperations(...supportedOperations);
 
   const analysis = gui.analyzeButton.click();
   assert.equal(gui.analyzeButton.disabled, true);
   await gui.analyzeButton.click();
   assert.equal(gui.apiCalls.analyze.length, 1);
-  assert.equal(JSON.stringify(gui.apiCalls.analyze[0]), JSON.stringify([
-    "E:/project/sample.py",
-    ["call-graph", "class-diagram"],
-    "E:/output",
-  ]));
+  assert.equal(
+    JSON.stringify(gui.apiCalls.analyze[0]),
+    JSON.stringify(["E:/project", supportedOperations, "E:/output"]),
+  );
   assert.equal(gui.keydown("r"), true);
   assert.equal(gui.apiCalls.analyze.length, 1);
 
@@ -163,6 +242,35 @@ test("submits multiple diagrams once and accepts a missing output path list", as
   assert.equal(gui.analyzeButton.disabled, false);
   assert.equal(gui.result.children[0].textContent, "解析が完了しました。");
   assert.equal(gui.result.children[1].children.length, 0);
+});
+
+test("enables operations that match the selected input kind", async () => {
+  const gui = createGuiHarness();
+  const operation = (value) =>
+    gui.operations.find((input) => input.value === value);
+
+  assert.equal(operation("package-diagram").disabled, true);
+  assert.equal(operation("ci-graph").disabled, true);
+  await gui.sourceButton.click();
+  assert.equal(operation("call-graph").disabled, false);
+  assert.equal(operation("package-diagram").disabled, true);
+
+  gui.api.sourceFileResult = "E:/project/.github/workflows/ci.yaml";
+  await gui.sourceButton.click();
+  assert.equal(operation("ci-graph").disabled, false);
+  assert.equal(operation("call-graph").disabled, true);
+  gui.selectOperations("ci-graph");
+
+  gui.api.sourceFileResult = "E:/project/sample.py";
+  await gui.sourceButton.click();
+  assert.equal(operation("ci-graph").disabled, true);
+  assert.equal(operation("ci-graph").checked, false);
+
+  gui.selectInputKind("folder");
+  await gui.sourceButton.click();
+  assert.equal(operation("package-diagram").disabled, false);
+  assert.equal(operation("deployment-diagram").disabled, false);
+  assert.equal(operation("ci-graph").disabled, false);
 });
 
 test("selects project folders and preserves paths when dialogs are cancelled", async () => {

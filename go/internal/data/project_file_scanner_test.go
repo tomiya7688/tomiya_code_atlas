@@ -133,6 +133,29 @@ func TestProjectFileScannerFindsDeploymentCandidates(t *testing.T) {
 }
 
 //	{
+//	  責務: [TestProjectFileScannerFindsGitHubActionsWorkflows: YAML入力と.github/workflows配下のworkflowだけをCI候補にする]
+//	}
+func TestProjectFileScannerFindsGitHubActionsWorkflows(t *testing.T) {
+	rootPath := t.TempDir()
+	wanted := writeProjectTestFile(t, rootPath, ".github/workflows/ci.yml")
+	writeProjectTestFile(t, rootPath, ".github/workflows/nested/unsupported.yml")
+	writeProjectTestFile(t, rootPath, "config/settings.yaml")
+	scanner := NewProjectFileScanner()
+
+	files, err := scanner.DiscoverCIWorkflowFiles(rootPath)
+	if err != nil {
+		t.Fatalf("DiscoverCIWorkflowFiles() error = %v", err)
+	}
+	if !reflect.DeepEqual(files, []string{wanted}) {
+		t.Fatalf("workflow files = %#v, want %#v", files, []string{wanted})
+	}
+	selected, err := scanner.DiscoverCIWorkflowFiles(wanted)
+	if err != nil || !reflect.DeepEqual(selected, []string{wanted}) {
+		t.Fatalf("selected workflow = (%#v, %v)", selected, err)
+	}
+}
+
+//	{
 //	  責務: [TestProjectFileScannerReportsMissingRoot: 存在しないrootをscanした場合に成功扱いせずerrorにすることを検証する]
 //	  処理: [1: 存在しないroot pathを作る, 2: source scanを実行する, 3: root pathを含むerrorを確認する]
 //	  引数: [t: Go test runner]
