@@ -117,7 +117,7 @@ def assert_class_member(
     contents: str, language: str, class_name: str, member_name: str
 ) -> None:
     """Require the fixture class and helper member inside its Mermaid block."""
-    class_label = re.escape(class_name) + r"(?:<[^\"]+>)?"
+    class_label = r"(?:[\w$]+(?:\.|::))*" + re.escape(class_name) + r"(?:<[^>]+>)?"
     pattern = rf'^\s*class\s+\w+\["{class_label}"\]\s*\{{\n(?P<members>.*?)^\s*\}}'
     match = re.search(pattern, contents, re.MULTILINE | re.DOTALL)
     if "classDiagram" not in contents or not match:
@@ -132,8 +132,10 @@ def assert_class_member(
 
 
 def main() -> int:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
     if len(sys.argv) != 2:
         print(
             "使い方: distribution_language_smoke.py <CLI実行ファイル>", file=sys.stderr
