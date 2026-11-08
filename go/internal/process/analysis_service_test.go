@@ -132,6 +132,13 @@ func TestGenerateCIWorkflowFromSelectedYAML(t *testing.T) {
 	if err := os.WriteFile(workflowPath, []byte(source), 0o600); err != nil {
 		t.Fatalf("write workflow: %v", err)
 	}
+	compatibleOperations, err := (AnalysisService{}).CompatibleOperations(workflowPath)
+	if err != nil {
+		t.Fatalf("CompatibleOperations() error = %v", err)
+	}
+	if !reflect.DeepEqual(compatibleOperations, []string{"ci-graph"}) {
+		t.Fatalf("CompatibleOperations() = %#v, want [ci-graph]", compatibleOperations)
+	}
 	outputDirectory := filepath.Join(root, "results")
 	service := AnalysisService{}
 	paths, err := service.Generate(context.Background(), AnalysisRequest{
@@ -174,6 +181,19 @@ func TestCompatibleOperationsReflectInputLanguageAndProjectFiles(t *testing.T) {
 			t.Fatalf("write source %s: %v", path, err)
 		}
 	}
+	deploymentPath := filepath.Join(root, "compose.yaml")
+	if err := os.WriteFile(deploymentPath, []byte("services:\n  app:\n    image: example/app\n"), 0o600); err != nil {
+		t.Fatalf("write deployment config: %v", err)
+	}
+	workflowDirectory := filepath.Join(root, ".github", "workflows")
+	if err := os.MkdirAll(workflowDirectory, 0o700); err != nil {
+		t.Fatalf("create workflow directory: %v", err)
+	}
+	workflowPath := filepath.Join(workflowDirectory, "ci.yml")
+	workflowSource := "name: CI\non: [push, pull_request]\njobs:\n  build:\n    steps:\n      - name: Compile\n        run: go build ./...\n  test:\n    needs: build\n    steps:\n      - uses: actions/checkout@v4\n"
+	if err := os.WriteFile(workflowPath, []byte(workflowSource), 0o600); err != nil {
+		t.Fatalf("write workflow: %v", err)
+	}
 	service := AnalysisService{}
 	genericOperations := []string{
 		"call-graph", "class-diagram", "sequence-diagram", "communication-diagram",
@@ -186,15 +206,22 @@ func TestCompatibleOperationsReflectInputLanguageAndProjectFiles(t *testing.T) {
 		if err != nil {
 			t.Fatalf("CompatibleOperations(%s) error: %v", fileName, err)
 		}
-		for _, operation := range genericOperations {
-			if !slices.Contains(operations, operation) {
-				t.Errorf("%s operations = %#v; expected generic operation %s", fileName, operations, operation)
-			}
+		wantCount := len(genericOperations)
+		if filepath.Ext(fileName) == ".py" {
+			wantCount += len(pythonSpecificOperations)
 		}
-		for _, operation := range pythonSpecificOperations {
-			if slices.Contains(operations, operation) != (filepath.Ext(fileName) == ".py") {
-				t.Errorf("%s operation %s has incorrect language compatibility: %#v", fileName, operation, operations)
-			}
+		if len(operations) != wantCount {
+			t.Errorf("%s operation count = %d, want %d; operations = %#v", fileName, len(operations), wantCount, operations)
+		}
+		wantOperations := append([]string(nil), genericOperations...)
+		if filepath.Ext(fileName) == ".py" {
+			wantOperations = append(wantOperations, pythonSpecificOperations...)
+		}
+		sortedOperations := slices.Clone(operations)
+		slices.Sort(sortedOperations)
+		slices.Sort(wantOperations)
+		if !slices.Equal(sortedOperations, wantOperations) {
+			t.Errorf("%s operations = %#v, want exactly %#v", fileName, operations, wantOperations)
 		}
 	}
 	csharpPath := filepath.Join(root, "App.cs")
@@ -210,6 +237,21 @@ func TestCompatibleOperationsReflectInputLanguageAndProjectFiles(t *testing.T) {
 	}
 	if !slices.Contains(projectOperations, "package-diagram") || !slices.Contains(projectOperations, "object-diagram") {
 		t.Fatalf("project operations = %#v; expected folder and Python outputs", projectOperations)
+	}
+	wantProjectOperations := []string{
+		"call-graph", "class-diagram", "sequence-diagram", "object-diagram",
+		"communication-diagram", "state-diagram", "timing-chart", "use-case-diagram",
+		"responsibility-table", "package-diagram", "component-diagram", "deployment-diagram",
+		"ci-graph", "comments", "static-spec", "design-quality",
+	}
+	if len(projectOperations) != len(wantProjectOperations) {
+		t.Errorf("project operation count = %d, want %d; operations = %#v", len(projectOperations), len(wantProjectOperations), projectOperations)
+	}
+	sortedProjectOperations := slices.Clone(projectOperations)
+	slices.Sort(sortedProjectOperations)
+	slices.Sort(wantProjectOperations)
+	if !slices.Equal(sortedProjectOperations, wantProjectOperations) {
+		t.Errorf("project operations = %#v, want exactly %#v", projectOperations, wantProjectOperations)
 	}
 }
 

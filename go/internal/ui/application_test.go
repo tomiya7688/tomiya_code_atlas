@@ -3,6 +3,8 @@ package ui
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"strings"
@@ -22,6 +24,70 @@ type fakeAnalysisGenerator struct {
 	request process.AnalysisRequest
 	paths   []string
 	err     error
+}
+
+//	{
+//	  責務: [TestGetCompatibleOperationsUsesAnalysisService: GUI bindingが実際のProcess serviceから入力対応操作を返すことを検証する,]
+//	}
+func TestGetCompatibleOperationsUsesAnalysisService(t *testing.T) {
+	root := t.TempDir()
+	projectFiles := map[string]string{
+		"App.cs":                   "class App {}\n",
+		"sample.py":                "def run(): pass\n",
+		"compose.yaml":             "services:\n  app:\n    image: example/app\n",
+		".github/workflows/ci.yml": "name: CI\non: [push, pull_request]\njobs:\n  build:\n    steps:\n      - name: Compile\n        run: go build ./...\n  test:\n    needs: build\n    steps:\n      - uses: actions/checkout@v4\n",
+		"settings.yaml":            "theme: dark\n",
+	}
+	for relativePath, source := range projectFiles {
+		path := filepath.Join(root, filepath.FromSlash(relativePath))
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			t.Fatalf("create input directory: %v", err)
+		}
+		if err := os.WriteFile(path, []byte(source), 0o600); err != nil {
+			t.Fatalf("write input file %q: %v", relativePath, err)
+		}
+	}
+	application := &Application{generator: process.AnalysisService{}}
+	pythonOperations := []string{
+		"call-graph", "class-diagram", "sequence-diagram", "object-diagram",
+		"communication-diagram", "state-diagram", "timing-chart", "use-case-diagram",
+		"responsibility-table", "comments", "static-spec", "design-quality",
+	}
+	csharpOperations := []string{
+		"call-graph", "class-diagram", "sequence-diagram", "communication-diagram",
+		"responsibility-table", "comments", "static-spec", "design-quality",
+	}
+	projectOperations := []string{
+		"call-graph", "class-diagram", "sequence-diagram", "object-diagram",
+		"communication-diagram", "state-diagram", "timing-chart", "use-case-diagram",
+		"responsibility-table", "package-diagram", "component-diagram", "deployment-diagram",
+		"ci-graph", "comments", "static-spec", "design-quality",
+	}
+	for _, testCase := range []struct {
+		name string
+		path string
+		want []string
+	}{
+		{name: "Python source", path: filepath.Join(root, "sample.py"), want: pythonOperations},
+		{name: "C# source", path: filepath.Join(root, "App.cs"), want: csharpOperations},
+		{name: "workflow YAML", path: filepath.Join(root, filepath.FromSlash(".github/workflows/ci.yml")), want: []string{"ci-graph"}},
+		{name: "ordinary YAML", path: filepath.Join(root, "settings.yaml"), want: []string{}},
+		{name: "complete project", path: root, want: projectOperations},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := application.GetCompatibleOperations(testCase.path)
+			if err != nil {
+				t.Fatalf("GetCompatibleOperations() error = %v", err)
+			}
+			got = slices.Clone(got)
+			want := slices.Clone(testCase.want)
+			slices.Sort(got)
+			slices.Sort(want)
+			if !slices.Equal(got, want) {
+				t.Fatalf("GetCompatibleOperations() = %#v, want %#v", got, testCase.want)
+			}
+		})
+	}
 }
 
 //	{

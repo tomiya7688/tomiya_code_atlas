@@ -59,17 +59,33 @@ function createGuiHarness() {
         );
       }
       const all = operationInputs.map((input) => input.value);
-      if (/\.ya?ml$/i.test(source)) return ["ci-graph"];
-      if (source === "E:/project") return all;
-      return all.filter(
-        (operation) =>
-          ![
-            "package-diagram",
-            "component-diagram",
-            "deployment-diagram",
-            "ci-graph",
-          ].includes(operation),
-      );
+      const sourceOperations = [
+        "call-graph",
+        "class-diagram",
+        "sequence-diagram",
+        "communication-diagram",
+        "responsibility-table",
+        "comments",
+        "static-spec",
+        "design-quality",
+      ];
+      const pythonOperations = [
+        "object-diagram",
+        "state-diagram",
+        "timing-chart",
+        "use-case-diagram",
+      ];
+      const normalizedSource = source.replaceAll("\\", "/");
+      if (/\.ya?ml$/i.test(normalizedSource)) {
+        return /\.github\/workflows\//i.test(normalizedSource)
+          ? ["ci-graph"]
+          : [];
+      }
+      if (normalizedSource === "E:/project") return all;
+      if (!/\.(cs|cpp|gd|java|go|py)$/i.test(normalizedSource)) return [];
+      return /\.py$/i.test(normalizedSource)
+        ? [...sourceOperations, ...pythonOperations]
+        : sourceOperations;
     },
     Analyze(source, selectedOperations, output) {
       apiCalls.analyze.push([source, selectedOperations, output]);
@@ -255,29 +271,44 @@ test("enables operations that match the selected input kind", async () => {
   const gui = createGuiHarness();
   const operation = (value) =>
     gui.operations.find((input) => input.value === value);
+  const enabledCount = () =>
+    gui.operations.filter((input) => !input.disabled).length;
 
   assert.equal(operation("package-diagram").disabled, true);
   assert.equal(operation("ci-graph").disabled, true);
   await gui.sourceButton.click();
   assert.equal(operation("call-graph").disabled, false);
   assert.equal(operation("package-diagram").disabled, true);
+  assert.equal(enabledCount(), 12);
 
   gui.api.sourceFileResult = "E:/project/.github/workflows/ci.yaml";
   await gui.sourceButton.click();
   assert.equal(operation("ci-graph").disabled, false);
   assert.equal(operation("call-graph").disabled, true);
+  assert.equal(enabledCount(), 1);
   gui.selectOperations("ci-graph");
 
-  gui.api.sourceFileResult = "E:/project/sample.py";
+  gui.api.sourceFileResult = "E:/project/config/settings.yaml";
+  await gui.sourceButton.click();
+  assert.equal(enabledCount(), 0);
+
+  gui.api.sourceFileResult = "E:/project/SAMPLE.PY";
   await gui.sourceButton.click();
   assert.equal(operation("ci-graph").disabled, true);
   assert.equal(operation("ci-graph").checked, false);
+  assert.equal(enabledCount(), 12);
+
+  gui.api.sourceFileResult = "E:/project/App.cs";
+  await gui.sourceButton.click();
+  assert.equal(operation("object-diagram").disabled, true);
+  assert.equal(enabledCount(), 8);
 
   gui.selectInputKind("folder");
   await gui.sourceButton.click();
   assert.equal(operation("package-diagram").disabled, false);
   assert.equal(operation("deployment-diagram").disabled, false);
   assert.equal(operation("ci-graph").disabled, false);
+  assert.equal(enabledCount(), 16);
 });
 
 test("keeps the newest compatibility response when selections overlap", async () => {
