@@ -216,6 +216,10 @@ func TestGetCompatibleOperationsUsesAnalysisService(t *testing.T) {
 	root := t.TempDir()
 	projectFiles := map[string]string{
 		"App.cs":                   "class App {}\n",
+		"player.gd":                "extends Node\nfunc run():\n    pass\n",
+		"engine.cpp":               "class Engine {};\n",
+		"Main.java":                "class Main {}\n",
+		"main.go":                  "package main\nfunc main() {}\n",
 		"sample.py":                "def run(): pass\n",
 		"compose.yaml":             "services:\n  app:\n    image: example/app\n",
 		".github/workflows/ci.yml": "name: CI\non: [push, pull_request]\njobs:\n  build:\n    steps:\n      - name: Compile\n        run: go build ./...\n  test:\n    needs: build\n    steps:\n      - uses: actions/checkout@v4\n",
@@ -236,7 +240,7 @@ func TestGetCompatibleOperationsUsesAnalysisService(t *testing.T) {
 		"communication-diagram", "state-diagram", "timing-chart", "use-case-diagram",
 		"responsibility-table", "comments", "static-spec", "design-quality",
 	}
-	csharpOperations := []string{
+	standardSourceOperations := []string{
 		"call-graph", "class-diagram", "sequence-diagram", "communication-diagram",
 		"responsibility-table", "comments", "static-spec", "design-quality",
 	}
@@ -252,7 +256,11 @@ func TestGetCompatibleOperationsUsesAnalysisService(t *testing.T) {
 		want []string
 	}{
 		{name: "Python source", path: filepath.Join(root, "sample.py"), want: pythonOperations},
-		{name: "C# source", path: filepath.Join(root, "App.cs"), want: csharpOperations},
+		{name: "GDScript source", path: filepath.Join(root, "player.gd"), want: standardSourceOperations},
+		{name: "C# source", path: filepath.Join(root, "App.cs"), want: standardSourceOperations},
+		{name: "C++ source", path: filepath.Join(root, "engine.cpp"), want: standardSourceOperations},
+		{name: "Java source", path: filepath.Join(root, "Main.java"), want: standardSourceOperations},
+		{name: "Go source", path: filepath.Join(root, "main.go"), want: standardSourceOperations},
 		{name: "workflow YAML", path: filepath.Join(root, filepath.FromSlash(".github/workflows/ci.yml")), want: []string{"ci-graph"}},
 		{name: "ordinary YAML", path: filepath.Join(root, "settings.yaml"), want: []string{}},
 		{name: "complete project", path: root, want: projectOperations},
