@@ -620,7 +620,7 @@ def _verify_gui_analysis(exe: Path, workspace: Path) -> None:
         "gui-smoke_communication-diagram.md": (
             "# コミュニケーション図",
             "flowchart",
-            "GuiSmoke.run",
+            "GuiSmoke_run",
         ),
         "gui-smoke_state-diagram.md": (
             "# 状態図",
