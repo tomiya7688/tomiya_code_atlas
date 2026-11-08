@@ -55,7 +55,7 @@ def test_windows_distribution_is_attested_after_smoke_checks() -> None:
     gui_smoke_index = next(
         index
         for index, step in enumerate(build_steps)
-        if step.get("name") == "Go GUIの配布起動をsmoke test"
+        if step.get("name") == "Go GUIの配布起動と解析をsmoke test"
     )
     distribution_e2e_index = next(
         index
