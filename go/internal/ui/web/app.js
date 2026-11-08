@@ -150,14 +150,19 @@ async function analyzeSelection() {
 analyzeButton.addEventListener("click", analyzeSelection);
 
 // {
-//   責務: [runGuiSmoke: hidden smoke requestを画面状態へ反映し、利用者と同じ解析処理を実行して結果をGoへ返す,]
+//   責務: [runGuiSmoke: hidden smoke requestを画面状態へ反映し、互換性のある全成果物を選んで利用者と同じ解析処理を実行する,]
 // }
 async function runGuiSmoke(request) {
   try {
+    const selectAllCompatibleOperations =
+      request?.allCompatibleOperations === true;
     if (!request?.sourcePath || !request?.outputDirectory) {
       throw new Error("GUI smoke testの入力fileと保存先を取得できません。");
     }
-    if (!Array.isArray(request.operations) || request.operations.length === 0) {
+    if (!Array.isArray(request.operations)) {
+      throw new Error("GUI smoke testで成果物が選ばれていません。");
+    }
+    if (!selectAllCompatibleOperations && request.operations.length === 0) {
       throw new Error("GUI smoke testで成果物が選ばれていません。");
     }
 
@@ -172,7 +177,14 @@ async function runGuiSmoke(request) {
     const knownOperations = new Set(
       operationInputs.map((input) => input.value),
     );
-    for (const operation of request.operations) {
+    // GUI自身の互換性照会を使い、smoke専用の重複operation一覧を持たないようにします。
+    const selectedOperations = selectAllCompatibleOperations
+      ? [...compatibleOperations]
+      : request.operations;
+    if (selectedOperations.length === 0) {
+      throw new Error("GUI smoke testの入力に対応する成果物がありません。");
+    }
+    for (const operation of selectedOperations) {
       if (
         !knownOperations.has(operation) ||
         !compatibleOperations.has(operation)
@@ -183,7 +195,7 @@ async function runGuiSmoke(request) {
       }
     }
     for (const input of operationInputs) {
-      input.checked = request.operations.includes(input.value);
+      input.checked = selectedOperations.includes(input.value);
     }
     selected.output = request.outputDirectory;
     showPath(outputPath, selected.output);

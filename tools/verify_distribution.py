@@ -563,10 +563,39 @@ def _verify_gui_launch(exe: Path, workspace: Path) -> None:
 
 
 def _verify_gui_analysis(exe: Path, workspace: Path) -> None:
-    """Run the GUI's bound Analyze method against an isolated fixture."""
+    # {
+    #   責務: [_verify_gui_analysis: GUIの実選択・解析bindingでPython file用12成果物を作成する]
+    #   処理: [1: 複数の解析要素を持つfixtureを保存する, 2: smoke modeで12 operationを実行する, 3: 各成果物の実内容を検証する]
+    #   引数: [exe: 検証する配布EXE, workspace: fixtureと出力を作る隔離folder]
+    # }
+    """Run every Python-file GUI operation against a representative source fixture."""
     source = workspace / "gui-smoke.py"
     source.write_text(
-        "class GuiSmoke:\n    def run(self):\n        return self.helper()\n    def helper(self):\n        return None\n",
+        "from enum import Enum\n"
+        "import asyncio\n\n"
+        "class State(Enum):\n"
+        '    IDLE = "idle"\n'
+        '    RUNNING = "running"\n'
+        '    DONE = "done"\n\n'
+        "class GuiSmoke:\n"
+        "    def __init__(self):\n"
+        "        self.state = State.IDLE\n"
+        '        self.button = Button(text="Run", command=self.run)\n\n'
+        "    def run(self):\n"
+        "        if self.state == State.IDLE:\n"
+        "            self.state = State.RUNNING\n"
+        "        return self.helper()\n\n"
+        "    async def load(self):\n"
+        "        await asyncio.sleep(1)\n"
+        "        return await self.helper_async()\n\n"
+        "    async def helper_async(self):\n"
+        "        return None\n\n"
+        "    def finish(self):\n"
+        "        if self.state == State.RUNNING:\n"
+        "            self.state = State.DONE\n\n"
+        "    def helper(self):\n"
+        "        return None\n\n"
+        "smoke = GuiSmoke()\n",
         encoding="utf-8",
     )
     output_directory = workspace / "gui-analysis"
@@ -579,9 +608,48 @@ def _verify_gui_analysis(exe: Path, workspace: Path) -> None:
             "TOMIYA_CODE_ATLAS_GUI_SMOKE_OUTPUT": str(output_directory),
         },
     )
-    _require(output_directory / "gui-smoke_call-graph.md", "flowchart", "run")
+    expected_outputs = {
+        "gui-smoke_call-graph.md": ("# 呼び出し図", "flowchart", "GuiSmoke.run"),
+        "gui-smoke_class-diagram.md": ("# クラス図", "classDiagram", "GuiSmoke"),
+        "gui-smoke_sequence-diagram.md": (
+            "# シーケンス図",
+            "sequenceDiagram",
+            "GuiSmoke.run",
+        ),
+        "gui-smoke_object-diagram.md": ("# オブジェクト図", "smoke : GuiSmoke"),
+        "gui-smoke_communication-diagram.md": (
+            "# コミュニケーション図",
+            "flowchart",
+            "GuiSmoke.run",
+        ),
+        "gui-smoke_state-diagram.md": (
+            "# 状態図",
+            "stateDiagram-v2",
+            "IDLE",
+            "RUNNING",
+        ),
+        "gui-smoke_timing-chart.md": (
+            "# タイミングチャート",
+            "sequenceDiagram",
+            "GuiSmoke.load",
+            "async flow",
+        ),
+        "gui-smoke_use-case-diagram.md": ("# ユースケース図", "User", "Run"),
+        "gui-smoke_responsibility-table.md": (
+            "# 責務表",
+            "| Class | Responsibility |",
+            "| GuiSmoke |",
+        ),
+        "gui-smoke_static-spec.md": ("# gui-smoke", "## 宣言一覧", "class: `GuiSmoke`"),
+        "gui-smoke_design-quality.md": ("# 設計品質レポート", "## 指標"),
+    }
+    for relative_path, markers in expected_outputs.items():
+        _require(output_directory / relative_path, *markers)
     _require(
-        output_directory / "gui-smoke_class-diagram.md", "classDiagram", "GuiSmoke"
+        output_directory / "comments" / "gui-smoke_commented.py",
+        "class GuiSmoke",
+        "def run",
+        "状態と処理をまとめます。",
     )
 
 

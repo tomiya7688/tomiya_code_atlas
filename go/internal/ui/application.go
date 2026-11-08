@@ -210,9 +210,10 @@ func (application *Application) domReady(runtimeContext context.Context) {
 			application.completeSmoke("GUIの解析smoke testが時間内に完了しませんでした")
 		})
 		wailsruntime.EventsEmit(runtimeContext, guiSmokeAnalysisEvent, map[string]interface{}{
-			"sourcePath":      application.smokeAnalysis.SourcePath,
-			"operations":      application.smokeAnalysis.Operations,
-			"outputDirectory": application.smokeAnalysis.OutputDirectory,
+			"sourcePath":              application.smokeAnalysis.SourcePath,
+			"operations":              application.smokeAnalysis.Operations,
+			"outputDirectory":         application.smokeAnalysis.OutputDirectory,
+			"allCompatibleOperations": len(application.smokeAnalysis.Operations) == 0,
 		})
 		return
 	}

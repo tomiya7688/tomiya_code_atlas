@@ -117,6 +117,7 @@ const guiSmokeOutputEnvironment = "TOMIYA_CODE_ATLAS_GUI_SMOKE_OUTPUT"
 
 //	{
 //	  責務: [guiSmokeAnalysisFromEnvironment: smoke mode専用の環境変数を検証済みAnalysisRequestへ変換し、通常GUIへ影響させない]
+//	  処理: [1: 入力と保存先を検証する, 2: GUIの互換性照会結果からsmoke対象operationを選ぶ, 3: 検証済み要求を返す]
 //	  引数: [smokeMode: smoke実行か, lookup: 環境変数の値を取得する関数]
 //	  戻り値: [request: GUI起動後に実行する解析要求またはnil, error: 片方のみ指定または空白pathの場合の説明]
 //	}
@@ -133,7 +134,9 @@ func guiSmokeAnalysisFromEnvironment(smokeMode bool, lookup func(string) string)
 		return nil, fmt.Errorf("GUI解析smoke testには入力と出力先の両方が必要です")
 	}
 	return &process.AnalysisRequest{
-		SourcePath: sourcePath, Operations: []string{"call-graph", "class-diagram"}, OutputDirectory: outputDirectory,
+		SourcePath:      sourcePath,
+		Operations:      []string{},
+		OutputDirectory: outputDirectory,
 	}, nil
 }
 

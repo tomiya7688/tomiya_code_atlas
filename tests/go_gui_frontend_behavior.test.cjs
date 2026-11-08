@@ -402,38 +402,50 @@ test("prevents browser defaults only for supported Alt shortcuts", async () => {
 });
 
 // {
-//   責務: [検証: 配布smoke eventが画面の互換性判定・checkbox選択・解析bindingを通ることを確認する,]
+//   責務: [検証: 配布smoke eventが入力の互換性照会結果12件を一括選択して解析bindingを通ることを確認する,]
 // }
 test("runs packaged GUI smoke through frontend compatibility and Analyze flow", async () => {
   const gui = createGuiHarness();
   const smokeRun = gui.emitRuntimeEvent("gui-smoke-analyze", {
     sourcePath: "E:/project/sample.py",
-    operations: ["call-graph", "class-diagram"],
+    operations: [],
+    allCompatibleOperations: true,
     outputDirectory: "E:/gui-output",
   });
 
   await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(gui.apiCalls.compatible, ["E:/project/sample.py"]);
   assert.equal(gui.apiCalls.analyze.length, 1);
+  assert.equal(gui.apiCalls.analyze[0][1].length, 12);
   assert.equal(
-    JSON.stringify(gui.apiCalls.analyze[0]),
-    JSON.stringify([
-      "E:/project/sample.py",
-      ["call-graph", "class-diagram"],
-      "E:/gui-output",
-    ]),
+    JSON.stringify(gui.apiCalls.analyze[0][1].slice().sort()),
+    JSON.stringify(
+      [
+        "call-graph",
+        "class-diagram",
+        "sequence-diagram",
+        "object-diagram",
+        "communication-diagram",
+        "state-diagram",
+        "timing-chart",
+        "use-case-diagram",
+        "responsibility-table",
+        "comments",
+        "static-spec",
+        "design-quality",
+      ].sort(),
+    ),
   );
-  assert.equal(
-    gui.operations.find((input) => input.value === "call-graph").checked,
-    true,
-  );
-  assert.equal(
-    gui.operations.find((input) => input.value === "class-diagram").checked,
-    true,
-  );
+  for (const operation of gui.apiCalls.analyze[0][1]) {
+    assert.equal(
+      gui.operations.find((input) => input.value === operation).checked,
+      true,
+      `${operation} must be selected in the GUI`,
+    );
+  }
 
   gui.resolveAnalysis({
-    message: "解析が完了しました。2件の成果物を保存しました。",
+    message: "解析が完了しました。12件の成果物を保存しました。",
     outputPaths: [],
   });
   await smokeRun;
@@ -462,8 +474,12 @@ test("reports GUI smoke failures without hiding the failing stage", async (t) =>
   const scenarios = [
     {
       name: "malformed request",
-      request: { operations: [] },
-      expectedMessage: /入力fileと保存先/,
+      request: {
+        sourcePath: "E:/project/sample.py",
+        operations: [],
+        outputDirectory: "E:/gui-output",
+      },
+      expectedMessage: /成果物が選ばれていません/,
       expectedAnalysisCalls: 0,
     },
     {

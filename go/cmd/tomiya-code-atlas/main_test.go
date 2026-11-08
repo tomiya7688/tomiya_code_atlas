@@ -101,7 +101,7 @@ func TestGUISmokeAnalysisRequiresBothPathsAndOnlyRunsInSmokeMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("complete GUI smoke request failed: %v", err)
 	}
-	if request.SourcePath != "source.py" || request.OutputDirectory != "output" || len(request.Operations) != 2 || request.Operations[0] != "call-graph" || request.Operations[1] != "class-diagram" {
+	if request.SourcePath != "source.py" || request.OutputDirectory != "output" || len(request.Operations) != 0 {
 		t.Fatalf("GUI smoke request = %#v", request)
 	}
 }
